@@ -1,10 +1,14 @@
 package models
 
-import "time"
+import (
+	"github.com/google/uuid"
+)
 
 type Message struct {
-	Body      string    `json:""`
-	Direction string    `json:""` //uuid
-	Sender    string    `json:""` //uuid
-	Sent      time.Time `json:""`
+	ChatID     uuid.UUID `json:"chatID"`
+	MsgID      uuid.UUID `json:"-"`
+	SenderID   uuid.UUID `json:"senderID"`
+	ReceiverID uuid.UUID `json:"receiverID"`
+	Payload    string    `json:"payload"`
+	CreatedAt  float64   `json:"-"`
 }

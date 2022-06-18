@@ -21,6 +21,10 @@ box.space.msg_queue:create_index('chat_index', {if_not_exists = true, parts = { 
 
 box.space.msg_queue:create_index('msg_index', {if_not_exists = true, parts = { { 2, 'uuid' }}})
 
+box.space.msg_queue:create_index('sender_index', {if_not_exists = true, unique=false, parts = { { 3, 'uuid' }, {1, 'uuid'}}})
+
+box.space.msg_queue:create_index('receiver_index', {if_not_exists = true,unique=false, parts = { { 4, 'uuid' }, {1, 'uuid'}}})
+
 local queue = {}
 
 -- in this table we keep chat_ids and receiver_ids with the value of last unread message
@@ -32,11 +36,15 @@ local chats_upd = {}
 -- sync thing
 queue._wait = fiber.channel()
 
+--chat_id, sender_id, receiver_id, payload
+--c5f0ae14-d06b-4ffd-9bcd-6df01243a9c5, 62391bd9-157c-4513-8e7c-c082e00d2b7e, 61f98c94-de3c-491a-b9c7-1ea214b3ec13
 function queue.put(chat_id, sender_id, receiver_id, payload)
     local msg_id = uuid()
     local created_at = fiber.time()
 
+    print('put start')
     print(chat_id, sender_id, receiver_id, payload)
+    print('put end')
 
     if chats[chat_id] == nil then
         chats[chat_id] = {}
@@ -67,7 +75,7 @@ function queue.put(chat_id, sender_id, receiver_id, payload)
 end
 
 
-function queue.take_new_messages_from_space(chat_id, since_msg_id, sender_id, receiver_id)
+function queue.take_new_messages_from_space(chat_id, receiver_id)
     local since = 0
 
     if not chats[chat_id] then
@@ -81,13 +89,15 @@ function queue.take_new_messages_from_space(chat_id, since_msg_id, sender_id, re
     since = chats[chat_id][receiver_id]
     chats[chat_id][receiver_id] = -1
 
+    print("take called start")
     local batch = {}
     for _, tuple in box.space.msg_queue.index.chat_index:pairs({ uuid.fromstr(chat_id) }) do
-        if (since ~= nil and since ~=-1 and since <= tuple[6]) or since_msg_id == nil then
+        if (since ~= nil and since ~=-1 and since <= tuple[6]) then
             table.insert(batch, { tuple[1]:str(), tuple[2]:str(), tuple[3]:str(), tuple[4]:str(), tuple[5], tuple[6] })
-            print("sending", tuple[1]:str(), tuple[2]:str(), tuple[3]:str(), tuple[4]:str(), tuple[5], tuple[6])
+            print(tuple[1]:str(), tuple[2]:str(), tuple[3]:str(), tuple[4]:str(), tuple[5], tuple[6])
         end
     end
+    print("take called end")
     return batch
 end
 
@@ -104,13 +114,20 @@ function queue.fetch_chat_list_update(chat_list)
     return batch
 end
 
+function queue.fetch_chat_list_update_for_single_user(user_id)
+    local chat_list = box.space.msg_queue.index.sender_index:select(uuid.fromstr(user_id))
+    chat_list = chat_list .. box.space.msg_queue.index.receiver_index:select(uuid.fromstr(user_id))
+    return queue.fetch_chat_list_update(chat_list)
+end
+
 function queue.flush_all()
     return box.space.msg_queue:select()
 end
 
 rawset(_G, 'put', queue.put)
 rawset(_G, 'take_msgs', queue.take_new_messages_from_space)
-rawset(_G, 'fetch_chats_upd', queue.fetch_chat_list_update)
+rawset(_G, 'fetch_chats_upd', queue.fetch_chat_list_update_for_single_user)
+rawset(_G, 'flush', queue.flush_all)
 
 box.once('debug', function() box.schema.user.grant('guest', 'super') end)
 

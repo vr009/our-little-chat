@@ -2,7 +2,6 @@ package usecase
 
 import (
 	"container/list"
-	debug "log"
 	"our-little-chatik/internal/peer/internal"
 	"our-little-chatik/internal/peer/internal/models"
 )
@@ -24,7 +23,9 @@ func (m *MessageManagerImpl) EnqueueChat(chat *models.Chat) {
 
 func (m *MessageManagerImpl) DequeueChat(chat *models.Chat) {
 	for e := m.chatList.Front(); e != nil; e = e.Next() {
-		if e.Value.(models.Chat).ChatID == chat.ChatID {
+		ch := e.Value.(*models.Chat)
+		id := ch.ChatID
+		if id == chat.ChatID {
 			m.chatList.Remove(e)
 		}
 	}
@@ -35,28 +36,28 @@ func (m *MessageManagerImpl) Work() {
 		for e := m.chatList.Front(); e != nil; e = e.Next() {
 			chat := e.Value.(*models.Chat)
 			msgs, _ := m.repo.FetchUpdates(chat)
+			if msgs != nil {
+				chat.PutMsgsToRecv(msgs)
+			}
 			select {
 			case msg := <-chat.ReadyForSend:
 				m.repo.SendPayload(msg, chat)
-				//debug.Println("sending: ", msg)
 			default:
-				if msgs != nil {
-					chat.PutMsgsToRecv(msgs)
-					debug.Println("some new messages here: ", msgs)
-				}
 			}
 		}
 	}
 }
 
-func (m *MessageManagerImpl) EnqueueChatIfNotExists(msg *models.Message) (chat *models.Chat) {
+// EnqueueChatIfNotExists enqueues a passed Chat to an internal queue of chats.
+// If the chat already exists it finds it and return.
+func (m *MessageManagerImpl) EnqueueChatIfNotExists(c *models.Chat) (chat *models.Chat) {
 	for e := m.chatList.Front(); e != nil; e = e.Next() {
 		chat = e.Value.(*models.Chat)
-		if chat.ChatID == msg.ChatID && chat.ReceiverID == msg.ReceiverID {
+		if chat.ChatID == c.ChatID && chat.ReceiverID == c.ReceiverID {
 			return chat
 		}
 	}
-	chat = models.NewChatFromMsg(msg)
+	chat = c
 	m.EnqueueChat(chat)
 	return chat
 }

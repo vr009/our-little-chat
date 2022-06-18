@@ -22,5 +22,11 @@ type PeerRepo interface {
 
 type MessageManager interface {
 	Work()
-	EnqueueChatIfNotExists(msg *models.Message) *models.Chat
+	// EnqueueChatIfNotExists enqueues a passed Chat to an internal queue of chats.
+	// If the chat already exists it finds it and return.
+	EnqueueChatIfNotExists(chat *models.Chat) *models.Chat
+	// DequeueChat dequeues chat from internal common queue
+	DequeueChat(chat *models.Chat)
+	// EnqueueChat enqueues chat in internal common queue
+	EnqueueChat(chat *models.Chat)
 }

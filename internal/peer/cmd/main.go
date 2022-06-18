@@ -1,29 +1,47 @@
 package main
 
 import (
-	"flag"
+	"github.com/spf13/viper"
 	"github.com/tarantool/go-tarantool"
 	"log"
 	"net/http"
+	"os"
 	"our-little-chatik/internal/peer/internal/delivery"
 	repo2 "our-little-chatik/internal/peer/internal/repo"
 	usecase2 "our-little-chatik/internal/peer/internal/usecase"
-	"time"
+	"strconv"
 )
 
-var addr = flag.String("addr", ":8080", "http service address")
+type DBConfig struct {
+	Host     string
+	Port     int
+	Username string
+	Password string
+}
 
-var defaultServer = "127.0.0.1:3301"
-var defaultOpts = tarantool.Opts{
-	Timeout: 500 * time.Millisecond,
-	User:    "test",
-	Pass:    "test",
-	//Concurrency: 32,
-	//RateLimit: 4*1024,
+type AppConfig struct {
+	Port int
+	DB   DBConfig
 }
 
 func main() {
-	conn, err := tarantool.Connect(defaultServer, defaultOpts)
+	configPath := os.Getenv("CONFIG")
+	viper.AddConfigPath(configPath)
+	viper.SetConfigName("config")
+	if err := viper.ReadInConfig(); err != nil {
+		log.Fatal("Failed to read a config file")
+	}
+
+	appConfig := AppConfig{}
+	err := viper.Unmarshal(&appConfig)
+	if err != nil {
+		panic(err)
+	}
+
+	ttAddr := appConfig.DB.Host + ":" + strconv.Itoa(appConfig.DB.Port)
+	ttOpts := tarantool.Opts{User: appConfig.DB.Username, Pass: appConfig.DB.Password}
+
+	conn, err := tarantool.Connect(ttAddr, ttOpts)
 	if err != nil {
 		panic("failed to connect to tarantool")
 	}
@@ -38,7 +56,10 @@ func main() {
 	http.HandleFunc("/ws", func(w http.ResponseWriter, r *http.Request) {
 		peerServer.WSServe(w, r)
 	})
-	err = http.ListenAndServe(*addr, nil)
+
+	log.Printf("service started at :%d", appConfig.Port)
+
+	err = http.ListenAndServe(":"+strconv.Itoa(appConfig.Port), nil)
 	if err != nil {
 		log.Fatal("ListenAndServe: ", err)
 	}

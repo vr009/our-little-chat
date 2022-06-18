@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"github.com/gorilla/websocket"
-	debug "log"
+	"log"
 	"net/http"
 	"our-little-chatik/internal/peer/internal"
 	"our-little-chatik/internal/peer/internal/models"
@@ -75,6 +75,8 @@ func (ws *WebSocketClient) write() {
 		}
 		select {
 		case messages := <-ws.currentChat.ReadyForRecv:
+			//log.Println("sending for receiver:", ws.currentChat.ReceiverID)
+			//log.Println(messages)
 			ws.conn.SetWriteDeadline(time.Now().Add(writeWait))
 
 			w, err := ws.conn.NextWriter(websocket.TextMessage)
@@ -83,15 +85,16 @@ func (ws *WebSocketClient) write() {
 			}
 
 			for _, msg := range messages {
-				//debug.Println("sending", msg)
 				buf, err := json.Marshal(msg)
 				if err != nil {
-					debug.Fatal(err)
+					log.Fatal(err)
 					return
 				}
 				w.Write(buf)
 				w.Write(newline)
 			}
+
+			//log.Println("sent.")
 
 			if err := w.Close(); err != nil {
 				return
@@ -112,45 +115,56 @@ func (ws *WebSocketClient) write() {
 // reads from this goroutine.
 func (ws *WebSocketClient) read() {
 	defer func() {
+		log.Println("closed connection")
 		ws.conn.Close()
+		if ws.currentChat != nil && ws.currentChat.ChatSibling != nil {
+			ws.manager.DequeueChat(ws.currentChat.ChatSibling)
+		}
+		if ws.currentChat != nil {
+			ws.manager.DequeueChat(ws.currentChat)
+		}
 	}()
+
 	ws.conn.SetReadLimit(maxMessageSize)
 	ws.conn.SetReadDeadline(time.Now().Add(pongWait))
 	ws.conn.SetPongHandler(func(string) error { ws.conn.SetReadDeadline(time.Now().Add(pongWait)); return nil })
+
 	for {
 		_, message, err := ws.conn.ReadMessage()
 		if err != nil {
 			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
-				debug.Printf("error: %v", err)
+				log.Printf("error: %v", err)
 			}
 			break
 		}
-		//debug.Println(string(message))
 		msg := &models.Message{}
 		message = bytes.TrimSpace(bytes.Replace(message, newline, space, -1))
 		err = json.Unmarshal(message, msg)
-		//debug.Println(msg)
 		if err != nil {
-			debug.Fatalf("failed to unmarshal message")
+			log.Println("failed to unmarshal message")
+			return
 		}
 
-		chat := ws.manager.EnqueueChatIfNotExists(msg)
+		chat := models.NewChatFromMsg(msg)
+		chat = ws.manager.EnqueueChatIfNotExists(chat)
 		if ws.currentChat == nil {
 			ws.currentChat = chat
 		}
 
 		msgForSibling := models.NewMessageForAnotherSide(msg)
 		if chat.ChatSibling == nil {
-			chat.ChatSibling = ws.manager.EnqueueChatIfNotExists(msgForSibling)
+			chat.ChatSibling = models.NewChatFromMsg(msgForSibling)
+			chat.ChatSibling = ws.manager.EnqueueChatIfNotExists(chat.ChatSibling)
 		}
+		chat.ChatSibling.ChatSibling = chat
 
 		if msg.SessionStart {
 			continue
 		}
 
-		err = ws.uc.SendMessage(msgForSibling, chat.ChatSibling)
+		err = ws.uc.SendMessage(msg, chat)
 		if err != nil {
-			debug.Fatal(err)
+			log.Fatal(err)
 		}
 	}
 }
@@ -159,7 +173,7 @@ func (server *PeerServer) WSServe(w http.ResponseWriter, r *http.Request) {
 	upgrader.CheckOrigin = func(r *http.Request) bool { return true }
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
-		debug.Fatal(err)
+		log.Fatal(err)
 		return
 	}
 	client := newWebSocketClient(conn, server.uc, server.manager)

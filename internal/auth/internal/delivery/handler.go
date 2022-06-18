@@ -3,6 +3,7 @@ package delivery
 import (
 	"auth/internal"
 	models2 "auth/internal/models"
+	"context"
 	"encoding/json"
 	"log"
 	"net/http"
@@ -31,6 +32,7 @@ func NewAuthHandler(UCase internal.UseCase) *AuthHandler {
 // @Failure      500  {object}  models.Error
 // @Router       /auth/signup [post]
 func (a *AuthHandler) SignUp(w http.ResponseWriter, r *http.Request) {
+	r.WithContext(context.Background())
 	userCreate := models2.UserCreate{}
 	user := models2.User{}
 	err := json.NewDecoder(r.Body).Decode(&userCreate)

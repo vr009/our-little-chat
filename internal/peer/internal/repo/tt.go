@@ -41,9 +41,7 @@ func (tt *TarantoolRepo) FetchUpdates(chat *models.Chat) ([]models.Message, erro
 	conn := tt.conn
 	err := conn.CallTyped("take_msgs",
 		[]interface{}{chat.ChatID.String(),
-			chat.ReceiverID.String(),
-			chat.SenderID.String(),
-			chat.ReceiverID.String()}, &msgs)
+			chat.SenderID.String()}, &msgs)
 	if err != nil && len(msgs) < 1 {
 		log.Println("error from tt: ", err)
 		return nil, err
@@ -52,10 +50,6 @@ func (tt *TarantoolRepo) FetchUpdates(chat *models.Chat) ([]models.Message, erro
 	if len(msgs) > 0 && msgs[0].Payload == "" {
 		return nil, nil
 	}
-
-	//if len(msgs) > 0 {
-	//	log.Println("from tt: ", msgs)
-	//}
 
 	return msgs, nil
 }
