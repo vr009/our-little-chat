@@ -1,5 +1,5 @@
 # Our little chat
-## Personal project for training of hard skills
+## Personal project for training hard skills
 
 ## Features
 
