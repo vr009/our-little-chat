@@ -15,14 +15,18 @@ func NewAuthUseCase(base internal.AuthRepo) *AuthUseCase {
 	}
 }
 
-func (uc *AuthUseCase) CreateSession(session models.Session) models.Session {
+func (uc *AuthUseCase) CreateSession(session models.Session) (models.Session, models.StatusCode) {
 	return uc.repo.CreateSession(session)
 }
 
-func (uc *AuthUseCase) DeleteSession(session models.Session) {
-	uc.repo.CreateSession(session)
+func (uc *AuthUseCase) DeleteSession(session models.Session) models.StatusCode {
+	return uc.repo.DeleteSession(session)
 }
 
-func (uc *AuthUseCase) GetSession(session models.Session) models.Session {
-	return uc.repo.GetSession(session)
+func (uc *AuthUseCase) GetToken(session models.Session) (models.Session, models.StatusCode) {
+	return uc.repo.GetToken(session)
+}
+
+func (uc *AuthUseCase) GetUser(session models.Session) (models.Session, models.StatusCode) {
+	return uc.repo.GetUser(session)
 }
