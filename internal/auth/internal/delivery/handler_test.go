@@ -1,12 +1,14 @@
 package delivery
 
 import (
-	"github.com/google/uuid"
+	"fmt"
 	"testing"
 )
 
-func BenchmarkAuthHandler_GetToken(b *testing.B) {
-	for i := 0; i < b.N; i++ {
-		_ = uuid.New()
-	}
+func TestA(t *testing.T) {
+	a := 100
+	b := &a
+	fmt.Println(a, *b)
+	a = 120
+	fmt.Println(a, *b)
 }
