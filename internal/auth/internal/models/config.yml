@@ -1,9 +1,0 @@
-Address: ":8080"
-
-DataBase:
-  Port: ":6379"
-  Password: ""
-  DB: 0
-  TtlHours: 24
-
-
