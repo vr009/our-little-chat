@@ -6,6 +6,20 @@ box.cfg{
 }
 
 
+-- service
+local function dump(o)
+    if type(o) == 'table' then
+        local s = '{ '
+        for k,v in pairs(o) do
+            if type(k) ~= 'number' then k = '"'..k..'"' end
+            s = s .. '['..k..'] = ' .. dump(v) .. ','
+        end
+        return s .. '} '
+    else
+        return tostring(o)
+    end
+end
+
 box.schema.space.create('msg_queue',
         {
             if_not_exists = true,
@@ -24,6 +38,15 @@ box.space.msg_queue:create_index('msg_index', {if_not_exists = true, parts = { {
 box.space.msg_queue:create_index('sender_index', {if_not_exists = true, unique=false, parts = { { 3, 'uuid' }, {1, 'uuid'}}})
 
 box.space.msg_queue:create_index('receiver_index', {if_not_exists = true,unique=false, parts = { { 4, 'uuid' }, {1, 'uuid'}}})
+
+box.schema.space.create('user_chat_list',
+        {
+            if_not_exists = true,
+            format = { { 'participant', type = 'uuid' },
+                       { 'chat_id' , type = 'uuid'}}
+        })
+
+box.space.user_chat_list:create_index('chat_list_index', { if_not_exists = true, unique =true, parts = { { 1, 'uuid' }, { 2, 'uuid' }} })
 
 local queue = {}
 
@@ -55,6 +78,15 @@ function queue.put(chat_id, sender_id, receiver_id, payload)
     end
 
     -- we put the id of the last message for chat list update
+    box.space.user_chat_list:replace{
+        uuid.fromstr(sender_id),
+        uuid.fromstr(chat_id),
+    }
+    box.space.user_chat_list:replace{
+        uuid.fromstr(receiver_id),
+        uuid.fromstr(chat_id),
+    }
+
     if not chats_upd[chat_id] then
         chats_upd[chat_id] = {}
     end
@@ -89,7 +121,6 @@ function queue.take_new_messages_from_space(chat_id, receiver_id)
     since = chats[chat_id][receiver_id]
     chats[chat_id][receiver_id] = -1
 
-    print("take called start")
     local batch = {}
     for _, tuple in box.space.msg_queue.index.chat_index:pairs({ uuid.fromstr(chat_id) }) do
         if (since ~= nil and since ~=-1 and since <= tuple[6]) then
@@ -97,7 +128,6 @@ function queue.take_new_messages_from_space(chat_id, receiver_id)
             print(tuple[1]:str(), tuple[2]:str(), tuple[3]:str(), tuple[4]:str(), tuple[5], tuple[6])
         end
     end
-    print("take called end")
     return batch
 end
 
@@ -105,23 +135,23 @@ end
 function queue.fetch_chat_list_update(chat_list)
     local batch = {}
     for _, chat_id in ipairs(chat_list) do
-        local msg_id = chats_upd[chat_id]
+        local msg_id = chats_upd[chat_id[2]:str()]
         if msg_id ~= nil then
             local tuple = box.space.msg_queue.index.msg_index:get(uuid.fromstr(msg_id))
-            table.insert(batch, { tuple[1]:str(), tuple[2]:str(), tuple[3]:str(), tuple[4]:str(), tuple[5], tuple[6] })
+            table.insert(batch, { tuple[1]:str(), tuple[3]:str(), tuple[5], tuple[6] })
+            chats_upd[chat_id[2]:str()] = nil
         end
     end
     return batch
 end
 
 function queue.fetch_chat_list_update_for_single_user(user_id)
-    local chat_list = box.space.msg_queue.index.sender_index:select(uuid.fromstr(user_id))
-    chat_list = chat_list .. box.space.msg_queue.index.receiver_index:select(uuid.fromstr(user_id))
+    local chat_list = box.space.user_chat_list:select(uuid.fromstr(user_id))
     return queue.fetch_chat_list_update(chat_list)
 end
 
 function queue.flush_all()
-    return box.space.msg_queue:select()
+    return box.space.msg_queue:select() --TODO rewrite it to pairs
 end
 
 rawset(_G, 'put', queue.put)
@@ -134,6 +164,7 @@ box.once('debug', function() box.schema.user.grant('guest', 'super') end)
 box.schema.user.create('test', {password = 'test'})
 box.schema.user.grant('test', 'execute', 'universe')
 box.schema.user.grant('test', 'read,write', 'space', 'msg_queue')
+box.schema.user.grant('test', 'read,write', 'space', 'user_chat_list')
 
 return queue
 
