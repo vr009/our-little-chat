@@ -151,7 +151,12 @@ function queue.fetch_chat_list_update_for_single_user(user_id)
 end
 
 function queue.flush_all()
-    return box.space.msg_queue:select() --TODO rewrite it to pairs
+    local batch = {}
+    for k, tuple in box.space.msg_queue:pairs() do
+        table.insert(batch, { tuple[1]:str(), tuple[2]:str(), tuple[3]:str(), tuple[4]:str(), tuple[5], tuple[6] })
+    end
+    box.space.msg_queue:truncate()
+    return batch --TODO rewrite it to pairs
 end
 
 rawset(_G, 'put', queue.put)

@@ -23,7 +23,7 @@ func (d *FlusherD) Work(ctx context.Context, period int) {
 		case <-ticker.C:
 			messages, err := d.queueRepo.FetchAll()
 			if err != nil {
-				log.Println(err)
+				continue
 			}
 			err = d.persistantRepo.PersistAll(messages)
 			if err != nil {

@@ -2,6 +2,7 @@ package repo
 
 import (
 	"context"
+	"fmt"
 	"go.mongodb.org/mongo-driver/mongo"
 	"our-little-chatik/internal/models"
 	"time"
@@ -16,7 +17,7 @@ func NewMongoRepo(conn *mongo.Client) *MongoRepo {
 }
 
 func (repo *MongoRepo) PersistAll(msgs []models.Message) error {
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
 	defer cancel()
 
 	docs := []interface{}{}
@@ -25,9 +26,10 @@ func (repo *MongoRepo) PersistAll(msgs []models.Message) error {
 	}
 
 	collection := repo.conn.Database("messages").Collection("message_list")
-	_, err := collection.InsertMany(ctx, []interface{}{docs})
+	_, err := collection.InsertMany(ctx, docs)
 	if err != nil {
 		return err
 	}
+	fmt.Println("persisted:", msgs)
 	return nil
 }

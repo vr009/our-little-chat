@@ -1,4 +1,4 @@
-package cmd
+package main
 
 import (
 	"context"
@@ -35,6 +35,7 @@ type AppConfig struct {
 
 func main() {
 	configPath := os.Getenv("FLUSHER_CONFIG")
+
 	viper.AddConfigPath(configPath)
 	viper.SetConfigName("config")
 	if err := viper.ReadInConfig(); err != nil {
