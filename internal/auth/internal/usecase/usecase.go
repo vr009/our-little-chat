@@ -3,6 +3,8 @@ package usecase
 import (
 	"auth/internal"
 	"auth/internal/models"
+	"crypto/md5"
+	"fmt"
 )
 
 type AuthUseCase struct {
@@ -15,7 +17,13 @@ func NewAuthUseCase(base internal.AuthRepo) *AuthUseCase {
 	}
 }
 
+func MD5(data string) string {
+	h := md5.Sum([]byte(data))
+	return fmt.Sprintf("%x", h)
+}
+
 func (uc *AuthUseCase) CreateSession(session models.Session) (models.Session, models.StatusCode) {
+	session.Token = MD5(session.UserID.String())
 	return uc.repo.CreateSession(session)
 }
 
