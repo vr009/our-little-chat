@@ -1,63 +1,76 @@
 package repo
 
 import (
-	models2 "chat/internal/models"
 	"context"
+	"fmt"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
-	"log"
-	"time"
+	"go.mongodb.org/mongo-driver/mongo/options"
+	"our-little-chatik/internal/models"
 )
 
-type DataBase struct {
-	clt mongo.Collection
-	db  mongo.Database
+type MongoRepo struct {
+	db *mongo.Database
 }
 
-func NewDataBase(ct mongo.Collection, db mongo.Database) *DataBase {
-	return &DataBase{
-		clt: ct,
-		db:  db,
+func NewMongoRepo(db *mongo.Database) *MongoRepo {
+	return &MongoRepo{
+		db: db,
 	}
 }
 
-func (db *DataBase) AddMessage(mes models2.Message) error {
-	chatId := mes.Sender + mes.Direction
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+func (repo *MongoRepo) InsertMessages(msgs []models.Message) error {
+	batch := []interface{}{}
+	for _, msg := range msgs {
+		batch = append(batch, msg)
+	}
+	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	_, err := db.clt.InsertOne(ctx, bson.D{{"_id", chatId}, {"name", "pi"}, {"value", 3.14159}})
-
-	return err
-}
-
-func (db *DataBase) GetChat(chat models2.Chat) ([]models2.Message, error) {
-
-	//out := []models.Message{}
-
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-	defer cancel()
-	cur, err := db.clt.Find(ctx, bson.D{{"_id", chat.ConversationId}})
+	res, err := repo.db.Collection("messages").InsertMany(ctx, batch)
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
-	defer cur.Close(ctx)
-	for cur.Next(ctx) {
-		var episode bson.D
-		if err = cur.Decode(&episode); err != nil {
-			log.Fatal(err)
-		}
-		log.Println(episode)
-		//var mes models.Message
-		//err := bson.Unmarshal(episode,mes)
-
+	if len(res.InsertedIDs) < 1 {
+		return fmt.Errorf("nothing inserted")
 	}
-	if err := cur.Err(); err != nil {
-		log.Fatal(err)
-	}
-
-	return nil, nil
+	return nil
 }
 
-func (db *DataBase) GetChatList(userId string) ([]models2.Chat, error) {
-	return nil, nil
+func (repo *MongoRepo) GetChat(chat models.Chat, opts models.Opts) ([]models.Message, error) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	coll := repo.db.Collection("messages")
+
+	findOpts := options.Find().
+		SetLimit(opts.Limit).
+		SetSkip(opts.Page).
+		SetSort(bson.D{{"created_at", -1}})
+
+	filter := bson.D{
+		{"$and",
+			bson.A{
+				bson.D{{"chat_id", bson.D{{"$eq", chat.ChatID}}}},
+			}},
+	}
+
+	cursor, err := coll.Find(ctx, filter, findOpts)
+	if err != nil {
+		return nil, err
+	}
+
+	var results []models.Message
+	for cursor.Next(ctx) {
+		msg := models.Message{}
+		err = cursor.Decode(&msg)
+		if err != nil {
+			return nil, err
+		}
+		results = append(results, msg)
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	return results, nil
 }

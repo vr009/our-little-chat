@@ -1,11 +1,12 @@
 package delivery
 
 import (
-	"chat/internal"
-	"chat/internal/models"
 	"encoding/json"
+	"github.com/google/uuid"
 	"log"
 	"net/http"
+	"our-little-chatik/internal/chat_history/internal"
+	"our-little-chatik/internal/models"
 	"strconv"
 )
 
@@ -19,69 +20,67 @@ func NewChatHandler(usecase internal.ChatUseCase) *ChatHandler {
 	}
 }
 
-func (c *ChatHandler) PostMessage(w http.ResponseWriter, r *http.Request) {
-	mes := models.Message{}
+func (c *ChatHandler) PostMessages(w http.ResponseWriter, r *http.Request) {
+	msgs := []models.Message{}
 
 	defer r.Body.Close()
 
-	err := json.NewDecoder(r.Body).Decode(&mes)
+	err := json.NewDecoder(r.Body).Decode(&msgs)
 	if err != nil {
 		log.Println(err)
 		w.WriteHeader(http.StatusInternalServerError)
 	}
 
-	if err := c.Usecase.SaveMessage(mes); err != nil { // добавить контекст
+	if err := c.Usecase.SaveMessages(msgs); err != nil {
 		w.WriteHeader(http.StatusServiceUnavailable)
 	}
 
 	w.WriteHeader(http.StatusOK)
 }
 
-//TODO распарсить куку авторизации и добавить параметр get chat_id
+// GetChat godoc
+// @Summary Fetch the chat
+// @Description get chat by ID
+// @Produce  json
+// @Param id page offset limit  true
+// @Success 200 {object} []models.Message
+// @Failure 400
+// @Failure 404
+// @Failure 500
+// @Router /chat/conv [get]
 func (c *ChatHandler) GetChat(w http.ResponseWriter, r *http.Request) {
-
-	chat := models.Chat{}
-	chat_id, err := strconv.Atoi(r.URL.Query().Get("id"))
-	if err == nil {
-		http.NotFound(w, r)
+	idStr := r.Header.Get("CHAT_ID")
+	offset, err := strconv.ParseInt(r.Header.Get("OFFSET"), 10, 64)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
-
-	Conv := models.Conversation{
-		ConversationId: chat_id,
-	}
-
-	if Conv.MessageList, err = c.Usecase.FetchChat(chat); err != nil {
-		w.WriteHeader(http.StatusServiceUnavailable)
-	}
-
-	resp, err := json.Marshal(&Conv)
+	limit, err := strconv.ParseInt(r.Header.Get("LIMIT"), 10, 64)
 	if err != nil {
-		log.Print(err)
-		w.WriteHeader(http.StatusInternalServerError)
+		w.WriteHeader(http.StatusBadRequest)
+		return
 	}
-
-	w.Write(resp)
-
+	opts := models.Opts{Limit: limit, Page: offset}
+	chatID, err := uuid.Parse(idStr)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+	chat := models.Chat{ChatID: chatID}
+	msgs, err := c.Usecase.FetchChat(chat, opts)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
 	w.WriteHeader(http.StatusOK)
-}
-
-func (c *ChatHandler) GetChatList(w http.ResponseWriter, r *http.Request) {
-
-	var uuid string
-	uuid = r.Header.Get("Unparsed") //TODO придумать как аккуратно передавать пользователя которому нужен запрос
-
-	List, err := c.Usecase.ChatList(uuid)
+	b, err := json.Marshal(msgs)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
+		return
 	}
-
-	result := models.ChatList{Owner: uuid, List: List}
-	err = json.NewEncoder(w).Encode(result)
+	_, err = w.Write(b)
 	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		log.Print(err)
+		w.WriteHeader(http.StatusBadRequest)
+		return
 	}
-
-	w.WriteHeader(http.StatusOK)
 }

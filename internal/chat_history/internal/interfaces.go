@@ -1,17 +1,19 @@
 package internal
 
 import (
-	models2 "chat/internal/models"
+	"our-little-chatik/internal/models"
 )
 
 type ChatRepo interface {
-	AddMessage(mes models2.Message) error
-	GetChat(chat models2.Chat) ([]models2.Message, error)
-	GetChatList(userId string) ([]models2.Chat, error)
+	InsertMessages(mes []models.Message) error
+	GetChat(chat models.Chat, opts models.Opts) ([]models.Message, error)
+}
+
+type QueueRepo interface {
+	GetFreshChat(chat models.Chat) ([]models.Message, error)
 }
 
 type ChatUseCase interface {
-	SaveMessage(mes models2.Message) error
-	FetchChat(chat models2.Chat) ([]models2.Message, error)
-	ChatList(userId string) ([]models2.Chat, error)
+	SaveMessages(msgs []models.Message) error
+	FetchChat(chat models.Chat, opts models.Opts) ([]models.Message, error)
 }

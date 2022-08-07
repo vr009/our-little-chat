@@ -156,13 +156,23 @@ function queue.flush_all()
         table.insert(batch, { tuple[1]:str(), tuple[2]:str(), tuple[3]:str(), tuple[4]:str(), tuple[5], tuple[6] })
     end
     box.space.msg_queue:truncate()
-    return batch --TODO rewrite it to pairs
+    return batch
+end
+
+function queue.fetch_all(id)
+    local chat_id = uuid.fromstr(id)
+    local batch = {}
+    for k, tuple in box.space.msg_queue:pairs(chat_id) do
+        table.insert(batch, { tuple[1]:str(), tuple[2]:str(), tuple[3]:str(), tuple[4]:str(), tuple[5], tuple[6] })
+    end
+    return batch
 end
 
 rawset(_G, 'put', queue.put)
 rawset(_G, 'take_msgs', queue.take_new_messages_from_space)
 rawset(_G, 'fetch_chats_upd', queue.fetch_chat_list_update_for_single_user)
 rawset(_G, 'flush', queue.flush_all)
+rawset(_G, 'fetch', queue.fetch_all)
 
 box.once('debug', function() box.schema.user.grant('guest', 'super') end)
 

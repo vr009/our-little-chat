@@ -8,11 +8,11 @@ import (
 
 type Message struct {
 	ChatID     uuid.UUID `json:"chat_id" bson:"chat_id"`
-	MsgID      uuid.UUID `json:"-" bson:"msg_id"`
+	MsgID      uuid.UUID `json:"msg_id,omitempty" bson:"msg_id"`
 	SenderID   uuid.UUID `json:"sender_id" bson:"sender_id"`
 	ReceiverID uuid.UUID `json:"receiver_id" bson:"receiver_id"`
 	Payload    string    `json:"payload" bson:"payload"`
-	CreatedAt  float64   `json:"-" bson:"created_at"`
+	CreatedAt  float64   `json:"created_at,omitempty" bson:"created_at"`
 }
 
 func (m *Message) EncodeMsgpack(e *msgpack.Encoder) error {
