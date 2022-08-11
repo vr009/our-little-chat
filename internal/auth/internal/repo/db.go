@@ -3,41 +3,43 @@ package repo
 import (
 	"auth/internal/models"
 	"context"
+	"crypto/md5"
 	"fmt"
 	"github.com/go-redis/redis/v9"
 	"github.com/google/uuid"
 	"log"
+	"time"
 )
 
 type DataBase struct {
 	Client *redis.Client
+	TTL    int
 }
 
-//redis-server
+func MD5(data string) string {
+	h := md5.Sum([]byte(data))
+	return fmt.Sprintf("%x", h)
+}
 
-func NewDataBase(Client *redis.Client) *DataBase {
+func NewDataBase(Client *redis.Client, TTL int) *DataBase {
 	return &DataBase{
 		Client: Client,
+		TTL:    TTL,
 	}
 }
 
 func (db *DataBase) CreateSession(session models.Session) (models.Session, models.StatusCode) {
-	token, err := uuid.NewUUID()
+	token := MD5(session.UserID.String())
 
-	if err != nil {
-		log.Print("error with generation of UUID")
-		return models.Session{}, models.InternalError
-	}
+	session.Token = token
 
-	session.Token = token.String()
-
-	err = db.Client.Set(context.Background(), session.UserID.String(), session.Token, 0).Err()
+	err := db.Client.Set(context.Background(), session.UserID.String(), session.Token, time.Minute*time.Duration(db.TTL)).Err()
 
 	if err != nil {
 		return models.Session{}, models.Conflict
 	}
 
-	err = db.Client.Set(context.Background(), session.Token, session.UserID.String(), 0).Err()
+	err = db.Client.Set(context.Background(), session.Token, session.UserID.String(), time.Minute*time.Duration(db.TTL)).Err()
 
 	if err != nil {
 		return models.Session{}, models.Conflict
@@ -48,63 +50,50 @@ func (db *DataBase) CreateSession(session models.Session) (models.Session, model
 
 func (db *DataBase) GetToken(session models.Session) (models.Session, models.StatusCode) {
 
-	fmt.Println(session.UserID.String())
-
-	cmd := db.Client.Get(context.Background(), session.UserID.String())
-
-	if cmd.Err() != nil {
+	cmdToken := db.Client.Get(context.Background(), session.UserID.String())
+	if cmdToken.Err() != nil {
 		return models.Session{}, models.NotFound
 	}
-	value, err := cmd.Result()
+
+	token, err := cmdToken.Result()
 	if err != nil {
 		return models.Session{}, models.InternalError
 	}
 
-	return models.Session{
-		Token:  value,
-		UserID: session.UserID,
-	}, models.OK
+	session.Token = token
 
+	return session, models.OK
 }
 
 func (db *DataBase) GetUser(session models.Session) (models.Session, models.StatusCode) {
 
-	fmt.Println(session.Token)
+	cmdUser := db.Client.Get(context.Background(), session.Token)
 
-	cmd := db.Client.Get(context.Background(), session.Token)
-
-	if cmd.Err() != nil {
+	if cmdUser.Err() != nil {
 		return models.Session{}, models.NotFound
 	}
 
-	value, err := cmd.Result()
+	userId, err := cmdUser.Result()
 
 	if err != nil {
 		log.Print("error of cmd.Result parsing")
 		return models.Session{}, models.InternalError
 	}
 
-	uuidFormString, err := uuid.Parse(value)
+	session.UserID, err = uuid.Parse(userId)
 
 	if err != nil {
 		log.Print("error of UUID parsing")
 		return models.Session{}, models.InternalError
 	}
 
-	fmt.Println(value)
-	fmt.Println(uuidFormString)
+	return session, models.OK
 
-	return models.Session{
-		Token:  session.Token,
-		UserID: uuidFormString,
-	}, models.OK
 }
 
 func (db *DataBase) DeleteSession(session models.Session) models.StatusCode {
 
 	s := models.Session{}
-
-	fmt.Println(session.Token)
 
 	cmd := db.Client.Get(context.Background(), session.Token)
 

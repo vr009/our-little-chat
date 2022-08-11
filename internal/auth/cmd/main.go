@@ -2,23 +2,61 @@ package main
 
 import (
 	"auth/internal/delivery"
+	"auth/internal/models"
 	repo2 "auth/internal/repo"
 	"auth/internal/usecase"
 	"fmt"
-	"github.com/go-redis/redis/v9"
-	"github.com/gorilla/mux"
 	"log"
 	"net/http"
+
+	"github.com/go-redis/redis/v9"
+	"github.com/gorilla/mux"
+	"github.com/spf13/viper"
+	httpSwagger "github.com/swaggo/http-swagger"
 )
+
+// @title Swagger Example API
+// @version 1.0
+// @description This is a sample server Petstore server.
+// @termsOfService http://swagger.io/terms/
+
+// @contact.name API Support
+// @contact.url http://www.swagger.io/support
+// @contact.email support@swagger.io
+
+// @license.name Apache 2.0
+// @license.url http://www.apache.org/licenses/LICENSE-2.0.html
+
+// @host petstore.swagger.io
+// @BasePath /v2
 
 func main() {
 
 	fmt.Println("Starting..")
+	configPath := "../internal/models/"
+	viper.AddConfigPath(configPath)
+	viper.SetConfigName("config.yml")
+	viper.SetConfigType("yml")
+
+	if err := viper.ReadInConfig(); err != nil {
+		if _, ok := err.(viper.ConfigFileNotFoundError); ok {
+			fmt.Println("Config file not found; ignore error if desired")
+		} else {
+			fmt.Println("Config file was found but another error was produced")
+		}
+	}
+
+	appConfig := models.AppConfig{}
+
+	if err := viper.Unmarshal(&appConfig); err != nil {
+		fmt.Println(err)
+		log.Fatal("Error of unmarshal")
+	}
 
 	dbInfo := redis.Options{
-		Addr:     ":6379",
-		Password: "", // no password set
-		DB:       0,  // use default DB
+		Addr:     appConfig.DataBase.Port,
+		Password: appConfig.DataBase.Password,
+		DB:       appConfig.DataBase.DB,
 	}
 
 	client := redis.NewClient(&dbInfo)
@@ -27,9 +65,9 @@ func main() {
 		panic("client doesnt work")
 	}
 
-	fmt.Printf("Redis started at port %s \n", dbInfo.Addr)
+	fmt.Printf("Redis started at port %s \n", appConfig.DataBase.Port)
 
-	repo := repo2.NewDataBase(client)
+	repo := repo2.NewDataBase(client, appConfig.DataBase.TtlHours)
 	useCase := usecase.NewAuthUseCase(repo)
 	handler := delivery.NewAuthHandler(useCase)
 
@@ -58,9 +96,15 @@ func main() {
 	// Token –> Session {}
 	router.HandleFunc("/api/v1/auth", handler.DeleteSession).Methods("DELETE")
 
-	srv := &http.Server{Handler: router, Addr: ":8080"}
+	//todo SWAGGER!
+	router.HandleFunc("/swagger/*", httpSwagger.Handler(
+		httpSwagger.URL(""), //The url pointing to API definition
+	))
+
+	srv := &http.Server{Handler: router, Addr: appConfig.Address}
 
 	fmt.Printf("Main.go started at port %s \n", srv.Addr)
 
 	log.Fatal(srv.ListenAndServe())
+
 }
