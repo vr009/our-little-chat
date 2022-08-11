@@ -43,7 +43,7 @@ func (ah *AuthHandler) GetToken(w http.ResponseWriter, r *http.Request) {
 
 	s, errCode := ah.useCase.GetToken(session)
 
-	checkErrorCode(errCode, w)
+	CheckErrorCode(errCode, w)
 
 	a, err := json.Marshal(&s)
 
@@ -78,7 +78,7 @@ func (ah *AuthHandler) GetUser(w http.ResponseWriter, r *http.Request) {
 
 	s, errCode := ah.useCase.GetUser(session)
 
-	checkErrorCode(errCode, w)
+	CheckErrorCode(errCode, w)
 
 	a, err := json.Marshal(&s)
 
@@ -113,7 +113,7 @@ func (ah *AuthHandler) DeleteSession(w http.ResponseWriter, r *http.Request) {
 	errCode := ah.useCase.DeleteSession(session)
 
 	if errCode != models.OK {
-		checkErrorCode(errCode, w)
+		CheckErrorCode(errCode, w)
 		return
 	}
 
@@ -134,7 +134,7 @@ func (ah *AuthHandler) PostSession(w http.ResponseWriter, r *http.Request) {
 
 	s, errCode := ah.useCase.CreateSession(session)
 
-	checkErrorCode(errCode, w)
+	CheckErrorCode(errCode, w)
 
 	buf, err := json.Marshal(&s)
 	if err != nil {
@@ -151,22 +151,18 @@ func (ah *AuthHandler) PostSession(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func checkErrorCode(errCode models.StatusCode, w http.ResponseWriter) {
-	if errCode == models.NotFound {
-		log.Print("error of StatusNotFound")
-		w.WriteHeader(http.StatusNotFound)
-		return
+func CheckErrorCode(errCode models.StatusCode, w http.ResponseWriter) {
+	switch errCode {
+	case models.NotFound:
+		{
+			log.Print("error of StatusNotFound")
+			w.WriteHeader(http.StatusNotFound)
+		}
+	case models.InternalError:
+		{
+			log.Print("error of StatusInternalServerError")
+			w.WriteHeader(http.StatusInternalServerError)
+		}
 	}
 
-	if errCode == models.InternalError {
-		log.Print("error of StatusInternalServerError")
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
-
-	if errCode != models.OK {
-		log.Print("error of StatusInternalServerError")
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
 }
