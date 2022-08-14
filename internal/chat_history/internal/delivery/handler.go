@@ -42,8 +42,7 @@ func (c *ChatHandler) PostMessages(w http.ResponseWriter, r *http.Request) {
 // @Summary Fetch the chat
 // @Description get chat by ID
 // @Produce  json
-// @Param id page offset limit  true
-// @Success 200 {object} []models.Message
+// @Success 200 {object} []internal.models.Message
 // @Failure 400
 // @Failure 404
 // @Failure 500

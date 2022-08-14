@@ -17,7 +17,7 @@ func NewFlusherD(queueRepo internal.QueueRepo, persistantRepo internal.Persistan
 }
 
 func (d *FlusherD) Work(ctx context.Context, period int) {
-	ticker := time.NewTicker(time.Hour * time.Duration(period))
+	ticker := time.NewTicker(time.Second * time.Duration(period))
 	for {
 		select {
 		case <-ticker.C:
@@ -26,6 +26,15 @@ func (d *FlusherD) Work(ctx context.Context, period int) {
 				continue
 			}
 			err = d.persistantRepo.PersistAll(messages)
+			//log.Println("persisted", messages)
+			if err != nil {
+				log.Println(err)
+			}
+			chats, err := d.queueRepo.FetchAllChats()
+			if err != nil {
+				log.Println(err)
+			}
+			err = d.persistantRepo.PersistAllChats(chats)
 			if err != nil {
 				log.Println(err)
 			}

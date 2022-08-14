@@ -9,11 +9,12 @@ import (
 )
 
 type MongoRepo struct {
-	conn *mongo.Client
+	msgsCol     *mongo.Collection
+	chatListCol *mongo.Collection
 }
 
-func NewMongoRepo(conn *mongo.Client) *MongoRepo {
-	return &MongoRepo{conn: conn}
+func NewMongoRepo(msgsCol *mongo.Collection, chatListCol *mongo.Collection) *MongoRepo {
+	return &MongoRepo{msgsCol: msgsCol, chatListCol: chatListCol}
 }
 
 func (repo *MongoRepo) PersistAll(msgs []models.Message) error {
@@ -25,11 +26,27 @@ func (repo *MongoRepo) PersistAll(msgs []models.Message) error {
 		docs = append(docs, msg)
 	}
 
-	collection := repo.conn.Database("messages").Collection("message_list")
-	_, err := collection.InsertMany(ctx, docs)
+	_, err := repo.msgsCol.InsertMany(ctx, docs)
 	if err != nil {
 		return err
 	}
-	fmt.Println("persisted:", msgs)
+	//fmt.Println("persisted:", msgs)
+	return nil
+}
+
+func (repo *MongoRepo) PersistAllChats(chats []models.Chat) error {
+	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
+	defer cancel()
+
+	docs := []interface{}{}
+	for _, chat := range chats {
+		docs = append(docs, chat)
+	}
+
+	_, err := repo.chatListCol.InsertMany(ctx, docs)
+	if err != nil {
+		return err
+	}
+	fmt.Println("persisted chats:", chats)
 	return nil
 }

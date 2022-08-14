@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"github.com/spf13/viper"
 	"github.com/tarantool/go-tarantool"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -33,9 +34,10 @@ type AppConfig struct {
 	Period int
 }
 
+// TODO 2 different mongo dbases
 func main() {
 	configPath := os.Getenv("FLUSHER_CONFIG")
-
+	configPath = "./internal/flusher/cmd"
 	viper.AddConfigPath(configPath)
 	viper.SetConfigName("config")
 	if err := viper.ReadInConfig(); err != nil {
@@ -69,12 +71,22 @@ func main() {
 		}
 	}()
 
-	m := repo.NewMongoRepo(mongoClient)
+	dbMsgs := mongoClient.Database("chat_db")
+	dbChatList := mongoClient.Database("chat_list_db")
+
+	msgsCol := dbMsgs.Collection("chat")
+	chatListCol := dbChatList.Collection("chat_list")
+
+	//msgsCol.Indexes().CreateOne()
+	//chatListCol.Indexes().CreateOne()
+
+	m := repo.NewMongoRepo(msgsCol, chatListCol)
 	t := repo.NewTarantoolRepo(ttClient)
 
 	daemon := delivery.NewFlusherD(t, m)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
+	fmt.Println(appConfig.Period)
 	daemon.Work(ctx, appConfig.Period)
 }

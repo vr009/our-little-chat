@@ -5,21 +5,6 @@ box.cfg{
     listen = 3301,
 }
 
-
--- service
-local function dump(o)
-    if type(o) == 'table' then
-        local s = '{ '
-        for k,v in pairs(o) do
-            if type(k) ~= 'number' then k = '"'..k..'"' end
-            s = s .. '['..k..'] = ' .. dump(v) .. ','
-        end
-        return s .. '} '
-    else
-        return tostring(o)
-    end
-end
-
 box.schema.space.create('msg_queue',
         {
             if_not_exists = true,
@@ -39,14 +24,19 @@ box.space.msg_queue:create_index('sender_index', {if_not_exists = true, unique=f
 
 box.space.msg_queue:create_index('receiver_index', {if_not_exists = true,unique=false, parts = { { 4, 'uuid' }, {1, 'uuid'}}})
 
+
+-- This space is needed to keep the info about what for chats have any user
+-- and what users take part in chat.
 box.schema.space.create('user_chat_list',
         {
             if_not_exists = true,
             format = { { 'participant', type = 'uuid' },
-                       { 'chat_id' , type = 'uuid'}}
+                       { 'chat_id' , type = 'uuid'},
+                       { 'created_at', type = 'number' }} -- last message stamp?
         })
 
 box.space.user_chat_list:create_index('chat_list_index', { if_not_exists = true, unique =true, parts = { { 1, 'uuid' }, { 2, 'uuid' }} })
+box.space.user_chat_list:create_index('chat_list_index_inverted', { if_not_exists = true, unique =true, parts = { { 2, 'uuid' }, { 1, 'uuid' }} })
 
 local queue = {}
 
@@ -81,10 +71,12 @@ function queue.put(chat_id, sender_id, receiver_id, payload)
     box.space.user_chat_list:replace{
         uuid.fromstr(sender_id),
         uuid.fromstr(chat_id),
+        created_at,
     }
     box.space.user_chat_list:replace{
         uuid.fromstr(receiver_id),
         uuid.fromstr(chat_id),
+        created_at,
     }
 
     if not chats_upd[chat_id] then
@@ -168,11 +160,22 @@ function queue.fetch_all(id)
     return batch
 end
 
+function queue.fetch_chats()
+    local batch = {}
+    for k, chat in box.space.user_chat_list:pairs() do
+        local sibling_chat = box.space.user_chat_list.index.chat_list_index_inverted:select(chat[2])
+        table.insert(batch, {chat[2]:str(), chat[1]:str(), sibling_chat[1][1]:str(), chat[3]})
+    end
+    box.space.user_chat_list:truncate()
+    return batch
+end
+
 rawset(_G, 'put', queue.put)
 rawset(_G, 'take_msgs', queue.take_new_messages_from_space)
 rawset(_G, 'fetch_chats_upd', queue.fetch_chat_list_update_for_single_user)
 rawset(_G, 'flush', queue.flush_all)
 rawset(_G, 'fetch', queue.fetch_all)
+rawset(_G, 'fetch_chats', queue.fetch_chats)
 
 box.once('debug', function() box.schema.user.grant('guest', 'super') end)
 

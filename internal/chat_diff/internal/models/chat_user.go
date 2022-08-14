@@ -9,12 +9,3 @@ type ChatUser struct {
 	Username string
 	Updates  chan []ChatItem
 }
-
-//
-//func NewChatUserFromAuth(auth *Auth, resolver internal.TokenResolver) *ChatUser {
-//	id, err := resolver.ResolveToken(auth.Token)
-//	if err != nil {
-//		return nil
-//	}
-//	return &ChatUser{ID: id}
-//}

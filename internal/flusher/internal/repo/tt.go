@@ -22,3 +22,13 @@ func (tt *TarantoolRepo) FetchAll() ([]models.Message, error) {
 	}
 	return msgs, nil
 }
+
+func (tt *TarantoolRepo) FetchAllChats() ([]models.Chat, error) {
+	conn := tt.conn
+	chats := []models.Chat{}
+	err := conn.CallTyped("fetch_chats", []interface{}{}, &chats)
+	if err != nil {
+		return nil, err
+	}
+	return chats, nil
+}
