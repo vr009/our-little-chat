@@ -163,7 +163,8 @@ end
 
 function queue.fetch_chat_list_update_for_single_user(user_id)
     local chat_list = box.space.user_chat_list:select(uuid.fromstr(user_id))
-    return queue.fetch_chat_list_update(uuid.fromstr(user_id), chat_list)
+    local batch = queue.fetch_chat_list_update(uuid.fromstr(user_id), chat_list)
+    return batch
 end
 
 function queue.flush_all()

@@ -23,7 +23,7 @@ func (tt *TarantoolRepo) FetchUpdates(user models2.ChatUser) []models2.ChatItem 
 	updates := []models2.ChatItem{}
 
 	//err := conn.CallTyped("fetch_chats_upd", []interface{}{user.ID}, &updates)
-	resp, err := conn.Call("fetch_chats_upd", []interface{}{user.ID})
+	resp, err := conn.Call("fetch_chats_upd", []interface{}{user.ID.String()})
 	if err != nil {
 		return nil
 	}

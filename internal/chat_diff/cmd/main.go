@@ -30,7 +30,7 @@ type AppConfig struct {
 
 func main() {
 	configPath := os.Getenv("CHAT_DIFF_CONFIG")
-	//configPath = "./internal/chat_diff/cmd"
+	configPath = "./internal/chat_diff/cmd"
 	viper.AddConfigPath(configPath)
 	viper.SetConfigName("config")
 	if err := viper.ReadInConfig(); err != nil {
@@ -62,7 +62,8 @@ func main() {
 	http.HandleFunc("/ws", func(w http.ResponseWriter, r *http.Request) {
 		chatServer.WSServe(w, r)
 	})
-	err = http.ListenAndServe(*addr, nil)
+
+	err = http.ListenAndServe(":"+strconv.Itoa(appConfig.Port), nil)
 	if err != nil {
 		log.Fatal("ListenAndServe: ", err)
 	}
