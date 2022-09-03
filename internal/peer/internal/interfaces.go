@@ -10,14 +10,9 @@ type WebSocketWorker interface {
 	Close()
 }
 
-type PeerUsecase interface {
-	SendMessage(msg *models.Message, chat *models.Chat) error
-	FetchMessages(chat *models.Chat) ([]models.Message, error)
-}
-
 type PeerRepo interface {
-	SendPayload(msg *models.Message, chat *models.Chat) error
-	FetchUpdates(chat *models.Chat) ([]models.Message, error)
+	SendPayload(msg *models.Message) error
+	FetchUpdates(chat *models.Chat, peer *models.Peer) ([]models.Message, error)
 }
 
 type MessageManager interface {

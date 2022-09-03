@@ -31,18 +31,25 @@ func (m *MessageManagerImpl) DequeueChat(chat *models.Chat) {
 	}
 }
 
+// Work iterates all chats and checks all connected users.
+// If someone has messages to receive it will put rhose messages to the channel.
+// If someone has put a message to send, it will put it to a channel for sends.
 func (m *MessageManagerImpl) Work() {
 	for {
 		for e := m.chatList.Front(); e != nil; e = e.Next() {
 			chat := e.Value.(*models.Chat)
-			msgs, _ := m.repo.FetchUpdates(chat)
-			if msgs != nil {
-				chat.PutMsgsToRecv(msgs)
-			}
-			select {
-			case msg := <-chat.ReadyForSend:
-				m.repo.SendPayload(msg, chat)
-			default:
+			for _, peer := range chat.Peers {
+				if peer.Connected {
+					msgs, _ := m.repo.FetchUpdates(chat, peer)
+					if msgs != nil {
+						peer.MsgsToRecv <- msgs
+					}
+					select {
+					case msg := <-peer.MsgToSend:
+						m.repo.SendPayload(msg)
+					default:
+					}
+				}
 			}
 		}
 	}
@@ -53,7 +60,7 @@ func (m *MessageManagerImpl) Work() {
 func (m *MessageManagerImpl) EnqueueChatIfNotExists(c *models.Chat) (chat *models.Chat) {
 	for e := m.chatList.Front(); e != nil; e = e.Next() {
 		chat = e.Value.(*models.Chat)
-		if chat.ChatID == c.ChatID && chat.ReceiverID == c.ReceiverID {
+		if chat.ChatID == c.ChatID {
 			return chat
 		}
 	}

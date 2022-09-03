@@ -1,40 +1,40 @@
 package models
 
 import (
+	"fmt"
 	"github.com/google/uuid"
 )
 
 type Chat struct {
-	ChatID       uuid.UUID `json:"chatID"`
-	ReceiverID   uuid.UUID `json:"receiverID"`
-	SenderID     uuid.UUID `json:"senderID"`
-	ChatSibling  *Chat
-	ReadyForRecv chan []Message
-	ReadyForSend chan *Message
-	msgForSend   *Message  // message to send to db
-	msgsForRecv  []Message // messages to send to client
+	ChatID uuid.UUID
+	Peers  map[uuid.UUID]*Peer //TODO add sync.Map
 }
 
-func (c *Chat) PutMsgToSend(m *Message) {
-	c.ReadyForSend <- m
-}
-
-func (c *Chat) PutMsgsToRecv(m []Message) {
-	c.ReadyForRecv <- m
-}
-
-func (c *Chat) FetchMsgsToRecv() []Message {
-	return <-c.ReadyForRecv
-}
-
-func NewChatFromMsg(msg *Message) *Chat {
-	chat := &Chat{
-		ChatID:     msg.ChatID,
-		ReceiverID: msg.ReceiverID,
-		SenderID:   msg.SenderID,
+func (c *Chat) SubscribePeer(newPeer *Peer) error {
+	_, ok := c.Peers[newPeer.PeerID]
+	if !ok {
+		c.Peers[newPeer.PeerID] = newPeer
 	}
+	c.Peers[newPeer.PeerID].Connected = true
+	return nil
+}
 
-	chat.ReadyForRecv = make(chan []Message, 100)
-	chat.ReadyForSend = make(chan *Message)
-	return chat
+func (c *Chat) UnsubscribePeer(peer *Peer) error {
+	if peer == nil {
+		return nil
+	}
+	peer, ok := c.Peers[peer.PeerID]
+	if !ok {
+		return fmt.Errorf("peer not found")
+	}
+	delete(c.Peers, peer.PeerID)
+	peer.Connected = false
+	return nil
+}
+
+func GetChatFromMessage(msg *Message) *Chat {
+	return &Chat{
+		ChatID: msg.ChatID,
+		Peers:  make(map[uuid.UUID]*Peer, 10),
+	}
 }

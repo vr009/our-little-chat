@@ -26,6 +26,7 @@ type AppConfig struct {
 
 func main() {
 	configPath := os.Getenv("CONFIG")
+	configPath = "internal/peer/cmd"
 	viper.AddConfigPath(configPath)
 	viper.SetConfigName("config")
 	if err := viper.ReadInConfig(); err != nil {
@@ -48,8 +49,7 @@ func main() {
 	defer conn.Close()
 	repo := repo2.NewTarantoolRepo(conn)
 	messageManager := usecase2.NewMessageManager(repo)
-	usecase := usecase2.NewPeerUsecaseImpl()
-	peerServer := delivery.NewPeerServer(usecase, messageManager)
+	peerServer := delivery.NewPeerServer(messageManager)
 
 	go messageManager.Work()
 

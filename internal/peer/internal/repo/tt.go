@@ -2,6 +2,7 @@ package repo
 
 import (
 	"errors"
+	"fmt"
 	"github.com/tarantool/go-tarantool"
 	"log"
 	"our-little-chatik/internal/peer/internal/models"
@@ -18,12 +19,11 @@ func NewTarantoolRepo(conn *tarantool.Connection) *TarantoolRepo {
 	return &TarantoolRepo{conn: conn}
 }
 
-func (tt *TarantoolRepo) SendPayload(msg *models.Message, chat *models.Chat) error {
+func (tt *TarantoolRepo) SendPayload(msg *models.Message) error {
 	conn := tt.conn
 	resp, err := conn.Call("put", []interface{}{
-		chat.ChatID.String(),
+		msg.ChatID.String(),
 		msg.SenderID.String(),
-		msg.ReceiverID.String(),
 		msg.Payload})
 	if err != nil {
 		return err
@@ -36,12 +36,12 @@ func (tt *TarantoolRepo) SendPayload(msg *models.Message, chat *models.Chat) err
 	}
 	return nil
 }
-func (tt *TarantoolRepo) FetchUpdates(chat *models.Chat) ([]models.Message, error) {
+func (tt *TarantoolRepo) FetchUpdates(chat *models.Chat, peer *models.Peer) ([]models.Message, error) {
 	var msgs []models.Message
 	conn := tt.conn
 	err := conn.CallTyped("take_msgs",
 		[]interface{}{chat.ChatID.String(),
-			chat.SenderID.String()}, &msgs)
+			peer.PeerID.String()}, &msgs)
 	if err != nil && len(msgs) < 1 {
 		log.Println("error from tt: ", err)
 		return nil, err
@@ -50,6 +50,7 @@ func (tt *TarantoolRepo) FetchUpdates(chat *models.Chat) ([]models.Message, erro
 	if len(msgs) > 0 && msgs[0].Payload == "" {
 		return nil, nil
 	}
+	fmt.Printf("fetched for %s\n", peer.PeerID.String())
 
 	return msgs, nil
 }

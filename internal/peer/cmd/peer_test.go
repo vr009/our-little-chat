@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"sync"
 	"testing"
+	"time"
 )
 
 var (
@@ -37,12 +38,13 @@ func TestPeer(t *testing.T) {
 	clientB := websocket2.DefaultDialer
 
 	u := url.URL{Scheme: "ws", Host: ":8080", Path: "/ws"}
+	time.Sleep(time.Second)
 	log.Printf("connecting to %s", u.String())
-
 	connA, _, err := clientA.Dial(u.String(), nil)
 	if err != nil {
 		t.Fatal(err)
 	}
+	log.Printf("Connected")
 	connB, _, err := clientB.Dial(u.String(), nil)
 	if err != nil {
 		t.Fatal(err)
@@ -50,37 +52,32 @@ func TestPeer(t *testing.T) {
 
 	HelloMsgFromA := models.Message{
 		ChatID:       uuidChat,
-		ReceiverID:   uuidB,
 		SenderID:     uuidA,
 		Payload:      hellotext,
 		SessionStart: true,
 	}
 	HelloMsgFromB := models.Message{
 		ChatID:       uuidChat,
-		ReceiverID:   uuidA,
 		SenderID:     uuidB,
 		Payload:      hellotext,
 		SessionStart: true,
 	}
 
 	msgFromA := models.Message{
-		ChatID:     uuidChat,
-		ReceiverID: uuidB,
-		SenderID:   uuidA,
-		Payload:    textFromA,
+		ChatID:   uuidChat,
+		SenderID: uuidA,
+		Payload:  textFromA,
 	}
 	msgFromA2 := models.Message{
-		ChatID:     uuidChat,
-		ReceiverID: uuidB,
-		SenderID:   uuidA,
-		Payload:    defaultText,
+		ChatID:   uuidChat,
+		SenderID: uuidA,
+		Payload:  defaultText,
 	}
 
 	msgFromB := models.Message{
-		ChatID:     uuidChat,
-		ReceiverID: uuidA,
-		SenderID:   uuidB,
-		Payload:    textFromB,
+		ChatID:   uuidChat,
+		SenderID: uuidB,
+		Payload:  textFromB,
 	}
 
 	go func() {

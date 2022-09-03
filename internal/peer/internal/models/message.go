@@ -8,23 +8,11 @@ import (
 
 type Message struct {
 	ChatID       uuid.UUID `json:"chatID"`
-	ReceiverID   uuid.UUID `json:"receiverID"`
 	SenderID     uuid.UUID `json:"senderID"`
 	MsgID        uuid.UUID `json:"-"`
 	Payload      string    `json:"payload"`
 	CreatedAt    float64   `json:"-"`
 	SessionStart bool      `json:"sessionStart,omitempty"`
-}
-
-func NewMessageForAnotherSide(msg *Message) *Message {
-	return &Message{
-		ChatID:     msg.ChatID,
-		ReceiverID: msg.SenderID,
-		SenderID:   msg.ReceiverID,
-		MsgID:      msg.MsgID,
-		Payload:    msg.Payload,
-		CreatedAt:  msg.CreatedAt,
-	}
 }
 
 func (m *Message) EncodeMsgpack(e *msgpack.Encoder) error {
@@ -38,7 +26,7 @@ func (m *Message) DecodeMsgpack(d *msgpack.Decoder) error {
 	if l, err = d.DecodeSliceLen(); err != nil {
 		return err
 	}
-	if l != 6 {
+	if l != 5 {
 		return fmt.Errorf("array len doesn't match: %d", l)
 	}
 	//chat id
@@ -56,15 +44,13 @@ func (m *Message) DecodeMsgpack(d *msgpack.Decoder) error {
 		return err
 	}
 	m.SenderID, _ = uuid.Parse(uuidStr)
-	//receiver id
-	if uuidStr, err = d.DecodeString(); err != nil {
-		return err
-	}
-	m.ReceiverID, _ = uuid.Parse(uuidStr)
 	//payload
 	if m.Payload, err = d.DecodeString(); err != nil {
 		return err
 	}
 	//timestamp
+	if m.CreatedAt, err = d.DecodeFloat64(); err != nil {
+		return err
+	}
 	return nil
 }

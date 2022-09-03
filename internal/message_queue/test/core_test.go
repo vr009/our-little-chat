@@ -61,13 +61,13 @@ func TestPeers(t *testing.T) {
 
 	msgs := []Message{}
 
-	err = conn.CallTyped("take_msgs", []interface{}{chatID.String(), userB.String(), userA.String(), userB.String()}, &msgs)
+	err = conn.CallTyped("take_msgs", []interface{}{chatID.String(), userB.String()}, &msgs)
 	if err != nil {
 		t.Fatalf("Failed to Call: %s", err.Error())
 	}
 	t.Log(resp.Data)
 
-	resp, err = conn.Call("fetch_chats_upd", []interface{}{[]string{chatID.String()}})
+	resp, err = conn.Call("fetch_chats_upd", []interface{}{userB.String()})
 	if err != nil {
 		t.Fatalf("Failed to Call: %s", err.Error())
 	}
@@ -82,12 +82,11 @@ func TestPeers(t *testing.T) {
 }
 
 type Message struct {
-	ChatID     uuid.UUID `json:"chatID"`
-	ReceiverID uuid.UUID `json:"receiverID"`
-	SenderID   uuid.UUID `json:"senderID"`
-	MsgID      uuid.UUID `json:"-"`
-	Payload    string    `json:"payload"`
-	CreatedAt  float64   `json:"-"`
+	ChatID    uuid.UUID `json:"chatID"`
+	SenderID  uuid.UUID `json:"senderID"`
+	MsgID     uuid.UUID `json:"-"`
+	Payload   string    `json:"payload"`
+	CreatedAt float64   `json:"-"`
 }
 
 func (m *Message) EncodeMsgpack(e *msgpack.Encoder) error {
@@ -101,7 +100,7 @@ func (m *Message) DecodeMsgpack(d *msgpack.Decoder) error {
 	if l, err = d.DecodeSliceLen(); err != nil {
 		return err
 	}
-	if l != 6 {
+	if l != 5 {
 		return fmt.Errorf("array len doesn't match: %d", l)
 	}
 	//chat id
@@ -119,15 +118,13 @@ func (m *Message) DecodeMsgpack(d *msgpack.Decoder) error {
 		return err
 	}
 	m.SenderID, _ = uuid.Parse(uuidStr)
-	//receiver id
-	if uuidStr, err = d.DecodeString(); err != nil {
-		return err
-	}
-	m.ReceiverID, _ = uuid.Parse(uuidStr)
 	//payload
 	if m.Payload, err = d.DecodeString(); err != nil {
 		return err
 	}
 	//timestamp
+	if m.CreatedAt, err = d.DecodeFloat64(); err != nil {
+		return err
+	}
 	return nil
 }

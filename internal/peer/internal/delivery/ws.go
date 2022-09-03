@@ -3,6 +3,7 @@ package delivery
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"github.com/gorilla/websocket"
 	"log"
 	"net/http"
@@ -36,29 +37,29 @@ const (
 )
 
 type PeerServer struct {
-	uc      internal.PeerUsecase
 	manager internal.MessageManager
 }
 
-func NewPeerServer(uc internal.PeerUsecase, manager internal.MessageManager) *PeerServer {
+func NewPeerServer(manager internal.MessageManager) *PeerServer {
 	return &PeerServer{
-		uc:      uc,
 		manager: manager,
 	}
 }
 
 type WebSocketClient struct {
 	conn        *websocket.Conn
-	uc          internal.PeerUsecase
+	currentPeer *models.Peer
 	currentChat *models.Chat
 	manager     internal.MessageManager
 
 	// Buffered channel of outbound messages.
 	send chan []byte
+
+	disconnected chan struct{}
 }
 
-func newWebSocketClient(conn *websocket.Conn, uc internal.PeerUsecase, manager internal.MessageManager) *WebSocketClient {
-	client := &WebSocketClient{conn: conn, uc: uc, manager: manager}
+func newWebSocketClient(conn *websocket.Conn, manager internal.MessageManager) *WebSocketClient {
+	client := &WebSocketClient{conn: conn, manager: manager}
 	return client
 }
 
@@ -67,16 +68,15 @@ func (ws *WebSocketClient) write() {
 	defer func() {
 		ticker.Stop()
 		ws.conn.Close()
+		fmt.Println("Write closed")
 	}()
 	for {
-		if ws.currentChat == nil {
+		if ws.currentPeer == nil {
 			time.Sleep(1)
 			continue
 		}
 		select {
-		case messages := <-ws.currentChat.ReadyForRecv:
-			//log.Println("sending for receiver:", ws.currentChat.ReceiverID)
-			//log.Println(messages)
+		case messages := <-ws.currentPeer.MsgsToRecv:
 			ws.conn.SetWriteDeadline(time.Now().Add(writeWait))
 
 			w, err := ws.conn.NextWriter(websocket.TextMessage)
@@ -104,6 +104,8 @@ func (ws *WebSocketClient) write() {
 			if err := ws.conn.WriteMessage(websocket.PingMessage, nil); err != nil {
 				return
 			}
+		case <-ws.disconnected:
+			return
 		}
 	}
 }
@@ -117,12 +119,10 @@ func (ws *WebSocketClient) read() {
 	defer func() {
 		log.Println("closed connection")
 		ws.conn.Close()
-		if ws.currentChat != nil && ws.currentChat.ChatSibling != nil {
-			ws.manager.DequeueChat(ws.currentChat.ChatSibling)
-		}
-		if ws.currentChat != nil {
-			ws.manager.DequeueChat(ws.currentChat)
-		}
+		err := ws.currentChat.UnsubscribePeer(ws.currentPeer)
+		fmt.Println("unsubscribing peer: ", ws.currentPeer.PeerID)
+		log.Println(err)
+		ws.disconnected <- struct{}{}
 	}()
 
 	ws.conn.SetReadLimit(maxMessageSize)
@@ -145,26 +145,22 @@ func (ws *WebSocketClient) read() {
 			return
 		}
 
-		chat := models.NewChatFromMsg(msg)
-		chat = ws.manager.EnqueueChatIfNotExists(chat)
-		if ws.currentChat == nil {
-			ws.currentChat = chat
-		}
-
-		msgForSibling := models.NewMessageForAnotherSide(msg)
-		if chat.ChatSibling == nil {
-			chat.ChatSibling = models.NewChatFromMsg(msgForSibling)
-			chat.ChatSibling = ws.manager.EnqueueChatIfNotExists(chat.ChatSibling)
-		}
-		chat.ChatSibling.ChatSibling = chat
-
-		if msg.SessionStart {
+		if ws.currentPeer != nil && !msg.SessionStart {
+			ws.currentPeer.MsgToSend <- msg
 			continue
 		}
 
-		err = ws.uc.SendMessage(msg, chat)
-		if err != nil {
-			log.Fatal(err)
+		if msg.SessionStart {
+			newChat := models.GetChatFromMessage(msg)
+			chat := ws.manager.EnqueueChatIfNotExists(newChat)
+			peer := models.GetPeerFromMessage(msg)
+			err = chat.SubscribePeer(peer)
+			if err != nil {
+				return
+			}
+			ws.currentChat = chat
+			ws.currentPeer = peer
+			fmt.Println("subscribed peer: ", peer.PeerID)
 		}
 	}
 }
@@ -176,7 +172,9 @@ func (server *PeerServer) WSServe(w http.ResponseWriter, r *http.Request) {
 		log.Fatal(err)
 		return
 	}
-	client := newWebSocketClient(conn, server.uc, server.manager)
+	client := newWebSocketClient(conn, server.manager)
+	fmt.Println("new connection")
+	client.disconnected = make(chan struct{})
 	go client.write()
 	go client.read()
 }
