@@ -21,11 +21,11 @@ func (d *FlusherD) Work(ctx context.Context, period int) {
 	for {
 		select {
 		case <-ticker.C:
-			messages, err := d.queueRepo.FetchAll()
+			messages, err := d.queueRepo.FetchAllMessages()
 			if err != nil {
 				continue
 			}
-			err = d.persistantRepo.PersistAll(messages)
+			err = d.persistantRepo.PersistAllMessages(messages)
 			//log.Println("persisted", messages)
 			if err != nil {
 				log.Println(err)

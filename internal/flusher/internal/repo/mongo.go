@@ -17,7 +17,7 @@ func NewMongoRepo(msgsCol *mongo.Collection, chatListCol *mongo.Collection) *Mon
 	return &MongoRepo{msgsCol: msgsCol, chatListCol: chatListCol}
 }
 
-func (repo *MongoRepo) PersistAll(msgs []models.Message) error {
+func (repo *MongoRepo) PersistAllMessages(msgs []models.Message) error {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
 	defer cancel()
 

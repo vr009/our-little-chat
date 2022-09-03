@@ -13,7 +13,7 @@ func NewTarantoolRepo(conn *tarantool.Connection) *TarantoolRepo {
 	return &TarantoolRepo{conn: conn}
 }
 
-func (tt *TarantoolRepo) FetchAll() ([]models.Message, error) {
+func (tt *TarantoolRepo) FetchAllMessages() ([]models.Message, error) {
 	conn := tt.conn
 	msgs := []models.Message{}
 	err := conn.CallTyped("flush", []interface{}{}, &msgs)
