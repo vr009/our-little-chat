@@ -26,26 +26,26 @@ func NewPersonRepo(conn *pgxpool.Pool) *PersonRepo {
 	}
 }
 
-func (pr *PersonRepo) CreatePerson(person models.Person) (models.Person, models.StatusCode) {
-	NewPerson := models.Person{UserId: person.UserId, Nickname: person.Nickname, LastAuth: person.LastAuth, Registered: person.Registered, Avatar: person.Avatar, ContactList: person.ContactList}
-	row := pr.conn.QueryRow(context.Background(), INSERTQUERY, person.UserId, person.Nickname, person.LastAuth, person.Registered, person.Avatar, person.ContactList)
-	err := row.Scan(&NewPerson.UserId)
+func (pr *PersonRepo) CreatePerson(person models.UserData) (models.UserData, models.StatusCode) {
+	NewPerson := models.UserData{UserID: person.UserID, Nickname: person.Nickname, LastAuth: person.LastAuth, Registered: person.Registered, Avatar: person.Avatar, ContactList: person.ContactList}
+	row := pr.conn.QueryRow(context.Background(), INSERTQUERY, person.UserID, person.Nickname, person.LastAuth, person.Registered, person.Avatar, person.ContactList)
+	err := row.Scan(&NewPerson.UserID)
 	if err != nil {
 		fmt.Println(err)
-		return models.Person{}, models.BadRequest
+		return models.UserData{}, models.BadRequest
 	}
 	return NewPerson, models.OK
 }
 
-func (pr *PersonRepo) DeletePerson(person models.Person) models.StatusCode {
-	_, err := pr.conn.Exec(context.Background(), DELETEQUERY, person.UserId)
+func (pr *PersonRepo) DeletePerson(person models.UserData) models.StatusCode {
+	_, err := pr.conn.Exec(context.Background(), DELETEQUERY, person.UserID)
 	if err != nil {
 		return models.InternalError
 	}
 	return models.OK
 }
 
-func (pr *PersonRepo) UpdatePerson(personNew *models.Person) models.StatusCode {
+func (pr *PersonRepo) UpdatePerson(personNew *models.UserData) models.StatusCode {
 	personOld, status := pr.GetPerson(*personNew)
 	if status != models.OK {
 		return models.NotFound
@@ -67,23 +67,23 @@ func (pr *PersonRepo) UpdatePerson(personNew *models.Person) models.StatusCode {
 	return models.OK
 }
 
-func (pr *PersonRepo) GetPerson(person models.Person) (models.Person, models.StatusCode) {
-	rows := pr.conn.QueryRow(context.Background(), GETQUERY, person.UserId)
+func (pr *PersonRepo) GetPerson(person models.UserData) (models.UserData, models.StatusCode) {
+	rows := pr.conn.QueryRow(context.Background(), GETQUERY, person.UserID)
 	err := rows.Scan(&person.Nickname, &person.LastAuth, &person.Registered, &person.Avatar, &person.ContactList)
 	if err != nil {
-		return models.Person{}, models.NotFound
+		return models.UserData{}, models.NotFound
 	}
 	return person, models.OK
 }
 
-func (pr *PersonRepo) GetPersonsList() ([]models.Person, models.StatusCode) {
+func (pr *PersonRepo) GetPersonsList() ([]models.UserData, models.StatusCode) {
 	rows, err := pr.conn.Query(context.Background(), LISTQUERY)
 	if err != nil && err != sql.ErrNoRows {
 		return nil, models.InternalError
 	}
-	list := make([]models.Person, 0)
+	list := make([]models.UserData, 0)
 	for rows.Next() {
-		person := models.Person{}
+		person := models.UserData{}
 		rows.Scan(&person.Nickname, &person.LastAuth, &person.Registered, &person.Avatar, &person.ContactList)
 		list = append(list, person)
 	}
