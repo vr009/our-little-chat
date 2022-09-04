@@ -9,9 +9,9 @@ import (
 )
 
 const (
-	INSERTQUERY = "INSERT INTO persons(name, age, work, address) VALUES($1, $2, $3, $4) RETURNING person_id;"
+	INSERTQUERY = "INSERT INTO persons(UserID, Nickname, LastAuth, Registered, Avatar, ContactList) VALUES($1, $2, $3, $4, $5, $6) RETURNING person_id;"
 	DELETEQUERY = "DELETE FROM persons WHERE person_id=$1;"
-	UPDATEQUERY = "UPDATE persons SET name=$1, age=$2, work=$3, address=$4 WHERE person_id=$5;"
+	UPDATEQUERY = "UPDATE persons SET Nickname=$1, LastAuth=$2, Registered=$3, Avatar=$4, ContactList=$5 WHERE person_id=$6;"
 	GETQUERY    = "SELECT name, age, work, address FROM persons WHERE person_id=$1;"
 	LISTQUERY   = "SELECT * FROM persons;"
 )
