@@ -5,17 +5,15 @@ GRANT ALL PRIVILEGES ON DATABASE persons TO program;
 GRANT ALL PRIVILEGES ON DATABASE postgres TO program;
 ALTER ROLE program WITH LOGIN;
 
-CREATE TABLE "persons"
+CREATE TABLE "users"
 (
-    UserID   uuid default gen_random_uuid() NOT NULL
-        PRIMARY KEY ,
-    Nickname  varchar(100)                   NOT NULL ,
+    UserID   uuid NOT NULL PRIMARY KEY ,
+    Nickname  varchar(100) PRIMARY KEY NOT NULL ,
     LastAuth   DATE,
     Registered   DATE  NOT NULL,
     Avatar   TEXT[],
     ContactList  TEXT[]
 );
 
-ALTER TABLE "user"
+ALTER TABLE "users"
     OWNER TO postgres;
-

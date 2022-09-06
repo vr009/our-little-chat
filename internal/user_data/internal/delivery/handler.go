@@ -19,7 +19,7 @@ func NewUserdataHandler(useCase internal.UserdataUseCase) *UserdataHandler {
 	}
 }
 
-func (udh *UserdataHandler) GetAllUsers(w http.ResponseWriter) {
+func (udh *UserdataHandler) GetAllUsers(w http.ResponseWriter, r *http.Request) {
 	users, status := udh.useCase.GetAllUsers()
 	if status == models.OK {
 		body, err := json.Marshal(users)
