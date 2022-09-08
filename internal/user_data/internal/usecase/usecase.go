@@ -2,6 +2,7 @@ package usecase
 
 import (
 	"github.com/google/uuid"
+	"time"
 	"user_data/internal"
 	"user_data/internal/models"
 )
@@ -22,6 +23,7 @@ func (uc *UserdataUseCase) GetAllUsers() ([]models.UserData, models.StatusCode) 
 
 func (uc *UserdataUseCase) CreateUser(userData models.UserData) (models.UserData, models.StatusCode) {
 	userData.UserID = uuid.New()
+	userData.Registered = time.Now()
 	return uc.repo.CreateUser(userData)
 }
 

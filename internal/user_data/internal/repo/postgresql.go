@@ -11,12 +11,12 @@ import (
 //todo поправить имена в sql-запросах
 
 const (
-	INSERTQUERY = "INSERT INTO persons(UserID, Nickname, LastAuth, Registered, Avatar, ContactList) " +
+	INSERTQUERY = "INSERT INTO users(UserID, Nickname, LastAuth, Registered, Avatar, ContactList) " +
 		"VALUES($1, $2, $3, $4, $5, $6) RETURNING UserID;"
-	DELETEQUERY = "DELETE FROM persons WHERE UserID=$1;"
-	UPDATEQUERY = "UPDATE persons SET Nickname=$1, LastAuth=$2, Registered=$3, Avatar=$4, ContactList=$5 WHERE person_id=$6;"
-	GETQUERY    = "SELECT name, age, work, address FROM persons WHERE person_id=$1;"
-	LISTQUERY   = "SELECT * FROM persons;"
+	DELETEQUERY = "DELETE FROM users WHERE UserID=$1;"
+	UPDATEQUERY = "UPDATE users SET Nickname=$1, LastAuth=$2, Registered=$3, Avatar=$4, ContactList=$5 WHERE UserID=$6;"
+	GETQUERY    = "SELECT UserID, Nickname, LastAuth, Registered, Avatar, ContactList  FROM users WHERE UserID=$1;"
+	LISTQUERY   = "SELECT * FROM users;"
 )
 
 type PersonRepo struct {
@@ -73,7 +73,7 @@ func (pr *PersonRepo) UpdateUser(personNew models.UserData) (models.UserData, mo
 		personOld.LastAuth = personNew.LastAuth
 	}
 
-	_, err := pr.conn.Exec(context.Background(), UPDATEQUERY, personOld.Nickname, personOld.LastAuth)
+	_, err := pr.conn.Exec(context.Background(), UPDATEQUERY, personNew.Nickname, personNew.LastAuth, personNew.Registered, personNew.Avatar, personNew.ContactList, personNew.UserID)
 	if err != nil {
 		return personOld, models.BadRequest
 	}
@@ -83,8 +83,9 @@ func (pr *PersonRepo) UpdateUser(personNew models.UserData) (models.UserData, mo
 
 func (pr *PersonRepo) GetUser(person models.UserData) (models.UserData, models.StatusCode) {
 	rows := pr.conn.QueryRow(context.Background(), GETQUERY, person.UserID)
-	err := rows.Scan(&person.Nickname, &person.LastAuth, &person.Registered, &person.Avatar, &person.ContactList)
+	err := rows.Scan(&person.UserID, &person.Nickname, &person.LastAuth, &person.Registered, &person.Avatar, &person.ContactList)
 	if err != nil {
+		fmt.Println("ОШИБКА!!!! ", err.Error())
 		return models.UserData{}, models.NotFound
 	}
 	return person, models.OK
@@ -98,7 +99,7 @@ func (pr *PersonRepo) GetAllUsers() ([]models.UserData, models.StatusCode) {
 	list := make([]models.UserData, 0)
 	for rows.Next() {
 		person := models.UserData{}
-		rows.Scan(&person.Nickname, &person.LastAuth, &person.Registered, &person.Avatar, &person.ContactList)
+		rows.Scan(&person.UserID, &person.Nickname, &person.LastAuth, &person.Registered, &person.Avatar, &person.ContactList)
 		list = append(list, person)
 	}
 	return list, models.OK
