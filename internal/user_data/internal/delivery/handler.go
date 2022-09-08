@@ -2,6 +2,7 @@ package delivery
 
 import (
 	"encoding/json"
+	"fmt"
 	"github.com/google/uuid"
 	"log"
 	"net/http"
@@ -21,6 +22,7 @@ func NewUserdataHandler(useCase internal.UserdataUseCase) *UserdataHandler {
 
 func (udh *UserdataHandler) GetAllUsers(w http.ResponseWriter, r *http.Request) {
 	users, status := udh.useCase.GetAllUsers()
+	fmt.Println(users, status)
 	if status == models.OK {
 		body, err := json.Marshal(users)
 		if err != nil {
@@ -46,7 +48,7 @@ func (udh *UserdataHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
 	err := json.NewDecoder(r.Body).Decode(&person)
 
 	if err != nil {
-		log.Print("error")
+		log.Print("error of decoding")
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
