@@ -1,13 +1,13 @@
 package repo
 
 import (
-	"auth/internal/models"
 	"context"
 	"crypto/md5"
 	"fmt"
 	"github.com/go-redis/redis/v9"
 	"github.com/google/uuid"
 	"log"
+	"our-little-chatik/internal/auth/internal/models"
 	"time"
 )
 

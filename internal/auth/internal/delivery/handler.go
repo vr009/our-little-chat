@@ -1,12 +1,12 @@
 package delivery
 
 import (
-	"auth/internal"
-	"auth/internal/models"
 	"encoding/json"
 	"github.com/google/uuid"
 	"log"
 	"net/http"
+	"our-little-chatik/internal/auth/internal"
+	"our-little-chatik/internal/auth/internal/models"
 )
 
 type AuthHandler struct {
