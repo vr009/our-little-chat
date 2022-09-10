@@ -1,21 +1,48 @@
 package models
 
-import "time"
+import (
+	"fmt"
+	"github.com/google/uuid"
+	"gopkg.in/vmihailenco/msgpack.v2"
+)
 
 type Chat struct {
-	ConversationId string    `json:"conversation_id" bson:"conversation_id"`
-	Owner          string    `json:"owner" bson:"owner"`
-	Opponent       string    `json:"opponent" bson:"opponent"`
-	LastMessage    time.Time `json:"last_message" bson:"last_message"`
+	Participant uuid.UUID `json:"participant" bson:"participant"`
+	ChatID      uuid.UUID `json:"chat_id" bson:"chat_id"`
+	LastRead    float64   `json:"last_read" bson:"last_read"`
 }
 
-type ChatList struct {
-	Owner string `json:"owner" bson:"owner"`
-	List  []Chat `json:"list" bson:"list"`
+func (c *Chat) EncodeMsgpack(e *msgpack.Encoder) error {
+	return nil
 }
 
-type Conversation struct {
-	ConversationId string `json:"conversation_id" bson:"conversation_id"`
-	Owner          string `json:"owner" bson:"owner"`
-	MessageList    []Message
+func (c *Chat) DecodeMsgpack(d *msgpack.Decoder) error {
+	var err error
+	var uuidStr string
+	var l int
+	if l, err = d.DecodeSliceLen(); err != nil {
+		return err
+	}
+	if l != 3 {
+		return fmt.Errorf("array len doesn't match: %d", l)
+	}
+	//participant id
+	if uuidStr, err = d.DecodeString(); err != nil {
+		return err
+	}
+
+	id, _ := uuid.Parse(uuidStr)
+	c.Participant = id
+
+	//chat id
+	if uuidStr, err = d.DecodeString(); err != nil {
+		return err
+	}
+	c.ChatID, _ = uuid.Parse(uuidStr)
+
+	//timestamp
+	if c.LastRead, err = d.DecodeFloat64(); err != nil {
+		return err
+	}
+	return nil
 }

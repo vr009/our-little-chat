@@ -7,11 +7,12 @@ import (
 )
 
 type Message struct {
-	ChatID    uuid.UUID `json:"chat_id" bson:"chat_id"`
-	MsgID     uuid.UUID `json:"msg_id,omitempty" bson:"msg_id"`
-	SenderID  uuid.UUID `json:"sender_id" bson:"sender_id"`
-	Payload   string    `json:"payload" bson:"payload"`
-	CreatedAt float64   `json:"created_at,omitempty" bson:"created_at"`
+	ChatID       uuid.UUID `json:"chatID"`
+	SenderID     uuid.UUID `json:"senderID"`
+	MsgID        uuid.UUID `json:"-"`
+	Payload      string    `json:"payload"`
+	CreatedAt    float64   `json:"-"`
+	SessionStart bool      `json:"sessionStart,omitempty"`
 }
 
 func (m *Message) EncodeMsgpack(e *msgpack.Encoder) error {

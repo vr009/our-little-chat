@@ -1,0 +1,9 @@
+port: 8080
+
+auth_addr: "127.0.0.1:8081"
+
+db:
+  host: 127.0.0.1
+  port: 3301
+  username: test
+  password: test

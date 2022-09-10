@@ -1,0 +1,12 @@
+port: 8083
+
+db:
+  uri: mongodb://localhost:27017
+  username: test
+  password: test
+
+tt:
+  host: 127.0.0.1
+  port: 3301
+  username: test
+  password: test

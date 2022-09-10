@@ -1,0 +1,62 @@
+name: Auth-service deploy
+on:
+  push:
+    branches:
+      - dev
+  pull_request:
+    branches:
+      - master
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+#      - name: Setup Go environment
+#        uses: actions/setup-go@v2.1.4
+#        with:
+#          go-version: 1.16
+#         TODO TESTS
+#      - name: Tests
+#        run: |
+#          cd ./services/gateway/internal
+#          go mod tidy
+#          go test ./...
+#          cd ../../library/internal/
+#          go mod tidy
+#          go test ./...
+#          cd ../../rating/internal/
+#          go mod tidy
+#          go test ./...
+#          cd ../../reservation/internal/
+#          go mod tidy
+#          go test ./...
+#          cd ../../..
+#      - name: DockerHub Login
+#        run: echo ${{ secrets.DOCKERHUB_PASSWORD }} | docker login -u ${{ secrets.DOCKERHUB_USERNAME }} --password-stdin
+#      - name: Build Docker Images
+#        run: docker-compose -f docker-compose.yml up --build -d
+#      - name: Push Docker Image
+#        run: docker-compose push
+      - name: deploy in VKCS
+        uses: appleboy/ssh-action@v0.1.3
+        with:
+          host: ${{ secrets.HOST }}
+          username: ${{ secrets.USERNAME }}
+          key: ${{ secrets.VK_PRVATE_KEY }}
+          script: cd backend/our-little-chatik/ && git pull && ./build.sh
+
+#       TODO postman tests
+#      - name: Run API Tests
+#        id: run-newman1
+#        uses: anthonyvscode/newman-action@v1
+#        with:
+#          collection: v4/postman/[rsoi] postman_collection.json
+#          environment: v4/postman/[rsoi][heroku] postman_environment.json
+#          delayRequest: 50
+#          reporters: cli
