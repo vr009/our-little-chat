@@ -1,6 +1,6 @@
 package internal
 
-import "auth/internal/models"
+import "our-little-chatik/internal/auth/internal/models"
 
 type AuthRepo interface {
 	CreateSession(session models.Session) (models.Session, models.StatusCode)
