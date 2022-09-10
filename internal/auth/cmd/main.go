@@ -1,13 +1,13 @@
 package main
 
 import (
-	"auth/internal/delivery"
-	"auth/internal/models"
-	repo2 "auth/internal/repo"
-	"auth/internal/usecase"
 	"fmt"
 	"log"
 	"net/http"
+	"our-little-chatik/internal/auth/internal/delivery"
+	"our-little-chatik/internal/auth/internal/models"
+	"our-little-chatik/internal/auth/internal/repo"
+	"our-little-chatik/internal/auth/internal/usecase"
 
 	"github.com/go-redis/redis/v9"
 	"github.com/gorilla/mux"
@@ -67,8 +67,8 @@ func main() {
 
 	fmt.Printf("Redis started at port %s \n", appConfig.DataBase.Port)
 
-	repo := repo2.NewDataBase(client, appConfig.DataBase.TtlHours)
-	useCase := usecase.NewAuthUseCase(repo)
+	db := repo.NewDataBase(client, appConfig.DataBase.TtlHours)
+	useCase := usecase.NewAuthUseCase(db)
 	handler := delivery.NewAuthHandler(useCase)
 
 	router := mux.NewRouter()
