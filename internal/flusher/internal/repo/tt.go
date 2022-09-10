@@ -16,7 +16,7 @@ func NewTarantoolRepo(conn *tarantool.Connection) *TarantoolRepo {
 func (tt *TarantoolRepo) FetchAllMessages() ([]models.Message, error) {
 	conn := tt.conn
 	msgs := []models.Message{}
-	err := conn.CallTyped("flush", []interface{}{}, &msgs)
+	err := conn.CallTyped("flush_msgs", []interface{}{}, &msgs)
 	if err != nil {
 		return nil, err
 	}
@@ -26,7 +26,7 @@ func (tt *TarantoolRepo) FetchAllMessages() ([]models.Message, error) {
 func (tt *TarantoolRepo) FetchAllChats() ([]models.Chat, error) {
 	conn := tt.conn
 	chats := []models.Chat{}
-	err := conn.CallTyped("fetch_chats", []interface{}{}, &chats)
+	err := conn.CallTyped("flush_chats", []interface{}{}, &chats)
 	if err != nil {
 		return nil, err
 	}

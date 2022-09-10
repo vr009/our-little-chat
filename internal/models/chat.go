@@ -7,9 +7,9 @@ import (
 )
 
 type Chat struct {
-	ChatID       uuid.UUID   `json:"chat_id" bson:"chat_id"`
-	Participants []uuid.UUID `json:"participants" bson:"participants"`
-	LastMessage  float64     `json:"last_message" bson:"last_message"`
+	Participant uuid.UUID `json:"participant" bson:"participant"`
+	ChatID      uuid.UUID `json:"chat_id" bson:"chat_id"`
+	LastRead    float64   `json:"last_read" bson:"last_read"`
 }
 
 func (c *Chat) EncodeMsgpack(e *msgpack.Encoder) error {
@@ -23,35 +23,25 @@ func (c *Chat) DecodeMsgpack(d *msgpack.Decoder) error {
 	if l, err = d.DecodeSliceLen(); err != nil {
 		return err
 	}
-	if l != 4 {
+	if l != 3 {
 		return fmt.Errorf("array len doesn't match: %d", l)
 	}
+	//participant id
+	if uuidStr, err = d.DecodeString(); err != nil {
+		return err
+	}
+
+	id, _ := uuid.Parse(uuidStr)
+	c.Participant = id
+
 	//chat id
 	if uuidStr, err = d.DecodeString(); err != nil {
 		return err
 	}
 	c.ChatID, _ = uuid.Parse(uuidStr)
 
-	//sender id
-	if uuidStr, err = d.DecodeString(); err != nil {
-		return err
-	}
-
-	id, _ := uuid.Parse(uuidStr)
-	c.Participants = append(c.Participants, id)
-
-	//receiver id
-	if uuidStr, err = d.DecodeString(); err != nil {
-		return err
-	}
-	id, _ = uuid.Parse(uuidStr)
-	c.Participants = append(c.Participants, id)
-
 	//timestamp
-	//if c.LastUpdate, err = d.DecodeTime(); err != nil {
-	//	return err
-	//}
-	if c.LastMessage, err = d.DecodeFloat64(); err != nil {
+	if c.LastRead, err = d.DecodeFloat64(); err != nil {
 		return err
 	}
 	return nil

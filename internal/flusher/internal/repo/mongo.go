@@ -28,9 +28,10 @@ func (repo *MongoRepo) PersistAllMessages(msgs []models.Message) error {
 
 	_, err := repo.msgsCol.InsertMany(ctx, docs)
 	if err != nil {
+		fmt.Println("an error occured")
 		return err
 	}
-	//fmt.Println("persisted:", msgs)
+	fmt.Println("persisted msgs:", msgs)
 	return nil
 }
 

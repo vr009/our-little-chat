@@ -16,7 +16,7 @@ func NewTarantoolRepo(conn *tarantool.Connection) *TarantoolRepo {
 func (tt *TarantoolRepo) GetFreshChat(chat models.Chat) ([]models.Message, error) {
 	conn := tt.conn
 	msgs := []models.Message{}
-	err := conn.CallTyped("fetch", []interface{}{chat.ChatID}, &msgs)
+	err := conn.CallTyped("fetch_msgs", []interface{}{chat.ChatID}, &msgs)
 	if err != nil {
 		return nil, err
 	}

@@ -126,7 +126,6 @@ function queue.take_new_messages_from_space(chat_id, receiver_id)
     else
         since_not_read = user_info[3]
     end
-    --print('last message was: '.. since_not_read)
 
     -- collect messages since the since_not_read number
     local batch = {}
@@ -167,29 +166,44 @@ function queue.fetch_chat_list_update_for_single_user(user_id)
     return batch
 end
 
-function queue.flush_all()
+function queue.flush_all_msgs()
     local batch = {}
-    for k, tuple in box.space.msg_queue:pairs() do
-        table.insert(batch, { tuple[1]:str(), tuple[2]:str(), tuple[3]:str(), tuple[4]:str(), tuple[5], tuple[6] })
+    for _, tuple in box.space.msg_queue:pairs() do
+        table.insert(batch, {
+            tuple['chat_id']:str(),
+            tuple['msg_id']:str(),
+            tuple['sender_id']:str(),
+            tuple['payload'],
+            tuple['created_at'],
+        })
     end
     box.space.msg_queue:truncate()
     return batch
 end
 
-function queue.fetch_all(id)
+function queue.fetch_all_user_msgs(id)
     local chat_id = uuid.fromstr(id)
     local batch = {}
     for k, tuple in box.space.msg_queue:pairs(chat_id) do
-        table.insert(batch, { tuple[1]:str(), tuple[2]:str(), tuple[3]:str(), tuple[4]:str(), tuple[5], tuple[6] })
+        table.insert(batch, {
+            tuple['chat_id']:str(),
+            tuple['msg_id']:str(),
+            tuple['sender_id']:str(),
+            tuple['payload'],
+            tuple['created_at'],
+        })
     end
     return batch
 end
 
-function queue.fetch_chats()
+function queue.flush_chats()
     local batch = {}
-    for k, chat in box.space.user_chat_list:pairs() do
-        local sibling_chat = box.space.user_chat_list.index.chat_list_index_inverted:select(chat[2])
-        table.insert(batch, {chat[2]:str(), chat[1]:str(), sibling_chat[1][1]:str(), chat[3]})
+    for _, chat in box.space.user_chat_list:pairs() do
+        table.insert(batch, {
+            chat['participant']:str(),
+            chat['chat_id']:str(),
+            chat['last_read']
+        })
     end
     box.space.user_chat_list:truncate()
     return batch
@@ -211,9 +225,9 @@ rawset(_G, 'take_msgs', queue.take_new_messages_from_space)
 -- returns a list of chats with new unread messages
 rawset(_G, 'fetch_chats_upd', queue.fetch_chat_list_update_for_single_user)
 
-rawset(_G, 'flush', queue.flush_all)
-rawset(_G, 'fetch', queue.fetch_all)
-rawset(_G, 'fetch_chats', queue.fetch_chats)
+rawset(_G, 'flush_msgs', queue.flush_all_msgs)
+rawset(_G, 'flush_chats', queue.flush_chats)
+rawset(_G, 'fetch_msgs', queue.fetch_all_user_msgs)
 
 box.once('debug', function() box.schema.user.grant('guest', 'super') end)
 

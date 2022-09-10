@@ -3,7 +3,6 @@ package delivery
 import (
 	"encoding/json"
 	"github.com/google/uuid"
-	"log"
 	"net/http"
 	"our-little-chatik/internal/chat_history/internal"
 	"our-little-chatik/internal/models"
@@ -18,24 +17,6 @@ func NewChatHandler(usecase internal.ChatUseCase) *ChatHandler {
 	return &ChatHandler{
 		Usecase: usecase,
 	}
-}
-
-func (c *ChatHandler) PostMessages(w http.ResponseWriter, r *http.Request) {
-	msgs := []models.Message{}
-
-	defer r.Body.Close()
-
-	err := json.NewDecoder(r.Body).Decode(&msgs)
-	if err != nil {
-		log.Println(err)
-		w.WriteHeader(http.StatusInternalServerError)
-	}
-
-	if err := c.Usecase.SaveMessages(msgs); err != nil {
-		w.WriteHeader(http.StatusServiceUnavailable)
-	}
-
-	w.WriteHeader(http.StatusOK)
 }
 
 // GetChat godoc
