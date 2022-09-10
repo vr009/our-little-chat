@@ -5,7 +5,7 @@ import (
 	"database/sql"
 	"fmt"
 	"github.com/jackc/pgx/v4/pgxpool"
-	"user_data/internal/models"
+	"our-little-chatik/internal/user_data/internal/models"
 )
 
 //todo поправить имена в sql-запросах

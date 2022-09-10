@@ -2,9 +2,9 @@ package usecase
 
 import (
 	"github.com/google/uuid"
+	"our-little-chatik/internal/user_data/internal"
+	"our-little-chatik/internal/user_data/internal/models"
 	"time"
-	"user_data/internal"
-	"user_data/internal/models"
 )
 
 type UserdataUseCase struct {

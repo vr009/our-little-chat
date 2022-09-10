@@ -10,9 +10,9 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"user_data/internal/delivery"
-	"user_data/internal/repo"
-	"user_data/internal/usecase"
+	"our-little-chatik/internal/user_data/internal/delivery"
+	"our-little-chatik/internal/user_data/internal/repo"
+	"our-little-chatik/internal/user_data/internal/usecase"
 )
 
 func init() {

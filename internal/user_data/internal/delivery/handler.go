@@ -6,8 +6,8 @@ import (
 	"github.com/google/uuid"
 	"log"
 	"net/http"
-	"user_data/internal"
-	"user_data/internal/models"
+	"our-little-chatik/internal/user_data/internal"
+	"our-little-chatik/internal/user_data/internal/models"
 )
 
 type UserdataHandler struct {
