@@ -1,8 +1,6 @@
 package internal
 
-import (
-	"user_data/internal/models"
-)
+import "our-little-chatik/internal/user_data/internal/models"
 
 type UserdataRepo interface {
 	GetAllUsers() ([]models.UserData, models.StatusCode)
