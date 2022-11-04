@@ -2,18 +2,20 @@ package main
 
 import (
 	"context"
+	"log"
+	"net/http"
+	"os"
+	"strconv"
+
+	"our-little-chatik/internal/chat/internal/delivery"
+	"our-little-chatik/internal/chat/internal/repo"
+	"our-little-chatik/internal/chat/internal/usecase"
+
 	"github.com/gorilla/mux"
 	"github.com/spf13/viper"
 	"github.com/tarantool/go-tarantool"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
-	"log"
-	"net/http"
-	"os"
-	"our-little-chatik/internal/chat_history/internal/delivery"
-	"our-little-chatik/internal/chat_history/internal/repo"
-	"our-little-chatik/internal/chat_history/internal/usecase"
-	"strconv"
 )
 
 type MongoConfig struct {
@@ -37,7 +39,7 @@ type TTConfig struct {
 
 func main() {
 	configPath := os.Getenv("FLUSHER_CONFIG")
-	configPath = "./internal/chat_history/cmd"
+	configPath = "./internal/chat/cmd"
 	viper.AddConfigPath(configPath)
 	viper.SetConfigName("config")
 	if err := viper.ReadInConfig(); err != nil {
@@ -66,14 +68,18 @@ func main() {
 	}
 
 	db := mongoClient.Database("chat_db")
-	repom := repo.NewMongoRepo(db)
+	cldb := mongoClient.Database("chat_list_db")
+	repom := repo.NewMongoRepo(db, cldb)
 	repoTT := repo.NewTarantoolRepo(ttClient)
 	uc := usecase.NewChatUseCase(repom, repoTT)
 	handler := delivery.NewChatHandler(uc)
 
 	r := mux.NewRouter()
 
-	r.HandleFunc("/api/v1/chat/conv", handler.GetChat).Methods("GET")
+	r.HandleFunc("/api/v1/chat/conv", handler.GetChatMessages).Methods("GET")
+	r.HandleFunc("/api/v1/chat/list", handler.GetChatList).Methods("GET")
+	r.HandleFunc("/api/v1/chat/new", handler.PostNewChat).Methods("POST")
+	r.HandleFunc("/api/v1/chat", handler.PostChat).Methods("POST")
 
 	srv := &http.Server{Handler: r, Addr: ":" + strconv.Itoa(appConfig.Port)}
 

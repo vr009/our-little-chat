@@ -5,7 +5,7 @@ box.cfg{
     listen = 3301,
 }
 
-box.schema.space.create('msg_queue',
+box.schema.space.create('messages',
         {
             if_not_exists = true,
             format = { { 'chat_id', type = 'uuid' },
@@ -15,23 +15,32 @@ box.schema.space.create('msg_queue',
                        { 'created_at', type = 'number' } }
         })
 
-box.space.msg_queue:create_index('chat_index', {if_not_exists = true, parts = { { 1, 'uuid' }, {5, 'number'} }})
-box.space.msg_queue:create_index('msg_index', {if_not_exists = true, parts = { { 2, 'uuid' }}})
-box.space.msg_queue:create_index('sender_index', {if_not_exists = true, unique=false, parts = { { 3, 'uuid' }, {1, 'uuid'}}})
+box.space.messages:create_index('chat_index', 
+        {if_not_exists = true, parts = { { 1, 'uuid' }, {5, 'number'} }})
+
+box.space.messages:create_index('msg_index', 
+        {if_not_exists = true, parts = { { 2, 'uuid' }}})
+
+box.space.messages:create_index('sender_index', 
+        {if_not_exists = true, unique=false, parts = { { 3, 'uuid' }, {1, 'uuid'}}})
 
 -- This space is needed to keep the info about what for chats have any user
--- and what users take part in chat.
-box.schema.space.create('user_chat_list',
+-- and what users take part in chat. Also here is info about the last time when user visited the chat.
+box.schema.space.create('chat_participants',
         {
             if_not_exists = true,
-            format = { { 'participant', type = 'uuid' },
+            format = { { 'participant_id', type = 'uuid' },
                        { 'chat_id' , type = 'uuid'},
                        { 'last_read', type = 'number' }} -- last_read field?
         })
 
-box.space.user_chat_list:create_index('participant_index', { if_not_exists = true, unique =true, parts = { { 1, 'uuid' }, { 2, 'uuid' }} })
-box.space.user_chat_list:create_index('chat_id_index', { if_not_exists = true, unique =true, parts = { { 2, 'uuid' }, { 1, 'uuid' }} })
+box.space.chat_participants:create_index('participant_index', 
+        { if_not_exists = true, unique =true, parts = { { 1, 'uuid' }, { 2, 'uuid' }} })
 
+box.space.chat_participants:create_index('chat_id_index', 
+        { if_not_exists = true, unique =true, parts = { { 2, 'uuid' }, { 1, 'uuid' }} })
+
+-- contains last messages in chat
 box.schema.space.create('chats_upd',
         {
             if_not_exists = true,
@@ -40,19 +49,27 @@ box.schema.space.create('chats_upd',
                        { 'payload', type = 'string' },
                        { 'created_at', type = 'number' } }
         })
-box.space.chats_upd:create_index('chat_id_index', { if_not_exists = true, unique =true, parts = { { 1, 'uuid' }} })
+box.space.chats_upd:create_index('chat_id_index',
+        { if_not_exists = true, unique =true, parts = { { 1, 'uuid' }} })
 
 local queue = {}
 
-function queue.create_chat(users)
-    local chat_id = uuid()
-    for _, user_id in pairs(users) do
-        print(user_id)
-        print(uuid.fromstr(user_id))
+function queue.create_chat(users, chat_id)
+    if chat_id == nil then
+        chat_id = uuid()
+    end
 
-        box.space.user_chat_list:insert({
+    local chat = box.space.chat_participants.index.chat_id_index:select({ uuid.fromstr(chat_id) })
+    if chat[1] ~= nil then
+        print('chat exists')
+        return
+    end
+
+    for _, user_id in pairs(users) do
+        uuid.fromstr(user_id)
+        box.space.chat_participants:insert({
             uuid.fromstr(user_id),
-            chat_id,
+            uuid.fromstr(chat_id),
             0,
         })
     end
@@ -60,14 +77,14 @@ function queue.create_chat(users)
 end
 
 function queue.add_user_to_chat(chat_id, user_id)
-    box.space.user_chat_list:replace({user_id, chat_id, 0})
+    box.space.chat_participants:replace({user_id, chat_id, 0})
 end
 
 function queue.get_members(chat_id)
     local batch = {}
-    local usrs = box.space.user_chat_list.index.chat_id_index:select({uuid.fromstr(chat_id)})
+    local usrs = box.space.chat_participants.index.chat_id_index:select({uuid.fromstr(chat_id)})
     for _, tuple in pairs(usrs) do
-        table.insert(batch, { tuple[1]:str() })
+        table.insert(batch, { tuple['participant_id']:str() })
     end
     return batch
 end
@@ -75,7 +92,7 @@ end
 --chat_id, sender_id, receiver_id, payload
 --c5f0ae14-d06b-4ffd-9bcd-6df01243a9c5, 62391bd9-157c-4513-8e7c-c082e00d2b7e, 61f98c94-de3c-491a-b9c7-1ea214b3ec13
 function queue.put(chat_id, sender_id, payload)
-    local res_chat_id = box.space.user_chat_list.index.participant_index:select({ uuid.fromstr(sender_id), uuid.fromstr(chat_id) })[1]
+    local res_chat_id = box.space.chat_participants.index.participant_index:select({ uuid.fromstr(sender_id), uuid.fromstr(chat_id) })[1]
     print(res_chat_id)
     if res_chat_id == nil then
         print('doesnt exist')
@@ -93,7 +110,7 @@ function queue.put(chat_id, sender_id, payload)
         created_at,
     }
 
-    local res = box.space.msg_queue:insert{
+    local res = box.space.messages:insert{
         uuid.fromstr(chat_id),
         msg_id,
         uuid.fromstr(sender_id),
@@ -111,33 +128,39 @@ function queue.take_new_messages_from_space(chat_id, receiver_id)
     local chat_info = box.space.chats_upd.index.chat_id_index:get({ uuid.fromstr(chat_id) })
     local last_updated = nil
     if chat_info == nil then
-        box.space.user_chat_list:replace({uuid.fromstr(chat_id), uuid.fromstr(receiver_id), 0})
+        box.space.chat_participants:replace({uuid.fromstr(chat_id), uuid.fromstr(receiver_id), 0})
     else
-        last_updated = chat_info[4]
+        last_updated = chat_info['created_at']
     end
 
     local since_not_read = 0
     -- to know the last update of the chat
-    local user_info = box.space.user_chat_list.index.participant_index:get({uuid.fromstr(receiver_id), uuid.fromstr(chat_id)})
+    local user_info = box.space.chat_participants.index.participant_index:get({uuid.fromstr(receiver_id), uuid.fromstr(chat_id)})
     if user_info == nil then
         -- if there was no info we create a new tuple in the space we return
-        --box.space.user_chat_list:replace({uuid.fromstr(receiver_id), uuid.fromstr(chat_id), 0})
+        --box.space.chat_participants:replace({uuid.fromstr(receiver_id), uuid.fromstr(chat_id), 0})
         return {}
     else
-        since_not_read = user_info[3]
+        since_not_read = user_info['last_read']
     end
 
     -- collect messages since the since_not_read number
     local batch = {}
-    for _, tuple in box.space.msg_queue.index.chat_index:pairs({ uuid.fromstr(chat_id) }) do
-        if (since_not_read <= tuple[5]) then
-            table.insert(batch, { tuple[1]:str(), tuple[2]:str(), tuple[3]:str(), tuple[4], tuple[5] })
-            print('found! : ', tuple[1]:str(), tuple[2]:str(), tuple[3]:str(), tuple[4], tuple[5])
+    for _, message in box.space.messages.index.chat_index:pairs({ uuid.fromstr(chat_id) }) do
+        if (since_not_read <= message['created_at']) then
+            table.insert(batch, {
+                message['chat_id']:str(),
+                message['msg_id']:str(),
+                message['sender_id']:str(),
+                message['payload'],
+                message['created_at'],
+            })
+            print('found! : ', message[1]:str(), message[2]:str(), message[3]:str(), message[4], message[5])
         end
     end
 
     -- update the info about a user that has read the messages from chat
-    box.space.user_chat_list:replace({
+    box.space.chat_participants:replace({
         uuid.fromstr(receiver_id),
         uuid.fromstr(chat_id),
         fiber.time()
@@ -151,9 +174,14 @@ function queue.fetch_chat_list_update(user_id, chat_list)
     for _, chat_id in ipairs(chat_list) do
         if chat_id ~= nil and user_id ~= nil then
             local chat = box.space.chats_upd.index.chat_id_index:get({chat_id[2]})
-            local user_info = box.space.user_chat_list.index.participant_index:get({user_id, chat_id[2]})
-            if chat[4] > user_info[3] then
-                table.insert(batch, { chat[1]:str(), chat[2]:str(), chat[3], chat[4] })
+            local user_info = box.space.chat_participants.index.participant_index:get({user_id, chat_id[2]})
+            if chat['created_at'] > user_info['last_read'] then
+                table.insert(batch, {
+                    chat['chat_id']:str(),
+                    chat['sender_id']:str(),
+                    chat['payload'],
+                    chat['created_at'],
+                })
             end
         end
     end
@@ -161,14 +189,14 @@ function queue.fetch_chat_list_update(user_id, chat_list)
 end
 
 function queue.fetch_chat_list_update_for_single_user(user_id)
-    local chat_list = box.space.user_chat_list:select(uuid.fromstr(user_id))
+    local chat_list = box.space.chat_participants:select(uuid.fromstr(user_id))
     local batch = queue.fetch_chat_list_update(uuid.fromstr(user_id), chat_list)
     return batch
 end
 
 function queue.flush_all_msgs()
     local batch = {}
-    for _, tuple in box.space.msg_queue:pairs() do
+    for _, tuple in box.space.messages:pairs() do
         table.insert(batch, {
             tuple['chat_id']:str(),
             tuple['msg_id']:str(),
@@ -177,14 +205,14 @@ function queue.flush_all_msgs()
             tuple['created_at'],
         })
     end
-    box.space.msg_queue:truncate()
+    box.space.messages:truncate()
     return batch
 end
 
 function queue.fetch_all_user_msgs(id)
     local chat_id = uuid.fromstr(id)
     local batch = {}
-    for k, tuple in box.space.msg_queue:pairs(chat_id) do
+    for k, tuple in box.space.messages:pairs(chat_id) do
         table.insert(batch, {
             tuple['chat_id']:str(),
             tuple['msg_id']:str(),
@@ -198,14 +226,14 @@ end
 
 function queue.flush_chats()
     local batch = {}
-    for _, chat in box.space.user_chat_list:pairs() do
+    for _, chat in box.space.chat_participants:pairs() do
         table.insert(batch, {
-            chat['participant']:str(),
+            chat['participant_id']:str(),
             chat['chat_id']:str(),
             chat['last_read']
         })
     end
-    box.space.user_chat_list:truncate()
+    box.space.chat_participants:truncate()
     return batch
 end
 
@@ -233,8 +261,8 @@ box.once('debug', function() box.schema.user.grant('guest', 'super') end)
 
 box.schema.user.create('test', {password = 'test'})
 box.schema.user.grant('test', 'execute', 'universe')
-box.schema.user.grant('test', 'read,write', 'space', 'msg_queue')
-box.schema.user.grant('test', 'read,write', 'space', 'user_chat_list')
+box.schema.user.grant('test', 'read,write', 'space', 'messages')
+box.schema.user.grant('test', 'read,write', 'space', 'chat_participants')
 box.schema.user.grant('test', 'read,write', 'space', 'chats_upd')
 
 return queue

@@ -4,12 +4,14 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"github.com/gorilla/websocket"
 	"log"
 	"net/http"
+	"time"
+
 	"our-little-chatik/internal/peer/internal"
 	"our-little-chatik/internal/peer/internal/models"
-	"time"
+
+	"github.com/gorilla/websocket"
 )
 
 var upgrader = websocket.Upgrader{
@@ -141,7 +143,7 @@ func (ws *WebSocketClient) read() {
 		message = bytes.TrimSpace(bytes.Replace(message, newline, space, -1))
 		err = json.Unmarshal(message, msg)
 		if err != nil {
-			log.Println("failed to unmarshal message")
+			log.Println("failed to unmarshal message", err)
 			return
 		}
 
