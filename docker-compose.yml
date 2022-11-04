@@ -1,22 +1,75 @@
 version: '2.0'
 
 services:
-  auth:
-    build: internal/auth/.
-    command: ./auth-service
+  message-core:
+    build: internal/message_queue/.
+    ports:
+      - 3301:3301
+
+  peer-service:
+    build: internal/peer/.
+    command: ./peer-service
     ports:
       - 8080:8080
     depends_on:
-      - db-auth
+      - message-core
 
-  db-auth:
-    image: postgres:13.3
-    environment:
-      POSTGRES_DB: "${DB_NAME}"
-      POSTGRES_USER: "${DB_USER}"
-      POSTGRES_PASSWORD: "${DB_PSWD}"
-    volumes:
-      - ./internal/auth/schema/:/docker-entrypoint-initdb.d
-    restart: unless-stopped
+  chat-diff-service:
+    build: internal/chat_diff/.
+    command: ./chat-diff-service
     ports:
-    - 5432:5432
+      - 8081:8081
+    depends_on:
+      - message-core
+
+  flusher-service:
+    build: internal/flusher/.
+    command: ./flusher-service
+    ports:
+      - 8082:8082
+    depends_on:
+      - message-core
+      - mongo-all
+
+  chat-history-service:
+    build: internal/chat/.
+    command: ./chat-history-service
+    ports:
+      - 8083:8083
+    depends_on:
+      - message-core
+      - mongo-all
+
+  chat-list-service:
+    build: internal/chat_list/.
+    command: ./chat-list-service
+    ports:
+      - 8084:8084
+    depends_on:
+      - message-core
+      - mongo-all
+
+  mongo-all:
+    image: mongo
+    ports:
+      - 27017:27017
+
+#  auth-service:
+#    build: internal/auth/.
+#    command: ./auth-service
+#    ports:
+#      - 8080:8080
+#    depends_on:
+#      - db-auth
+
+#  db-auth:
+#    image: postgres:13.3
+#    environment:
+#      POSTGRES_DB: "${DB_NAME}"
+#      POSTGRES_USER: "${DB_USER}"
+#      POSTGRES_PASSWORD: "${DB_PSWD}"
+#    volumes:
+#      - ./internal/auth/schema/:/docker-entrypoint-initdb.d
+#    restart: unless-stopped
+#    ports:
+#    - 5432:5432
