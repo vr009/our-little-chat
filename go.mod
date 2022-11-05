@@ -18,8 +18,7 @@ require (
 	github.com/swaggo/swag v1.8.4 // indirect
 	github.com/tarantool/go-tarantool v1.6.0
 	go.mongodb.org/mongo-driver v1.10.1
-	golang.org/x/net v0.0.0-20220805013720-a33c5aa5df48 // indirect
-	golang.org/x/sys v0.0.0-20220804214406-8e32c043e418 // indirect
+	golang.org/x/crypto v0.1.0 // indirect
 	golang.org/x/tools v0.1.12 // indirect
 	gopkg.in/vmihailenco/msgpack.v2 v2.9.2
 )
