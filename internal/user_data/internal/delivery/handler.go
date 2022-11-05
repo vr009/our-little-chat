@@ -3,11 +3,13 @@ package delivery
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/google/uuid"
 	"log"
 	"net/http"
+
 	"our-little-chatik/internal/user_data/internal"
 	"our-little-chatik/internal/user_data/internal/models"
+
+	"github.com/google/uuid"
 )
 
 type UserdataHandler struct {
@@ -22,7 +24,6 @@ func NewUserdataHandler(useCase internal.UserdataUseCase) *UserdataHandler {
 
 func (udh *UserdataHandler) GetAllUsers(w http.ResponseWriter, r *http.Request) {
 	users, status := udh.useCase.GetAllUsers()
-	fmt.Println(users, status)
 	if status == models.OK {
 		body, err := json.Marshal(users)
 		if err != nil {
@@ -42,7 +43,6 @@ func (udh *UserdataHandler) GetAllUsers(w http.ResponseWriter, r *http.Request) 
 }
 
 func (udh *UserdataHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
-
 	person := models.UserData{}
 
 	err := json.NewDecoder(r.Body).Decode(&person)
@@ -54,8 +54,11 @@ func (udh *UserdataHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
 	}
 
 	s, errCode := udh.useCase.CreateUser(person)
-
-	checkErrorCode(errCode, w)
+	fmt.Println("HERE", errCode)
+	if errCode != models.OK {
+		handleErrorCode(errCode, w)
+		return
+	}
 
 	buf, err := json.Marshal(&s)
 	if err != nil {
@@ -96,7 +99,10 @@ func (udh *UserdataHandler) GetUser(w http.ResponseWriter, r *http.Request) {
 
 	s, errCode := udh.useCase.GetUser(person)
 
-	checkErrorCode(errCode, w)
+	if errCode != models.OK {
+		handleErrorCode(errCode, w)
+		return
+	}
 
 	a, err := json.Marshal(&s)
 
@@ -116,8 +122,6 @@ func (udh *UserdataHandler) GetUser(w http.ResponseWriter, r *http.Request) {
 }
 
 func (udh *UserdataHandler) DeleteUser(w http.ResponseWriter, r *http.Request) {
-	log.Print("DeleteSession")
-
 	person := models.UserData{}
 
 	err := json.NewDecoder(r.Body).Decode(&person)
@@ -131,7 +135,7 @@ func (udh *UserdataHandler) DeleteUser(w http.ResponseWriter, r *http.Request) {
 	errCode := udh.useCase.DeleteUser(person)
 
 	if errCode != models.OK {
-		checkErrorCode(errCode, w)
+		handleErrorCode(errCode, w)
 		return
 	}
 
@@ -139,8 +143,6 @@ func (udh *UserdataHandler) DeleteUser(w http.ResponseWriter, r *http.Request) {
 }
 
 func (udh *UserdataHandler) UpdateUser(w http.ResponseWriter, r *http.Request) {
-	log.Print("Update user")
-
 	person := models.UserData{}
 
 	err := json.NewDecoder(r.Body).Decode(&person)
@@ -153,7 +155,10 @@ func (udh *UserdataHandler) UpdateUser(w http.ResponseWriter, r *http.Request) {
 
 	s, errCode := udh.useCase.UpdateUser(person)
 
-	checkErrorCode(errCode, w)
+	if errCode != models.OK {
+		handleErrorCode(errCode, w)
+		return
+	}
 
 	a, err := json.Marshal(&s)
 
@@ -173,7 +178,28 @@ func (udh *UserdataHandler) UpdateUser(w http.ResponseWriter, r *http.Request) {
 
 }
 
-func checkErrorCode(errCode models.StatusCode, w http.ResponseWriter) {
+func (udh *UserdataHandler) CheckUserData(w http.ResponseWriter, r *http.Request) {
+	person := models.UserData{}
+
+	err := json.NewDecoder(r.Body).Decode(&person)
+
+	if err != nil {
+		log.Print("error of decoding")
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	errCode := udh.useCase.CheckUser(person)
+
+	if errCode != models.OK {
+		handleErrorCode(errCode, w)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+}
+
+func handleErrorCode(errCode models.StatusCode, w http.ResponseWriter) {
 	if errCode == models.NotFound {
 		log.Print("error of StatusNotFound")
 		w.WriteHeader(http.StatusNotFound)
@@ -183,6 +209,12 @@ func checkErrorCode(errCode models.StatusCode, w http.ResponseWriter) {
 	if errCode == models.InternalError {
 		log.Print("error of StatusInternalServerError")
 		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	if errCode == models.BadRequest {
+		log.Print("error of StatusInternalServerError")
+		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
 

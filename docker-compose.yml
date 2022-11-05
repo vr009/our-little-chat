@@ -1,18 +1,18 @@
-version: '2.0'
+version: '3.9'
 
 services:
-  message-core:
-    build: internal/message_queue/.
+  user-data:
+    build:
+      context: .
+      dockerfile: ./deployments/user_data.Dockerfile
+    environment:
+      DATABASE_URL: "user=service password=test host=db-user-data port=5432 dbname=persons"
+#      DATABASE_URL: "postgresql://db-user-data/persons?user=service&password=secret"
+    command: ./user-data-service
     ports:
-      - 3301:3301
-
-  peer-service:
-    build: internal/peer/.
-    command: ./peer-service
-    ports:
-      - 8080:8080
+      - 8086:8086
     depends_on:
-      - message-core
+      - db-user-data
 
   chat-diff-service:
     build: internal/chat_diff/.
@@ -73,3 +73,15 @@ services:
 #    restart: unless-stopped
 #    ports:
 #    - 5432:5432
+
+  db-user-data:
+    image: postgres:13.3
+    environment:
+      POSTGRES_DB: persons
+      POSTGRES_USER: service
+      POSTGRES_PASSWORD: test
+    volumes:
+      - ./internal/user_data/db/migrations:/docker-entrypoint-initdb.d
+    restart: unless-stopped
+    ports:
+      - 5432:5432

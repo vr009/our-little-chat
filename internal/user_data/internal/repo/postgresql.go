@@ -4,19 +4,22 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"github.com/jackc/pgx/v4/pgxpool"
+
 	"our-little-chatik/internal/user_data/internal/models"
+
+	"github.com/jackc/pgx/v4/pgxpool"
 )
 
 //todo поправить имена в sql-запросах
 
 const (
-	INSERTQUERY = "INSERT INTO users(UserID, Nickname, LastAuth, Registered, Avatar, ContactList) " +
-		"VALUES($1, $2, $3, $4, $5, $6) RETURNING UserID;"
-	DELETEQUERY = "DELETE FROM users WHERE UserID=$1;"
-	UPDATEQUERY = "UPDATE users SET Nickname=$1, LastAuth=$2, Registered=$3, Avatar=$4, ContactList=$5 WHERE UserID=$6;"
-	GETQUERY    = "SELECT UserID, Nickname, LastAuth, Registered, Avatar, ContactList  FROM users WHERE UserID=$1;"
-	LISTQUERY   = "SELECT * FROM users;"
+	InsertQuery = "INSERT INTO users(user_id, nickname, password, last_auth, registered, avatar, contact_list) " +
+		"VALUES($1, $2, $3, $4, $5, $6, $7);"
+	DeleteQuery  = "DELETE FROM users WHERE user_id=$1;"
+	UpdateQuery  = "UPDATE users SET nickname=$1, last_auth=$2, registered=$3, avatar=$4, contact_list=$5 WHERE user_id=$6;"
+	GetQuery     = "SELECT user_id, nickname, last_auth, registered, avatar, contact_list  FROM users WHERE user_id=$1;"
+	GetNameQuery = "SELECT user_id, nickname, last_auth, registered, avatar, contact_list  FROM users WHERE nickname=$1;"
+	ListQuery    = "SELECT * FROM users;"
 )
 
 type PersonRepo struct {
@@ -30,29 +33,27 @@ func NewPersonRepo(conn *pgxpool.Pool) *PersonRepo {
 }
 
 func (pr *PersonRepo) CreateUser(person models.UserData) (models.UserData, models.StatusCode) {
-
-	_, err := pr.conn.Query(context.Background(),
-		INSERTQUERY,
+	_, err := pr.conn.Exec(context.Background(),
+		InsertQuery,
 		person.UserID,
 		person.Nickname,
+		person.Password,
 		person.LastAuth,
 		person.Registered,
 		person.Avatar,
 		person.ContactList,
 	)
 
-	//todo сделать проверку повторного добавления
-
+	fmt.Println(1, err)
 	if err != nil {
-		fmt.Println(err)
-		return models.UserData{}, models.InternalError
+		return models.UserData{}, models.BadRequest
 	}
-
+	person.Password = ""
 	return person, models.OK
 }
 
 func (pr *PersonRepo) DeleteUser(person models.UserData) models.StatusCode {
-	_, err := pr.conn.Exec(context.Background(), DELETEQUERY, person.UserID)
+	_, err := pr.conn.Exec(context.Background(), DeleteQuery, person.UserID)
 	if err != nil {
 		return models.InternalError
 	}
@@ -73,7 +74,7 @@ func (pr *PersonRepo) UpdateUser(personNew models.UserData) (models.UserData, mo
 		personOld.LastAuth = personNew.LastAuth
 	}
 
-	_, err := pr.conn.Exec(context.Background(), UPDATEQUERY, personNew.Nickname, personNew.LastAuth, personNew.Registered, personNew.Avatar, personNew.ContactList, personNew.UserID)
+	_, err := pr.conn.Exec(context.Background(), UpdateQuery, personNew.Nickname, personNew.LastAuth, personNew.Registered, personNew.Avatar, personNew.ContactList, personNew.UserID)
 	if err != nil {
 		return personOld, models.BadRequest
 	}
@@ -82,17 +83,27 @@ func (pr *PersonRepo) UpdateUser(personNew models.UserData) (models.UserData, mo
 }
 
 func (pr *PersonRepo) GetUser(person models.UserData) (models.UserData, models.StatusCode) {
-	rows := pr.conn.QueryRow(context.Background(), GETQUERY, person.UserID)
+	rows := pr.conn.QueryRow(context.Background(), GetQuery, person.UserID)
 	err := rows.Scan(&person.UserID, &person.Nickname, &person.LastAuth, &person.Registered, &person.Avatar, &person.ContactList)
 	if err != nil {
-		fmt.Println("ОШИБКА!!!! ", err.Error())
+		fmt.Println(err)
+		return models.UserData{}, models.NotFound
+	}
+	return person, models.OK
+}
+
+func (pr *PersonRepo) GetUserForItsName(person models.UserData) (models.UserData, models.StatusCode) {
+	rows := pr.conn.QueryRow(context.Background(), GetNameQuery, person.Nickname)
+	err := rows.Scan(&person.UserID, &person.Nickname, &person.LastAuth, &person.Registered, &person.Avatar, &person.ContactList)
+	if err != nil {
+		fmt.Println(err)
 		return models.UserData{}, models.NotFound
 	}
 	return person, models.OK
 }
 
 func (pr *PersonRepo) GetAllUsers() ([]models.UserData, models.StatusCode) {
-	rows, err := pr.conn.Query(context.Background(), LISTQUERY)
+	rows, err := pr.conn.Query(context.Background(), ListQuery)
 	if err != nil && err != sql.ErrNoRows {
 		return nil, models.InternalError
 	}
