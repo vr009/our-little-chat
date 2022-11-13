@@ -12,10 +12,10 @@ import (
 
 type UserDataHandler struct {
 	client http.Client
-	cfg    UserDataConfig
+	cfg    models.ServiceRouterConfig
 }
 
-func NewUserDataHandler(client http.Client, cfg UserDataConfig) *UserDataHandler {
+func NewUserDataHandler(client http.Client, cfg models.ServiceRouterConfig) *UserDataHandler {
 	return &UserDataHandler{client: client, cfg: cfg}
 }
 
@@ -35,7 +35,7 @@ func (handler *UserDataHandler) AddUser(user *models.User) (*models.User, error)
 	}
 	body := bytes.NewReader(userB)
 
-	req, err := handler.client.Post(handler.cfg.GetPath("addUser"), "", body)
+	req, err := handler.client.Post(handler.cfg.GetPath("AddUser"), "", body)
 	if err != nil {
 		return nil, err
 	}
@@ -52,7 +52,7 @@ func (handler *UserDataHandler) AddUser(user *models.User) (*models.User, error)
 }
 
 func (handler *UserDataHandler) RemoveUser(user *models.User) (*models.User, error) {
-	req, err := http.NewRequest("DELETE", handler.cfg.GetPath("removeUser"), nil)
+	req, err := http.NewRequest("DELETE", handler.cfg.GetPath("DeleteUser"), nil)
 	if err != nil {
 		return nil, err
 	}
@@ -73,7 +73,7 @@ func (handler *UserDataHandler) RemoveUser(user *models.User) (*models.User, err
 }
 
 func (handler *UserDataHandler) GetUser(user *models.User) (*models.User, error) {
-	req, err := http.NewRequest("GET", handler.cfg.GetPath("getUser"), nil)
+	req, err := http.NewRequest("GET", handler.cfg.GetPath("GetUser"), nil)
 	if err != nil {
 		return nil, err
 	}

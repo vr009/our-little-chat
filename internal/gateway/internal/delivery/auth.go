@@ -5,26 +5,16 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"path/filepath"
 
 	"our-little-chatik/internal/models"
 )
 
 type AuthHandler struct {
 	client http.Client
-	cfg    AuthServiceConfig
+	cfg    models.ServiceRouterConfig
 }
 
-type AuthServiceConfig struct {
-	BaseUrl string
-	Router  map[string]string
-}
-
-func (cfg AuthServiceConfig) GetPath(method string) string {
-	return filepath.Join(cfg.BaseUrl, cfg.Router[method])
-}
-
-func NewAuthHandler(client http.Client, cfg AuthServiceConfig) *AuthHandler {
+func NewAuthHandler(client http.Client, cfg models.ServiceRouterConfig) *AuthHandler {
 	return &AuthHandler{client: client, cfg: cfg}
 }
 
@@ -35,7 +25,7 @@ func (handler *AuthHandler) AddUser(user models.User) (*models.Session, error) {
 	}
 	body := bytes.NewReader(userB)
 
-	req, err := handler.client.Post(handler.cfg.GetPath("addUser"), "", body)
+	req, err := handler.client.Post(handler.cfg.GetPath("AddUser"), "", body)
 	if err != nil {
 		return nil, err
 	}
@@ -52,7 +42,7 @@ func (handler *AuthHandler) AddUser(user models.User) (*models.Session, error) {
 }
 
 func (handler *AuthHandler) RemoveUser(user models.User) (*models.Session, error) {
-	req, err := http.NewRequest("DELETE", handler.cfg.GetPath("deleteUser"), nil)
+	req, err := http.NewRequest("DELETE", handler.cfg.GetPath("DeleteUser"), nil)
 	if err != nil {
 		return nil, err
 	}
@@ -74,7 +64,7 @@ func (handler *AuthHandler) RemoveUser(user models.User) (*models.Session, error
 }
 
 func (handler *AuthHandler) GetSession(user models.User) (*models.Session, error) {
-	req, err := http.NewRequest("GET", handler.cfg.GetPath("getUser"), nil)
+	req, err := http.NewRequest("GET", handler.cfg.GetPath("GetSession"), nil)
 	if err != nil {
 		return nil, err
 	}
@@ -96,7 +86,7 @@ func (handler *AuthHandler) GetSession(user models.User) (*models.Session, error
 }
 
 func (handler *AuthHandler) GetUser(session models.Session) (*models.User, error) {
-	req, err := http.NewRequest("GET", handler.cfg.GetPath("getUser"), nil)
+	req, err := http.NewRequest("GET", handler.cfg.GetPath("GetUser"), nil)
 	if err != nil {
 		return nil, err
 	}
