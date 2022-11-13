@@ -1,21 +1,33 @@
 version: '3.9'
 
 services:
-  user-data:
+  gateway:
     build:
       context: .
-      dockerfile: ./deployments/user_data.Dockerfile
+      dockerfile: deployments/gateway.Dockerfile
     environment:
-      DATABASE_URL: "user=service password=test host=db-user-data port=5432 dbname=persons"
-#      DATABASE_URL: "postgresql://db-user-data/persons?user=service&password=secret"
-    command: ./user-data-service
+      GATEWAY_CONFIG: configs/.
+    command: ./gateway-service
+    restart: unless-stopped
     ports:
-      - 8086:8086
+      - 8080:8080
     depends_on:
-      - db-user-data
+      - auth
+      - user-data
+
+  message-core:
+    build:
+      context: .
+      dockerfile: deployments/message_core.Dockerfile
+    ports:
+      - 3301:3301
 
   chat-diff-service:
-    build: internal/chat_diff/.
+    build:
+      context: .
+      dockerfile: deployments/chat_diff.Dockerfile
+    environment:
+      CHAT_DIFF_CONFIG: configs/.
     command: ./chat-diff-service
     ports:
       - 8081:8081
@@ -23,36 +35,81 @@ services:
       - message-core
 
   flusher-service:
-    build: internal/flusher/.
+    build:
+      context: .
+      dockerfile: deployments/flusher.Dockerfile
     command: ./flusher-service
+    environment:
+      FLUSHER_CONFIG: configs/.
     ports:
       - 8082:8082
     depends_on:
       - message-core
       - mongo-all
 
-  chat-history-service:
-    build: internal/chat/.
+  chat-service:
+    build:
+      context: .
+      dockerfile: deployments/chat.Dockerfile
     command: ./chat-history-service
+    environment:
+      CHAT_CONFIG: configs/.
     ports:
       - 8083:8083
     depends_on:
       - message-core
       - mongo-all
 
-  chat-list-service:
-    build: internal/chat_list/.
-    command: ./chat-list-service
+  peer:
+    build:
+      context: .
+      dockerfile: deployments/peer.Dockerfile
+    command: ./peer-service
+    environment:
+      PEER_CONFIG: configs/.
     ports:
       - 8084:8084
     depends_on:
       - message-core
-      - mongo-all
 
   mongo-all:
     image: mongo
     ports:
       - 27017:27017
+
+  auth:
+    build:
+      context: .
+      dockerfile: deployments/auth.Dockerfile
+    command: ./auth-service
+    environment:
+      AUTH_CONFIG: configs/.
+    ports:
+      - 8087:8087
+    depends_on:
+      - db-auth
+
+  db-auth:
+    image: redis:alpine
+    command: redis-server
+    volumes:
+      - $PWD/redis-data:/var/lib/redis
+      - $PWD/redis.conf:/usr/local/etc/redis/redis.conf
+    restart: unless-stopped
+    ports:
+      - 6379:6379
+
+  user-data:
+    build:
+      context: .
+      dockerfile: ./deployments/user_data.Dockerfile
+    environment:
+      DATABASE_URL: "user=service password=test host=db-user-data port=5432 dbname=persons"
+    command: ./user-data-service
+    ports:
+      - 8086:8086
+    depends_on:
+      - db-user-data
 
   db-user-data:
     image: postgres:13.3

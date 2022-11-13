@@ -2,11 +2,14 @@ package delivery
 
 import (
 	"encoding/json"
-	"github.com/google/uuid"
 	"log"
 	"net/http"
+
 	"our-little-chatik/internal/auth/internal"
 	"our-little-chatik/internal/auth/internal/models"
+	models2 "our-little-chatik/internal/models"
+
+	"github.com/google/uuid"
 )
 
 type AuthHandler struct {
@@ -37,7 +40,7 @@ func (ah *AuthHandler) GetToken(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	session := models.Session{
+	session := models2.Session{
 		UserID: uuidFormString,
 	}
 
@@ -72,7 +75,7 @@ func (ah *AuthHandler) GetUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	session := models.Session{
+	session := models2.Session{
 		Token: token,
 	}
 
@@ -100,7 +103,7 @@ func (ah *AuthHandler) GetUser(w http.ResponseWriter, r *http.Request) {
 func (ah *AuthHandler) DeleteSession(w http.ResponseWriter, r *http.Request) {
 	log.Print("DeleteSession")
 
-	session := models.Session{}
+	session := models2.Session{}
 
 	err := json.NewDecoder(r.Body).Decode(&session)
 
@@ -122,7 +125,7 @@ func (ah *AuthHandler) DeleteSession(w http.ResponseWriter, r *http.Request) {
 
 func (ah *AuthHandler) PostSession(w http.ResponseWriter, r *http.Request) {
 
-	session := models.Session{}
+	session := models2.Session{}
 
 	err := json.NewDecoder(r.Body).Decode(&session)
 

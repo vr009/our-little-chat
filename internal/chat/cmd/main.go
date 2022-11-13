@@ -38,10 +38,9 @@ type TTConfig struct {
 }
 
 func main() {
-	configPath := os.Getenv("FLUSHER_CONFIG")
-	configPath = "./internal/chat/cmd"
+	configPath := os.Getenv("CHAT_CONFIG")
 	viper.AddConfigPath(configPath)
-	viper.SetConfigName("config")
+	viper.SetConfigName("chat-config.yaml")
 	if err := viper.ReadInConfig(); err != nil {
 		log.Fatal("Failed to read a config file")
 	}

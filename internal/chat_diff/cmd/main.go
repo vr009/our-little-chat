@@ -2,15 +2,17 @@ package main
 
 import (
 	"flag"
-	"github.com/spf13/viper"
-	"github.com/tarantool/go-tarantool"
 	"log"
 	"net/http"
 	"os"
+	"strconv"
+
 	"our-little-chatik/internal/chat_diff/internal/delivery"
 	repo2 "our-little-chatik/internal/chat_diff/internal/repo"
 	"our-little-chatik/internal/chat_diff/internal/usecase"
-	"strconv"
+
+	"github.com/spf13/viper"
+	"github.com/tarantool/go-tarantool"
 )
 
 var addr = flag.String("addr", ":8080", "http service address")
@@ -30,9 +32,8 @@ type AppConfig struct {
 
 func main() {
 	configPath := os.Getenv("CHAT_DIFF_CONFIG")
-	configPath = "./internal/chat_diff/cmd"
 	viper.AddConfigPath(configPath)
-	viper.SetConfigName("config")
+	viper.SetConfigName("chat-diff-config.yaml")
 	if err := viper.ReadInConfig(); err != nil {
 		log.Fatal("Failed to read a config file")
 	}

@@ -6,13 +6,12 @@ ENV GOPATH=/
 
 COPY ./ ./
 
-EXPOSE 8000
+EXPOSE 8082
 
 RUN go mod download
 
 RUN go mod tidy
 
-RUN go build -o chat_history-service ./cmd/main.go
+RUN go build -o flusher-service ./internal/flusher/cmd/main.go
 
-
-CMD ["./chat-service"]
+CMD ["./flusher-service"]
