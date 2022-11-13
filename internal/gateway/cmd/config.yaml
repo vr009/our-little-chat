@@ -1,3 +1,1 @@
 port: 8080
-UserDataConfig:
-  BaseUrl: http://localhost:8083

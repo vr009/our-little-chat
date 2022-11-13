@@ -7,15 +7,14 @@ import (
 
 	"our-little-chatik/internal/gateway/internal/delivery"
 	"our-little-chatik/internal/gateway/internal/usecase"
+	"our-little-chatik/internal/models"
 
 	"github.com/gorilla/mux"
 	"github.com/spf13/viper"
 )
 
 type AppConfig struct {
-	Port           int
-	UserDataConfig delivery.UserDataConfig
-	AuthConfig     delivery.AuthServiceConfig
+	Port int
 }
 
 func main() {
@@ -39,16 +38,25 @@ func main() {
 		Addr:    ":8080",
 	}
 
-	userDataCfg := delivery.UserDataConfig{
-		BaseUrl: "",
-		Router:  map[string]string{},
+	userDataCfg := models.ServiceRouterConfig{
+		BaseUrl: "http://localhost:8086/api/v1",
+		Router: map[string]string{
+			"AddUser":    "",
+			"GetUser":    "",
+			"DeleteUser": "",
+		},
 	}
 	userDataClient := http.Client{}
 	userDataHandler := delivery.NewUserDataHandler(userDataClient, userDataCfg)
 
-	authCfg := delivery.AuthServiceConfig{
-		BaseUrl: "",
-		Router:  map[string]string{},
+	authCfg := models.ServiceRouterConfig{
+		BaseUrl: "http://localhost:8086/api/v1",
+		Router: map[string]string{
+			"AddUser":    "",
+			"GetUser":    "",
+			"DeleteUser": "",
+			"GetSession": "",
+		},
 	}
 	authClient := http.Client{}
 	authHandler := delivery.NewAuthHandler(authClient, authCfg)
