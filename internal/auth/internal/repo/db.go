@@ -4,11 +4,14 @@ import (
 	"context"
 	"crypto/md5"
 	"fmt"
+	"log"
+	"time"
+
+	"our-little-chatik/internal/auth/internal/models"
+	models2 "our-little-chatik/internal/models"
+
 	"github.com/go-redis/redis/v9"
 	"github.com/google/uuid"
-	"log"
-	"our-little-chatik/internal/auth/internal/models"
-	"time"
 )
 
 type DataBase struct {
@@ -28,7 +31,7 @@ func NewDataBase(Client *redis.Client, TTL int) *DataBase {
 	}
 }
 
-func (db *DataBase) CreateSession(session models.Session) (models.Session, models.StatusCode) {
+func (db *DataBase) CreateSession(session models2.Session) (models2.Session, models.StatusCode) {
 	token := MD5(session.UserID.String())
 
 	session.Token = token
@@ -36,28 +39,28 @@ func (db *DataBase) CreateSession(session models.Session) (models.Session, model
 	err := db.Client.Set(context.Background(), session.UserID.String(), session.Token, time.Minute*time.Duration(db.TTL)).Err()
 
 	if err != nil {
-		return models.Session{}, models.Conflict
+		return models2.Session{}, models.Conflict
 	}
 
 	err = db.Client.Set(context.Background(), session.Token, session.UserID.String(), time.Minute*time.Duration(db.TTL)).Err()
 
 	if err != nil {
-		return models.Session{}, models.Conflict
+		return models2.Session{}, models.Conflict
 	}
 
 	return session, models.OK
 }
 
-func (db *DataBase) GetToken(session models.Session) (models.Session, models.StatusCode) {
+func (db *DataBase) GetToken(session models2.Session) (models2.Session, models.StatusCode) {
 
 	cmdToken := db.Client.Get(context.Background(), session.UserID.String())
 	if cmdToken.Err() != nil {
-		return models.Session{}, models.NotFound
+		return models2.Session{}, models.NotFound
 	}
 
 	token, err := cmdToken.Result()
 	if err != nil {
-		return models.Session{}, models.InternalError
+		return models2.Session{}, models.InternalError
 	}
 
 	session.Token = token
@@ -65,35 +68,35 @@ func (db *DataBase) GetToken(session models.Session) (models.Session, models.Sta
 	return session, models.OK
 }
 
-func (db *DataBase) GetUser(session models.Session) (models.Session, models.StatusCode) {
+func (db *DataBase) GetUser(session models2.Session) (models2.Session, models.StatusCode) {
 
 	cmdUser := db.Client.Get(context.Background(), session.Token)
 
 	if cmdUser.Err() != nil {
-		return models.Session{}, models.NotFound
+		return models2.Session{}, models.NotFound
 	}
 
 	userId, err := cmdUser.Result()
 
 	if err != nil {
 		log.Print("error of cmd.Result parsing")
-		return models.Session{}, models.InternalError
+		return models2.Session{}, models.InternalError
 	}
 
 	session.UserID, err = uuid.Parse(userId)
 
 	if err != nil {
 		log.Print("error of UUID parsing")
-		return models.Session{}, models.InternalError
+		return models2.Session{}, models.InternalError
 	}
 
 	return session, models.OK
 
 }
 
-func (db *DataBase) DeleteSession(session models.Session) models.StatusCode {
+func (db *DataBase) DeleteSession(session models2.Session) models.StatusCode {
 
-	s := models.Session{}
+	s := models2.Session{}
 
 	cmd := db.Client.Get(context.Background(), session.Token)
 

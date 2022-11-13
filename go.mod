@@ -14,11 +14,9 @@ require (
 	github.com/spf13/viper v1.12.0
 	github.com/swaggo/files v0.0.0-20220728132757-551d4a08d97a // indirect
 	github.com/swaggo/http-swagger v1.3.1
-	github.com/swaggo/http-swagger/example/gorilla v0.0.0-20220803201209-17bd559c8e80
 	github.com/swaggo/swag v1.8.4 // indirect
 	github.com/tarantool/go-tarantool v1.6.0
 	go.mongodb.org/mongo-driver v1.10.1
-	golang.org/x/crypto v0.1.0 // indirect
-	golang.org/x/tools v0.1.12 // indirect
+	golang.org/x/crypto v0.1.0
 	gopkg.in/vmihailenco/msgpack.v2 v2.9.2
 )

@@ -1,15 +1,17 @@
 package main
 
 import (
-	"github.com/spf13/viper"
-	"github.com/tarantool/go-tarantool"
 	"log"
 	"net/http"
 	"os"
+	"strconv"
+
 	"our-little-chatik/internal/peer/internal/delivery"
 	repo2 "our-little-chatik/internal/peer/internal/repo"
 	usecase2 "our-little-chatik/internal/peer/internal/usecase"
-	"strconv"
+
+	"github.com/spf13/viper"
+	"github.com/tarantool/go-tarantool"
 )
 
 type DBConfig struct {
@@ -25,10 +27,9 @@ type AppConfig struct {
 }
 
 func main() {
-	configPath := os.Getenv("CONFIG")
-	configPath = "internal/peer/cmd"
+	configPath := os.Getenv("PEER_CONFIG")
 	viper.AddConfigPath(configPath)
-	viper.SetConfigName("config")
+	viper.SetConfigName("peer-config.yaml")
 	if err := viper.ReadInConfig(); err != nil {
 		log.Fatal("Failed to read a config file")
 	}

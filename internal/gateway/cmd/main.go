@@ -20,11 +20,11 @@ type AppConfig struct {
 
 func main() {
 	configPath := os.Getenv("GATEWAY_CONFIG")
-	configPath = "./internal/gateway/cmd"
 	viper.AddConfigPath(configPath)
-	viper.SetConfigName("config")
+	viper.SetConfigName("gateway-config.yaml")
+	viper.SetConfigType("yaml")
 	if err := viper.ReadInConfig(); err != nil {
-		log.Fatal("Failed to read a config file")
+		log.Fatal("Failed to read a config file", configPath)
 	}
 
 	appConfig := &AppConfig{}
@@ -36,27 +36,27 @@ func main() {
 	r := mux.NewRouter()
 	srv := &http.Server{
 		Handler: r,
-		Addr:    strconv.Itoa(appConfig.Port),
+		Addr:    ":" + strconv.Itoa(appConfig.Port),
 	}
 
 	userDataCfg := models.ServiceRouterConfig{
 		BaseUrl: "http://localhost:8086/api/v1",
 		Router: map[string]string{
-			"AddUser":    "/api/v1/user/new",
-			"GetUser":    "/api/v1/user",
-			"DeleteUser": "/api/v1/user",
+			"AddUser":    "/user/new",
+			"GetUser":    "/user",
+			"DeleteUser": "/user",
 		},
 	}
 	userDataClient := http.Client{}
 	userDataHandler := delivery.NewUserDataHandler(userDataClient, userDataCfg)
 
 	authCfg := models.ServiceRouterConfig{
-		BaseUrl: "http://localhost:8086/api/v1",
+		BaseUrl: "http://localhost:8087/api/v1",
 		Router: map[string]string{
-			"AddUser":    "/api/v1/auth",
-			"GetUser":    "/api/v1/auth/token",
-			"DeleteUser": "/api/v1/auth",
-			"GetSession": "/api/v1/auth/user",
+			"AddUser":    "/auth",
+			"GetUser":    "/auth/token",
+			"DeleteUser": "/auth",
+			"GetSession": "/auth/user",
 		},
 	}
 	authClient := http.Client{}

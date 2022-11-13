@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"os"
+
 	"our-little-chatik/internal/auth/internal/delivery"
 	"our-little-chatik/internal/auth/internal/models"
 	"our-little-chatik/internal/auth/internal/repo"
@@ -12,7 +14,6 @@ import (
 	"github.com/go-redis/redis/v9"
 	"github.com/gorilla/mux"
 	"github.com/spf13/viper"
-	httpSwagger "github.com/swaggo/http-swagger"
 )
 
 // @title Swagger Example API
@@ -33,10 +34,12 @@ import (
 func main() {
 
 	fmt.Println("Starting..")
-	configPath := "../internal/models/"
+	configPath := os.Getenv("AUTH_CONFIG")
+	p, _ := os.Getwd()
+	fmt.Println(p, configPath)
 	viper.AddConfigPath(configPath)
-	viper.SetConfigName("config.yml")
-	viper.SetConfigType("yml")
+	viper.SetConfigName("auth-config.yaml")
+	viper.SetConfigType("yaml")
 
 	if err := viper.ReadInConfig(); err != nil {
 		if _, ok := err.(viper.ConfigFileNotFoundError); ok {
@@ -96,15 +99,9 @@ func main() {
 	// Token –> Session {}
 	router.HandleFunc("/api/v1/auth", handler.DeleteSession).Methods("DELETE")
 
-	//todo SWAGGER!
-	router.HandleFunc("/swagger/*", httpSwagger.Handler(
-		httpSwagger.URL(""), //The url pointing to API definition
-	))
-
 	srv := &http.Server{Handler: router, Addr: appConfig.Address}
 
 	fmt.Printf("Main.go started at port %s \n", srv.Addr)
 
 	log.Fatal(srv.ListenAndServe())
-
 }
