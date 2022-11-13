@@ -4,6 +4,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strconv"
 
 	"our-little-chatik/internal/gateway/internal/delivery"
 	"our-little-chatik/internal/gateway/internal/usecase"
@@ -35,15 +36,15 @@ func main() {
 	r := mux.NewRouter()
 	srv := &http.Server{
 		Handler: r,
-		Addr:    ":8080",
+		Addr:    strconv.Itoa(appConfig.Port),
 	}
 
 	userDataCfg := models.ServiceRouterConfig{
 		BaseUrl: "http://localhost:8086/api/v1",
 		Router: map[string]string{
-			"AddUser":    "",
-			"GetUser":    "",
-			"DeleteUser": "",
+			"AddUser":    "/api/v1/user/new",
+			"GetUser":    "/api/v1/user",
+			"DeleteUser": "/api/v1/user",
 		},
 	}
 	userDataClient := http.Client{}
@@ -52,10 +53,10 @@ func main() {
 	authCfg := models.ServiceRouterConfig{
 		BaseUrl: "http://localhost:8086/api/v1",
 		Router: map[string]string{
-			"AddUser":    "",
-			"GetUser":    "",
-			"DeleteUser": "",
-			"GetSession": "",
+			"AddUser":    "/api/v1/auth",
+			"GetUser":    "/api/v1/auth/token",
+			"DeleteUser": "/api/v1/auth",
+			"GetSession": "/api/v1/auth/user",
 		},
 	}
 	authClient := http.Client{}
