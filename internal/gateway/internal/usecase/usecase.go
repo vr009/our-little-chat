@@ -12,7 +12,10 @@ type GatewayUsecase struct {
 
 func NewGatewayUsecasse(auth delivery.AuthHandler,
 	userData delivery.UserDataHandler) *GatewayUsecase {
-	return &GatewayUsecase{}
+	return &GatewayUsecase{
+		auth:     auth,
+		userData: userData,
+	}
 }
 
 func (u GatewayUsecase) SignUp(user *models.User) (*models.Session, error) {

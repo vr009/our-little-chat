@@ -76,17 +76,14 @@ func main() {
 
 	router := mux.NewRouter()
 
-	// 1. – РАБОТАЕТ!)
 	// Получение Token пользователя по UserID
 	// (UserID) => Token
 	router.HandleFunc("/api/v1/auth/token", handler.GetToken).Methods("GET")
 
-	// 2. – РАБОТАЕТ!)
 	// Получение UserID по Token
 	// (Token) => UserID
 	router.HandleFunc("/api/v1/auth/user", handler.GetUser).Methods("GET")
 
-	// 3. – РАБОТАЕТ!)
 	// Добавление нового UserID и создание Token
 	// (UserID) => Session {
 	//	   UserID: Token
