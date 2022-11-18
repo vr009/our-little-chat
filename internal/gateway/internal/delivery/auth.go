@@ -25,7 +25,8 @@ func (handler *AuthHandler) AddUser(user models.User) (*models.Session, error) {
 	}
 	body := bytes.NewReader(userB)
 
-	req, err := handler.client.Post(handler.cfg.GetPath("AddUser"), "", body)
+	url := handler.cfg.GetPath("AddUser")
+	req, err := handler.client.Post(url, "", body)
 	if err != nil {
 		return nil, err
 	}

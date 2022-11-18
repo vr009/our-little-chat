@@ -25,11 +25,13 @@ func (h *GatewayHandler) SignIn(w http.ResponseWriter, r *http.Request) {
 	err := json.NewDecoder(r.Body).Decode(&user)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
+		return
 	}
 
 	session, err := h.uc.SignIn(&user)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
+		return
 	}
 
 	w.WriteHeader(http.StatusOK)
@@ -41,15 +43,17 @@ func (h *GatewayHandler) SignUp(w http.ResponseWriter, r *http.Request) {
 	err := json.NewDecoder(r.Body).Decode(&user)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
+		return
 	}
 
 	session, err := h.uc.SignUp(&user)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
+		return
 	}
 
+	http.SetCookie(w, &http.Cookie{Name: "Token", Value: session.Token})
 	w.WriteHeader(http.StatusOK)
-	w.Header().Set("Set-Cookie", session.Token)
 }
 
 func (h *GatewayHandler) GetSession(w http.ResponseWriter, r *http.Request) {
@@ -59,16 +63,19 @@ func (h *GatewayHandler) GetSession(w http.ResponseWriter, r *http.Request) {
 	user.UserID, err = uuid.Parse(idStr)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
+		return
 	}
 
 	session, err := h.uc.SignUp(&user)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
+		return
 	}
 
 	body, err := json.Marshal(session)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
+		return
 	}
 
 	w.WriteHeader(http.StatusOK)
@@ -82,11 +89,13 @@ func (h *GatewayHandler) GetUser(w http.ResponseWriter, r *http.Request) {
 	user, err := h.uc.GetUserFromSession(session)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
+		return
 	}
 
 	body, err := json.Marshal(user)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
+		return
 	}
 	w.WriteHeader(http.StatusOK)
 	w.Write(body)

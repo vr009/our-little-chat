@@ -124,7 +124,6 @@ func (ah *AuthHandler) DeleteSession(w http.ResponseWriter, r *http.Request) {
 }
 
 func (ah *AuthHandler) PostSession(w http.ResponseWriter, r *http.Request) {
-
 	session := models2.Session{}
 
 	err := json.NewDecoder(r.Body).Decode(&session)
