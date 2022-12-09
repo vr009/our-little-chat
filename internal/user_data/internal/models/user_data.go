@@ -9,6 +9,8 @@ import (
 type UserData struct {
 	UserID      uuid.UUID `json:"user_id,omitempty"`
 	Nickname    string    `json:"nickname"`
+	Name        string    `json:"name"`
+	Surname     string    `json:"surname"`
 	Password    string    `json:"password"`
 	LastAuth    time.Time `json:"last_auth,omitempty"`
 	Registered  time.Time `json:"registered,omitempty"`

@@ -78,7 +78,7 @@ func (udh *UserdataHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
 func (udh *UserdataHandler) GetUser(w http.ResponseWriter, r *http.Request) {
 	log.Print("Get user")
 
-	userID := r.Header.Get("user_id")
+	userID := r.Header.Get("UserNickName")
 
 	if userID == "" {
 		w.WriteHeader(http.StatusBadRequest)

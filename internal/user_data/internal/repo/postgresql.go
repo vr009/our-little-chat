@@ -13,12 +13,12 @@ import (
 //todo поправить имена в sql-запросах
 
 const (
-	InsertQuery = "INSERT INTO users(user_id, nickname, password, last_auth, registered, avatar, contact_list) " +
-		"VALUES($1, $2, $3, $4, $5, $6, $7);"
+	InsertQuery = "INSERT INTO users(user_id, nickname, name, surname, password, last_auth, registered, avatar, contact_list) " +
+		"VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9);"
 	DeleteQuery  = "DELETE FROM users WHERE user_id=$1;"
-	UpdateQuery  = "UPDATE users SET nickname=$1, last_auth=$2, registered=$3, avatar=$4, contact_list=$5 WHERE user_id=$6;"
-	GetQuery     = "SELECT user_id, nickname, last_auth, registered, avatar, contact_list  FROM users WHERE user_id=$1;"
-	GetNameQuery = "SELECT user_id, nickname, last_auth, registered, avatar, contact_list  FROM users WHERE nickname=$1;"
+	UpdateQuery  = "UPDATE users SET nickname=$1, name=$2, surname=$3, last_auth=$4, registered=$5, avatar=$6, contact_list=$7 WHERE user_id=$8;"
+	GetQuery     = "SELECT user_id, nickname, name, surname, last_auth, registered, avatar, contact_list  FROM users WHERE user_id=$1;"
+	GetNameQuery = "SELECT user_id, nickname, name, surname, password, last_auth, registered, avatar, contact_list  FROM users WHERE nickname=$1;"
 	ListQuery    = "SELECT * FROM users;"
 )
 
@@ -37,6 +37,8 @@ func (pr *PersonRepo) CreateUser(person models.UserData) (models.UserData, model
 		InsertQuery,
 		person.UserID,
 		person.Nickname,
+		person.Name,
+		person.Surname,
 		person.Password,
 		person.LastAuth,
 		person.Registered,
@@ -74,7 +76,7 @@ func (pr *PersonRepo) UpdateUser(personNew models.UserData) (models.UserData, mo
 		personOld.LastAuth = personNew.LastAuth
 	}
 
-	_, err := pr.conn.Exec(context.Background(), UpdateQuery, personNew.Nickname, personNew.LastAuth, personNew.Registered, personNew.Avatar, personNew.ContactList, personNew.UserID)
+	_, err := pr.conn.Exec(context.Background(), UpdateQuery, personNew.Nickname, &personNew.Name, &personNew.Surname, personNew.LastAuth, personNew.Registered, personNew.Avatar, personNew.ContactList, personNew.UserID)
 	if err != nil {
 		return personOld, models.BadRequest
 	}
@@ -84,7 +86,7 @@ func (pr *PersonRepo) UpdateUser(personNew models.UserData) (models.UserData, mo
 
 func (pr *PersonRepo) GetUser(person models.UserData) (models.UserData, models.StatusCode) {
 	rows := pr.conn.QueryRow(context.Background(), GetQuery, person.UserID)
-	err := rows.Scan(&person.UserID, &person.Nickname, &person.LastAuth, &person.Registered, &person.Avatar, &person.ContactList)
+	err := rows.Scan(&person.UserID, &person.Nickname, &person.Name, &person.Surname, &person.LastAuth, &person.Registered, &person.Avatar, &person.ContactList)
 	if err != nil {
 		fmt.Println(err)
 		return models.UserData{}, models.NotFound
@@ -94,7 +96,7 @@ func (pr *PersonRepo) GetUser(person models.UserData) (models.UserData, models.S
 
 func (pr *PersonRepo) GetUserForItsName(person models.UserData) (models.UserData, models.StatusCode) {
 	rows := pr.conn.QueryRow(context.Background(), GetNameQuery, person.Nickname)
-	err := rows.Scan(&person.UserID, &person.Nickname, &person.LastAuth, &person.Registered, &person.Avatar, &person.ContactList)
+	err := rows.Scan(&person.UserID, &person.Nickname, &person.Name, &person.Surname, &person.Password, &person.LastAuth, &person.Registered, &person.Avatar, &person.ContactList)
 	if err != nil {
 		fmt.Println(err)
 		return models.UserData{}, models.NotFound
@@ -110,7 +112,7 @@ func (pr *PersonRepo) GetAllUsers() ([]models.UserData, models.StatusCode) {
 	list := make([]models.UserData, 0)
 	for rows.Next() {
 		person := models.UserData{}
-		rows.Scan(&person.UserID, &person.Nickname, &person.LastAuth, &person.Registered, &person.Avatar, &person.ContactList)
+		rows.Scan(&person.UserID, &person.Nickname, &person.Name, &person.Surname, &person.LastAuth, &person.Registered, &person.Avatar, &person.ContactList)
 		list = append(list, person)
 	}
 	return list, models.OK

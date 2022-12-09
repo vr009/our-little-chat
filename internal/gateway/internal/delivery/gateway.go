@@ -20,22 +20,32 @@ func NewGatewayHandler(uc internal.GatewayUsecase) *GatewayHandler {
 	}
 }
 
+type Error struct {
+	Msg string `json:"message"`
+}
+
 func (h *GatewayHandler) SignIn(w http.ResponseWriter, r *http.Request) {
 	user := models.User{}
 	err := json.NewDecoder(r.Body).Decode(&user)
 	if err != nil {
+		errObj := &Error{Msg: "Bad body"}
+		body, _ := json.Marshal(&errObj)
 		w.WriteHeader(http.StatusBadRequest)
+		w.Write(body)
 		return
 	}
 
 	session, err := h.uc.SignIn(&user)
 	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
+		errObj := &Error{Msg: "Failed to sign in"}
+		body, _ := json.Marshal(&errObj)
+		w.WriteHeader(http.StatusForbidden)
+		w.Write(body)
 		return
 	}
 
+	http.SetCookie(w, &http.Cookie{Name: "Token", Value: session.Token})
 	w.WriteHeader(http.StatusOK)
-	w.Header().Set("Set-Cookie", session.Token)
 }
 
 func (h *GatewayHandler) SignUp(w http.ResponseWriter, r *http.Request) {
@@ -48,7 +58,10 @@ func (h *GatewayHandler) SignUp(w http.ResponseWriter, r *http.Request) {
 
 	session, err := h.uc.SignUp(&user)
 	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
+		errObj := &Error{Msg: "Failed to sign up"}
+		body, _ := json.Marshal(&errObj)
+		w.WriteHeader(http.StatusForbidden)
+		w.Write(body)
 		return
 	}
 

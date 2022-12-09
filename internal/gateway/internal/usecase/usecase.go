@@ -33,7 +33,7 @@ func (u GatewayUsecase) SignUp(user *models.User) (*models.Session, error) {
 }
 
 func (u GatewayUsecase) SignIn(user *models.User) (*models.Session, error) {
-	_, err := u.userData.GetUser(user)
+	err := u.userData.CheckUser(user)
 	if err != nil {
 		return nil, err
 	}
