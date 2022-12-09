@@ -37,6 +37,7 @@ func main() {
 	configPath := os.Getenv("AUTH_CONFIG")
 	p, _ := os.Getwd()
 	fmt.Println(p, configPath)
+	configPath = "configs"
 	viper.AddConfigPath(configPath)
 	viper.SetConfigName("auth-config.yaml")
 	viper.SetConfigType("yaml")

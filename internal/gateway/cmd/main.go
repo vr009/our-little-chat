@@ -15,11 +15,14 @@ import (
 )
 
 type AppConfig struct {
-	Port int
+	Port            int
+	UserDataBaseURL string
+	AuthBaseURL     string
 }
 
 func main() {
 	configPath := os.Getenv("GATEWAY_CONFIG")
+	configPath = "configs"
 	viper.AddConfigPath(configPath)
 	viper.SetConfigName("gateway-config.yaml")
 	viper.SetConfigType("yaml")
@@ -40,10 +43,10 @@ func main() {
 	}
 
 	userDataCfg := models.ServiceRouterConfig{
-		BaseUrl: "http://localhost:8086/api/v1",
+		BaseUrl: appConfig.UserDataBaseURL,
 		Router: map[string]string{
 			"AddUser":    "/user/new",
-			"GetUser":    "/user",
+			"CheckUser":  "/user/auth",
 			"DeleteUser": "/user",
 		},
 	}
@@ -51,7 +54,7 @@ func main() {
 	userDataHandler := delivery.NewUserDataHandler(userDataClient, userDataCfg)
 
 	authCfg := models.ServiceRouterConfig{
-		BaseUrl: "http://localhost:8087/api/v1",
+		BaseUrl: appConfig.AuthBaseURL,
 		Router: map[string]string{
 			"AddUser":    "/auth",
 			"GetUser":    "/auth/token",

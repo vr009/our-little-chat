@@ -52,12 +52,9 @@ func (uc *UserdataUseCase) CheckUser(userData models.UserData) models.StatusCode
 	if code == models.NotFound {
 		return code
 	}
-	pswd, err := bcrypt.GenerateFromPassword([]byte(userData.Password), 10)
+	err := bcrypt.CompareHashAndPassword([]byte(userFromRepo.Password), []byte(userData.Password))
 	if err != nil {
-		return models.InternalError
+		return models.Forbidden
 	}
-	if userFromRepo.Password == string(pswd) {
-		return models.OK
-	}
-	return models.Forbidden
+	return models.OK
 }

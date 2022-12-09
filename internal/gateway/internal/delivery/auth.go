@@ -19,11 +19,12 @@ func NewAuthHandler(client http.Client, cfg models.ServiceRouterConfig) *AuthHan
 }
 
 func (handler *AuthHandler) AddUser(user models.User) (*models.Session, error) {
-	userB, err := json.Marshal(user)
+	newSession := models.Session{UserID: user.UserID}
+	sessionB, err := json.Marshal(newSession)
 	if err != nil {
 		return nil, err
 	}
-	body := bytes.NewReader(userB)
+	body := bytes.NewReader(sessionB)
 
 	url := handler.cfg.GetPath("AddUser")
 	req, err := handler.client.Post(url, "", body)

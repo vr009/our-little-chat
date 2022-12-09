@@ -7,6 +7,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strconv"
 
 	"our-little-chatik/internal/user_data/internal/delivery"
 	"our-little-chatik/internal/user_data/internal/repo"
@@ -14,27 +15,39 @@ import (
 
 	"github.com/gorilla/mux"
 	"github.com/jackc/pgx/v4/pgxpool"
-	"github.com/joho/godotenv"
+	"github.com/spf13/viper"
 )
 
-func init() {
-	godotenv.Load(".env")
+type AppConfig struct {
+	Port int
 }
 
 func GetConnectionString() (string, error) {
-	key, flag := os.LookupEnv("DATABASE_URL")
-	if !flag {
+	key, ok := os.LookupEnv("DATABASE_URL")
+	if !ok {
 		return "", errors.New("connection string not found")
 	}
 	return key, nil
 }
 
 func main() {
-	fmt.Println("Starting..")
+	configPath := os.Getenv("GATEWAY_CONFIG")
+	viper.AddConfigPath(configPath)
+	viper.SetConfigName("user-data-config.yaml")
+	viper.SetConfigType("yaml")
+	if err := viper.ReadInConfig(); err != nil {
+		log.Fatal("Failed to read a config file", configPath)
+	}
+
+	appConfig := &AppConfig{}
+	err := viper.Unmarshal(&appConfig)
+	if err != nil {
+		panic(err)
+	}
 
 	connString, err := GetConnectionString()
 	if err != nil {
-		panic("failed to get a connection string")
+		panic(err)
 	}
 
 	conn, err := pgxpool.Connect(context.Background(), connString)
@@ -49,9 +62,7 @@ func main() {
 	}
 
 	repo := repo.NewPersonRepo(conn)
-
 	useCase := usecase.NewUserdataUseCase(repo)
-
 	handler := delivery.NewUserdataHandler(useCase)
 
 	router := mux.NewRouter()
@@ -68,7 +79,7 @@ func main() {
 
 	router.HandleFunc("/api/v1/user/auth", handler.CheckUserData).Methods("POST")
 
-	srv := &http.Server{Handler: router, Addr: ":8086"}
+	srv := &http.Server{Handler: router, Addr: ":" + strconv.Itoa(appConfig.Port)}
 
 	fmt.Printf("Main.go started at port %s \n", srv.Addr)
 

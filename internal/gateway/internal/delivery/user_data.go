@@ -35,16 +35,16 @@ func (handler *UserDataHandler) AddUser(user *models.User) (*models.User, error)
 	}
 	body := bytes.NewReader(userB)
 
-	req, err := handler.client.Post(handler.cfg.GetPath("AddUser"), "", body)
+	resp, err := handler.client.Post(handler.cfg.GetPath("AddUser"), "", body)
 	if err != nil {
 		return nil, err
 	}
-	if req.StatusCode != 200 {
+	if resp.StatusCode != 200 {
 		return nil, fmt.Errorf("failed to add a user")
 	}
 
 	newUser := &models.User{}
-	err = json.NewDecoder(req.Body).Decode(&newUser)
+	err = json.NewDecoder(resp.Body).Decode(&newUser)
 	if err != nil {
 		return nil, err
 	}
@@ -72,23 +72,19 @@ func (handler *UserDataHandler) RemoveUser(user *models.User) (*models.User, err
 	return user, nil
 }
 
-func (handler *UserDataHandler) GetUser(user *models.User) (*models.User, error) {
-	req, err := http.NewRequest("GET", handler.cfg.GetPath("GetUser"), nil)
+func (handler *UserDataHandler) CheckUser(user *models.User) error {
+	userB, err := json.Marshal(user)
 	if err != nil {
-		return nil, err
+		return err
 	}
-	req.Header.Set("UserID", user.UserID.String())
-	resp, err := handler.client.Do(req)
+	body := bytes.NewReader(userB)
+
+	resp, err := handler.client.Post(handler.cfg.GetPath("CheckUser"), "", body)
 	if err != nil {
-		return nil, err
+		return err
 	}
 	if resp.StatusCode != 200 {
-		return nil, fmt.Errorf("failed to get a user")
+		return fmt.Errorf("failed to add a user")
 	}
-
-	err = json.NewDecoder(req.Body).Decode(&user)
-	if err != nil {
-		return nil, err
-	}
-	return user, nil
+	return nil
 }
