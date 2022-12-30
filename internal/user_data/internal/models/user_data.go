@@ -3,15 +3,11 @@ package models
 import (
 	"time"
 
-	"github.com/google/uuid"
+	"our-little-chatik/internal/models"
 )
 
 type UserData struct {
-	UserID      uuid.UUID `json:"user_id,omitempty"`
-	Nickname    string    `json:"nickname"`
-	Name        string    `json:"name"`
-	Surname     string    `json:"surname"`
-	Password    string    `json:"password"`
+	models.User
 	LastAuth    time.Time `json:"last_auth,omitempty"`
 	Registered  time.Time `json:"registered,omitempty"`
 	Avatar      []string  `json:"avatar"`

@@ -11,10 +11,10 @@ import (
 
 type AuthHandler struct {
 	client http.Client
-	cfg    models.ServiceRouterConfig
+	cfg    *models.ServiceRouterConfig
 }
 
-func NewAuthHandler(client http.Client, cfg models.ServiceRouterConfig) *AuthHandler {
+func NewAuthHandler(client http.Client, cfg *models.ServiceRouterConfig) *AuthHandler {
 	return &AuthHandler{client: client, cfg: cfg}
 }
 
@@ -32,7 +32,7 @@ func (handler *AuthHandler) AddUser(user models.User) (*models.Session, error) {
 		return nil, err
 	}
 	if req.StatusCode != 200 {
-		return nil, fmt.Errorf("failed to add a user")
+		return nil, fmt.Errorf("failed to add a user, status code: %d", req.StatusCode)
 	}
 
 	session := &models.Session{}
@@ -43,26 +43,21 @@ func (handler *AuthHandler) AddUser(user models.User) (*models.Session, error) {
 	return session, nil
 }
 
-func (handler *AuthHandler) RemoveUser(user models.User) (*models.Session, error) {
+func (handler *AuthHandler) RemoveUser(session models.Session) error {
 	req, err := http.NewRequest("DELETE", handler.cfg.GetPath("DeleteUser"), nil)
 	if err != nil {
-		return nil, err
+		return err
 	}
-	req.Header.Set("UserID", user.UserID.String())
+	req.Header.Set("Token", session.Token)
 	resp, err := handler.client.Do(req)
 	if err != nil {
-		return nil, err
+		return err
 	}
 	if resp.StatusCode != 200 {
-		return nil, fmt.Errorf("failed to get a user")
+		return fmt.Errorf("failed to get a user")
 	}
 
-	session := &models.Session{}
-	err = json.NewDecoder(req.Body).Decode(&session)
-	if err != nil {
-		return nil, err
-	}
-	return session, nil
+	return nil
 }
 
 func (handler *AuthHandler) GetSession(user models.User) (*models.Session, error) {

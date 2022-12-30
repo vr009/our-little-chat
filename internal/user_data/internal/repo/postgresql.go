@@ -7,6 +7,7 @@ import (
 
 	"our-little-chatik/internal/user_data/internal/models"
 
+	"github.com/golang/glog"
 	"github.com/jackc/pgx/v4/pgxpool"
 )
 
@@ -33,6 +34,7 @@ func NewPersonRepo(conn *pgxpool.Pool) *PersonRepo {
 }
 
 func (pr *PersonRepo) CreateUser(person models.UserData) (models.UserData, models.StatusCode) {
+	glog.Infof("Creating user %s", person)
 	_, err := pr.conn.Exec(context.Background(),
 		InsertQuery,
 		person.UserID,
@@ -45,9 +47,8 @@ func (pr *PersonRepo) CreateUser(person models.UserData) (models.UserData, model
 		person.Avatar,
 		person.ContactList,
 	)
-
-	fmt.Println(1, err)
 	if err != nil {
+		glog.Errorf(err.Error())
 		return models.UserData{}, models.BadRequest
 	}
 	person.Password = ""
