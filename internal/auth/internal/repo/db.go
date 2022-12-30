@@ -11,6 +11,7 @@ import (
 	models2 "our-little-chatik/internal/models"
 
 	"github.com/go-redis/redis/v9"
+	"github.com/golang/glog"
 	"github.com/google/uuid"
 )
 
@@ -39,12 +40,14 @@ func (db *DataBase) CreateSession(session models2.Session) (models2.Session, mod
 	err := db.Client.Set(context.Background(), session.UserID.String(), session.Token, time.Minute*time.Duration(db.TTL)).Err()
 
 	if err != nil {
+		glog.Errorf("failed to add a session: %s", err.Error())
 		return models2.Session{}, models.Conflict
 	}
 
 	err = db.Client.Set(context.Background(), session.Token, session.UserID.String(), time.Minute*time.Duration(db.TTL)).Err()
 
 	if err != nil {
+		glog.Errorf("failed to add a session: %s", err.Error())
 		return models2.Session{}, models.Conflict
 	}
 

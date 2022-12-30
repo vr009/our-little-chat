@@ -22,7 +22,6 @@ type AppConfig struct {
 
 func main() {
 	configPath := os.Getenv("GATEWAY_CONFIG")
-	configPath = "configs"
 	viper.AddConfigPath(configPath)
 	viper.SetConfigName("gateway-config.yaml")
 	viper.SetConfigType("yaml")
@@ -51,27 +50,26 @@ func main() {
 		},
 	}
 	userDataClient := http.Client{}
-	userDataHandler := delivery.NewUserDataHandler(userDataClient, userDataCfg)
+	userDataHandler := delivery.NewUserDataHandler(userDataClient, &userDataCfg)
 
 	authCfg := models.ServiceRouterConfig{
 		BaseUrl: appConfig.AuthBaseURL,
 		Router: map[string]string{
 			"AddUser":    "/auth",
-			"GetUser":    "/auth/token",
+			"GetUser":    "/auth/user",
 			"DeleteUser": "/auth",
-			"GetSession": "/auth/user",
+			"GetSession": "/auth/token",
 		},
 	}
 	authClient := http.Client{}
-	authHandler := delivery.NewAuthHandler(authClient, authCfg)
+	authHandler := delivery.NewAuthHandler(authClient, &authCfg)
 
 	uc := usecase.NewGatewayUsecasse(*authHandler, *userDataHandler)
 	gatewayHandler := delivery.NewGatewayHandler(uc)
 
 	r.HandleFunc("/api/gateway/signup", gatewayHandler.SignUp).Methods("POST")
 	r.HandleFunc("/api/gateway/signin", gatewayHandler.SignIn).Methods("POST")
-	r.HandleFunc("/api/gateway/session", gatewayHandler.GetSession).Methods("GET")
-	r.HandleFunc("/api/gateway/user", gatewayHandler.GetUser).Methods("GET")
+	r.HandleFunc("/api/gateway/logout", gatewayHandler.LogOut).Methods("DELETE")
 
 	log.Fatal(srv.ListenAndServe())
 }

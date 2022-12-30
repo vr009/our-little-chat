@@ -2,13 +2,13 @@ package delivery
 
 import (
 	"encoding/json"
-	"log"
 	"net/http"
 
 	"our-little-chatik/internal/auth/internal"
 	"our-little-chatik/internal/auth/internal/models"
 	models2 "our-little-chatik/internal/models"
 
+	"github.com/golang/glog"
 	"github.com/google/uuid"
 )
 
@@ -23,8 +23,6 @@ func NewAuthHandler(useCase internal.AuthUseCase) *AuthHandler {
 }
 
 func (ah *AuthHandler) GetToken(w http.ResponseWriter, r *http.Request) {
-	log.Print("GetToken")
-
 	userID := r.Header.Get("UserID")
 
 	if userID == "" {
@@ -35,7 +33,7 @@ func (ah *AuthHandler) GetToken(w http.ResponseWriter, r *http.Request) {
 	uuidFormString, err := uuid.Parse(userID)
 
 	if err != nil {
-		log.Print("error of UUID parsing")
+		glog.Errorf(err.Error())
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
@@ -46,12 +44,15 @@ func (ah *AuthHandler) GetToken(w http.ResponseWriter, r *http.Request) {
 
 	s, errCode := ah.useCase.GetToken(session)
 
-	checkErrorCode(errCode, w)
+	if errCode != models.OK {
+		checkErrorCode(errCode, w)
+		return
+	}
 
 	a, err := json.Marshal(&s)
 
 	if err != nil {
-		log.Print("error of json.Marshal")
+		glog.Errorf(err.Error())
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
@@ -60,14 +61,12 @@ func (ah *AuthHandler) GetToken(w http.ResponseWriter, r *http.Request) {
 	_, err = w.Write(a)
 
 	if err != nil {
-		log.Print("error")
+		glog.Errorf(err.Error())
 		return
 	}
 }
 
 func (ah *AuthHandler) GetUser(w http.ResponseWriter, r *http.Request) {
-	log.Print("GetUser")
-
 	token := r.Header.Get("Token")
 
 	if token == "" {
@@ -81,12 +80,15 @@ func (ah *AuthHandler) GetUser(w http.ResponseWriter, r *http.Request) {
 
 	s, errCode := ah.useCase.GetUser(session)
 
-	checkErrorCode(errCode, w)
+	if errCode != models.OK {
+		checkErrorCode(errCode, w)
+		return
+	}
 
 	a, err := json.Marshal(&s)
 
 	if err != nil {
-		log.Print("error of json.Marshal")
+		glog.Errorf(err.Error())
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
@@ -95,22 +97,18 @@ func (ah *AuthHandler) GetUser(w http.ResponseWriter, r *http.Request) {
 	_, err = w.Write(a)
 
 	if err != nil {
-		log.Print("error")
+		glog.Errorf(err.Error())
 		return
 	}
 }
 
 func (ah *AuthHandler) DeleteSession(w http.ResponseWriter, r *http.Request) {
-	log.Print("DeleteSession")
-
 	session := models2.Session{}
 
-	err := json.NewDecoder(r.Body).Decode(&session)
-
-	if err != nil {
-		log.Print("error of decoding request body")
+	session.Token = r.Header.Get("Token")
+	if session.Token == "" {
+		glog.Errorf("Received empty token")
 		w.WriteHeader(http.StatusBadRequest)
-		return
 	}
 
 	errCode := ah.useCase.DeleteSession(session)
@@ -129,18 +127,22 @@ func (ah *AuthHandler) PostSession(w http.ResponseWriter, r *http.Request) {
 	err := json.NewDecoder(r.Body).Decode(&session)
 
 	if err != nil {
-		log.Print("error")
+		glog.Errorf(err.Error())
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
 
 	s, errCode := ah.useCase.CreateSession(session)
 
-	checkErrorCode(errCode, w)
+	if errCode != models.OK {
+		glog.Errorf("Failed to create a session")
+		checkErrorCode(errCode, w)
+		return
+	}
 
 	buf, err := json.Marshal(&s)
 	if err != nil {
-		log.Print("error")
+		glog.Errorf(err.Error())
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
@@ -148,26 +150,23 @@ func (ah *AuthHandler) PostSession(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	_, err = w.Write(buf)
 	if err != nil {
-		log.Print("error")
+		glog.Errorf(err.Error())
 		return
 	}
 }
 
 func checkErrorCode(errCode models.StatusCode, w http.ResponseWriter) {
 	if errCode == models.NotFound {
-		log.Print("error of StatusNotFound")
 		w.WriteHeader(http.StatusNotFound)
 		return
 	}
 
 	if errCode == models.InternalError {
-		log.Print("error of StatusInternalServerError")
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
 	if errCode != models.OK {
-		log.Print("error of StatusInternalServerError")
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}

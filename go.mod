@@ -5,6 +5,7 @@ go 1.16
 require (
 	github.com/go-openapi/swag v0.21.1 // indirect
 	github.com/go-redis/redis/v9 v9.0.0-beta.2
+	github.com/golang/glog v1.0.0 // indirect
 	github.com/google/uuid v1.3.0
 	github.com/gorilla/mux v1.8.0
 	github.com/gorilla/websocket v1.5.0

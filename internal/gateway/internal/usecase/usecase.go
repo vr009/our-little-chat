@@ -3,6 +3,8 @@ package usecase
 import (
 	"our-little-chatik/internal/gateway/internal/delivery"
 	"our-little-chatik/internal/models"
+
+	"github.com/golang/glog"
 )
 
 type GatewayUsecase struct {
@@ -21,11 +23,13 @@ func NewGatewayUsecasse(auth delivery.AuthHandler,
 func (u GatewayUsecase) SignUp(user *models.User) (*models.Session, error) {
 	newUser, err := u.userData.AddUser(user)
 	if err != nil {
+		glog.Warningf("Failed to add a user in user-data service. Error message: %s.", err.Error())
 		return nil, err
 	}
 
 	session, err := u.auth.AddUser(*newUser)
 	if err != nil {
+		glog.Warningf("Failed to add a user in auth-data service. Error message: %s.", err.Error())
 		return nil, err
 	}
 
@@ -35,14 +39,25 @@ func (u GatewayUsecase) SignUp(user *models.User) (*models.Session, error) {
 func (u GatewayUsecase) SignIn(user *models.User) (*models.Session, error) {
 	err := u.userData.CheckUser(user)
 	if err != nil {
+		glog.Errorf("Failed to check a user in user-data service. Error message: %s.", err.Error())
 		return nil, err
 	}
 
 	session, err := u.auth.AddUser(*user)
 	if err != nil {
+		glog.Errorf("Failed to add a user in user-data service. Error message: %s.", err.Error())
 		return nil, err
 	}
 	return session, err
+}
+
+func (u GatewayUsecase) LogOut(session models.Session) error {
+	err := u.auth.RemoveUser(session)
+	if err != nil {
+		glog.Errorf("Failed to add a user in user-data service. Error message: %s.", err.Error())
+		return err
+	}
+	return nil
 }
 
 func (u GatewayUsecase) GetSessionFromUser(user models.User) (*models.Session, error) {

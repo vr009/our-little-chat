@@ -69,6 +69,27 @@ func (h *GatewayHandler) SignUp(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
+func (h *GatewayHandler) LogOut(w http.ResponseWriter, r *http.Request) {
+	session := models.Session{}
+	cookies := r.Cookies()
+	for i := range cookies {
+		if cookies[i].Name == "Token" {
+			session.Token = cookies[0].Value
+		}
+	}
+	if session.Token == "" {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	err := h.uc.LogOut(session)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	w.WriteHeader(http.StatusOK)
+}
+
 func (h *GatewayHandler) GetSession(w http.ResponseWriter, r *http.Request) {
 	var err error
 	user := models.User{}

@@ -2,13 +2,12 @@ package delivery
 
 import (
 	"encoding/json"
-	"fmt"
-	"log"
 	"net/http"
 
 	"our-little-chatik/internal/user_data/internal"
 	"our-little-chatik/internal/user_data/internal/models"
 
+	"github.com/golang/glog"
 	"github.com/google/uuid"
 )
 
@@ -35,7 +34,7 @@ func (udh *UserdataHandler) GetAllUsers(w http.ResponseWriter, r *http.Request) 
 		_, err = w.Write(body)
 
 		if err != nil {
-			log.Print("error")
+			glog.Errorf(err.Error())
 			return
 		}
 	}
@@ -46,23 +45,25 @@ func (udh *UserdataHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
 	person := models.UserData{}
 
 	err := json.NewDecoder(r.Body).Decode(&person)
-
 	if err != nil {
-		log.Print("error of decoding")
+		glog.Errorf(err.Error())
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
 
-	s, errCode := udh.useCase.CreateUser(person)
-	fmt.Println("HERE", errCode)
+	glog.Infof("Unmarshalled: %v", person)
+
+	newPeson, errCode := udh.useCase.CreateUser(person)
 	if errCode != models.OK {
 		handleErrorCode(errCode, w)
 		return
 	}
 
-	buf, err := json.Marshal(&s)
+	glog.Infof("Created: %v", newPeson)
+
+	buf, err := json.Marshal(&newPeson)
 	if err != nil {
-		log.Print("error")
+		glog.Errorf(err.Error())
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
@@ -70,14 +71,12 @@ func (udh *UserdataHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	_, err = w.Write(buf)
 	if err != nil {
-		log.Print("error")
+		glog.Errorf(err.Error())
 		return
 	}
 }
 
 func (udh *UserdataHandler) GetUser(w http.ResponseWriter, r *http.Request) {
-	log.Print("Get user")
-
 	userID := r.Header.Get("UserNickName")
 
 	if userID == "" {
@@ -88,14 +87,13 @@ func (udh *UserdataHandler) GetUser(w http.ResponseWriter, r *http.Request) {
 	uuidFormString, err := uuid.Parse(userID)
 
 	if err != nil {
-		log.Print("error of UUID parsing")
+		glog.Errorf(err.Error())
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
-	person := models.UserData{
-		UserID: uuidFormString,
-	}
+	person := models.UserData{}
+	person.UserID = uuidFormString
 
 	s, errCode := udh.useCase.GetUser(person)
 
@@ -107,7 +105,7 @@ func (udh *UserdataHandler) GetUser(w http.ResponseWriter, r *http.Request) {
 	a, err := json.Marshal(&s)
 
 	if err != nil {
-		log.Print("error of json.Marshal")
+		glog.Errorf(err.Error())
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
@@ -116,7 +114,7 @@ func (udh *UserdataHandler) GetUser(w http.ResponseWriter, r *http.Request) {
 	_, err = w.Write(a)
 
 	if err != nil {
-		log.Print("error")
+		glog.Errorf(err.Error())
 		return
 	}
 }
@@ -127,7 +125,7 @@ func (udh *UserdataHandler) DeleteUser(w http.ResponseWriter, r *http.Request) {
 	err := json.NewDecoder(r.Body).Decode(&person)
 
 	if err != nil {
-		log.Print("error of decoding request body")
+		glog.Errorf(err.Error())
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
@@ -148,7 +146,7 @@ func (udh *UserdataHandler) UpdateUser(w http.ResponseWriter, r *http.Request) {
 	err := json.NewDecoder(r.Body).Decode(&person)
 
 	if err != nil {
-		log.Print("error of decoding request body")
+		glog.Errorf(err.Error())
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
@@ -163,7 +161,7 @@ func (udh *UserdataHandler) UpdateUser(w http.ResponseWriter, r *http.Request) {
 	a, err := json.Marshal(&s)
 
 	if err != nil {
-		log.Print("error of json.Marshal")
+		glog.Errorf(err.Error())
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
@@ -172,7 +170,7 @@ func (udh *UserdataHandler) UpdateUser(w http.ResponseWriter, r *http.Request) {
 	_, err = w.Write(a)
 
 	if err != nil {
-		log.Print("error")
+		glog.Errorf(err.Error())
 		return
 	}
 
@@ -184,7 +182,7 @@ func (udh *UserdataHandler) CheckUserData(w http.ResponseWriter, r *http.Request
 	err := json.NewDecoder(r.Body).Decode(&person)
 
 	if err != nil {
-		log.Print("error of decoding")
+		glog.Errorf(err.Error())
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
@@ -201,25 +199,21 @@ func (udh *UserdataHandler) CheckUserData(w http.ResponseWriter, r *http.Request
 
 func handleErrorCode(errCode models.StatusCode, w http.ResponseWriter) {
 	if errCode == models.NotFound {
-		log.Print("error of StatusNotFound")
 		w.WriteHeader(http.StatusNotFound)
 		return
 	}
 
 	if errCode == models.InternalError {
-		log.Print("error of StatusInternalServerError")
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
 	if errCode == models.BadRequest {
-		log.Print("error of StatusInternalServerError")
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
 
 	if errCode != models.OK {
-		log.Print("error of StatusInternalServerError")
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}

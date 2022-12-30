@@ -12,10 +12,10 @@ import (
 
 type UserDataHandler struct {
 	client http.Client
-	cfg    models.ServiceRouterConfig
+	cfg    *models.ServiceRouterConfig
 }
 
-func NewUserDataHandler(client http.Client, cfg models.ServiceRouterConfig) *UserDataHandler {
+func NewUserDataHandler(client http.Client, cfg *models.ServiceRouterConfig) *UserDataHandler {
 	return &UserDataHandler{client: client, cfg: cfg}
 }
 
