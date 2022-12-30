@@ -104,7 +104,7 @@ services:
       context: .
       dockerfile: ./deployments/user_data.Dockerfile
     environment:
-      GATEWAY_CONFIG: configs/.
+      USER_DATA_CONFIG: configs/.
       DATABASE_URL: "user=service password=test host=db-user-data port=5432 dbname=persons"
     command: ./user-data-service
     ports:
