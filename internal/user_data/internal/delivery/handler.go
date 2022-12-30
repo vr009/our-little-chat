@@ -197,6 +197,24 @@ func (udh *UserdataHandler) CheckUserData(w http.ResponseWriter, r *http.Request
 	w.WriteHeader(http.StatusOK)
 }
 
+func (udh *UserdataHandler) FindUser(w http.ResponseWriter, r *http.Request) {
+	name := r.URL.Query().Get("name")
+	if name == "" {
+		w.WriteHeader(http.StatusNotFound)
+	}
+	users, errCode := udh.useCase.FindUser(name)
+	if errCode != models.OK {
+		handleErrorCode(errCode, w)
+		return
+	}
+	body, err := json.Marshal(users)
+	if err != nil {
+		glog.Errorf("Failed to marshal body for users: %s", err)
+	}
+	w.WriteHeader(http.StatusOK)
+	w.Write(body)
+}
+
 func handleErrorCode(errCode models.StatusCode, w http.ResponseWriter) {
 	if errCode == models.NotFound {
 		w.WriteHeader(http.StatusNotFound)

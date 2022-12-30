@@ -23,10 +23,6 @@ paths:
           description: Bad Request
           schema:
             $ref: '#/definitions/internal_delivery.Error'
-        "404":
-          description: Not Found
-          schema:
-            $ref: '#/definitions/internal_delivery.Error'
         "500":
           description: Internal Server Error
           schema:
@@ -43,8 +39,8 @@ paths:
           description: Bad Request
           schema:
             $ref: '#/definitions/internal_delivery.Error'
-        "404":
-          description: Not Found
+        "403":
+          description: Forbidden
           schema:
             $ref: '#/definitions/internal_delivery.Error'
         "500":
@@ -63,8 +59,8 @@ paths:
           description: Bad Request
           schema:
             $ref: '#/definitions/internal_delivery.Error'
-        "404":
-          description: Not Found
+        "403":
+          description: Forbidden
           schema:
             $ref: '#/definitions/internal_delivery.Error'
         "500":

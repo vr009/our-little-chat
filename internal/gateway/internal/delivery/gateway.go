@@ -27,7 +27,7 @@ type Error struct {
 // @Accept  json
 // @Success 200
 // @Failure 400 {object} Error
-// @Failure 404 {object} Error
+// @Failure 403 {object} Error
 // @Failure 500 {object} Error
 // @Router /api/gateway/signin [post]
 func (h *GatewayHandler) SignIn(w http.ResponseWriter, r *http.Request) {
@@ -59,7 +59,7 @@ func (h *GatewayHandler) SignIn(w http.ResponseWriter, r *http.Request) {
 // @Accept  json
 // @Success 200
 // @Failure 400 {object} Error
-// @Failure 404 {object} Error
+// @Failure 403 {object} Error
 // @Failure 500 {object} Error
 // @Router /api/gateway/signup [post]
 func (h *GatewayHandler) SignUp(w http.ResponseWriter, r *http.Request) {
@@ -88,26 +88,48 @@ func (h *GatewayHandler) SignUp(w http.ResponseWriter, r *http.Request) {
 // @Accept  json
 // @Success 200
 // @Failure 400 {object} Error
-// @Failure 404 {object} Error
 // @Failure 500 {object} Error
 // @Router /api/gateway/logout [delete]
 func (h *GatewayHandler) LogOut(w http.ResponseWriter, r *http.Request) {
 	session := models.Session{}
-	cookies := r.Cookies()
-	for i := range cookies {
-		if cookies[i].Name == "Token" {
-			session.Token = cookies[0].Value
-		}
-	}
+	cookie, err := r.Cookie("Token")
+	session.Token = cookie.Value
 	if session.Token == "" {
+		errObj := &Error{Msg: "No cookie provided"}
+		body, _ := json.Marshal(&errObj)
 		w.WriteHeader(http.StatusBadRequest)
+		w.Write(body)
 		return
 	}
 
-	err := h.uc.LogOut(session)
+	err = h.uc.LogOut(session)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 	w.WriteHeader(http.StatusOK)
+}
+
+func (h *GatewayHandler) Find(w http.ResponseWriter, r *http.Request) {
+	session := models.Session{}
+	cookie, err := r.Cookie("Token")
+	session.Token = cookie.Value
+	if session.Token == "" {
+		errObj := &Error{Msg: "No cookie provided"}
+		body, _ := json.Marshal(&errObj)
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write(body)
+		return
+	}
+
+	name := r.URL.Query().Get("name")
+
+	users, err := h.uc.FindUser(name)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	body, err := json.Marshal(&users)
+	w.WriteHeader(http.StatusOK)
+	w.Write(body)
 }
