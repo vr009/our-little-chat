@@ -32,12 +32,6 @@ const docTemplate = `{
                             "$ref": "#/definitions/internal_delivery.Error"
                         }
                     },
-                    "404": {
-                        "description": "Not Found",
-                        "schema": {
-                            "$ref": "#/definitions/internal_delivery.Error"
-                        }
-                    },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
@@ -63,8 +57,8 @@ const docTemplate = `{
                             "$ref": "#/definitions/internal_delivery.Error"
                         }
                     },
-                    "404": {
-                        "description": "Not Found",
+                    "403": {
+                        "description": "Forbidden",
                         "schema": {
                             "$ref": "#/definitions/internal_delivery.Error"
                         }
@@ -94,8 +88,8 @@ const docTemplate = `{
                             "$ref": "#/definitions/internal_delivery.Error"
                         }
                     },
-                    "404": {
-                        "description": "Not Found",
+                    "403": {
+                        "description": "Forbidden",
                         "schema": {
                             "$ref": "#/definitions/internal_delivery.Error"
                         }

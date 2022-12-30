@@ -88,3 +88,20 @@ func (handler *UserDataHandler) CheckUser(user *models.User) error {
 	}
 	return nil
 }
+
+func (handler *UserDataHandler) FindUser(name string) ([]models.User, error) {
+	req, err := http.NewRequest("GET", handler.cfg.GetPath("FindUser"), nil)
+	if err != nil {
+		return nil, err
+	}
+	req.URL.Query().Set("name", name)
+	resp, err := handler.client.Do(req)
+	if resp.StatusCode != 200 {
+		return nil, fmt.Errorf("failed to find a user")
+	}
+
+	var users []models.User
+	err = json.NewDecoder(resp.Body).Decode(&users)
+
+	return users, err
+}

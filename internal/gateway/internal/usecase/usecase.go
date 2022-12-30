@@ -60,6 +60,15 @@ func (u GatewayUsecase) LogOut(session models.Session) error {
 	return nil
 }
 
+func (u GatewayUsecase) FindUser(name string) ([]models.User, error) {
+	users, err := u.userData.FindUser(name)
+	if err != nil {
+		glog.Errorf("Failed to find a user in user-data service. Error message: %s.", err.Error())
+		return nil, err
+	}
+	return users, nil
+}
+
 func (u GatewayUsecase) GetSessionFromUser(user models.User) (*models.Session, error) {
 	session, err := u.auth.GetSession(user)
 	if err != nil {

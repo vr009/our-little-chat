@@ -9,6 +9,7 @@ type UserdataRepo interface {
 	GetUserForItsName(userData models.UserData) (models.UserData, models.StatusCode)
 	DeleteUser(userData models.UserData) models.StatusCode
 	UpdateUser(personNew models.UserData) (models.UserData, models.StatusCode)
+	FindUser(name string) ([]models.UserData, models.StatusCode)
 }
 
 type UserdataUseCase interface {
@@ -18,4 +19,5 @@ type UserdataUseCase interface {
 	DeleteUser(userData models.UserData) models.StatusCode
 	UpdateUser(userData models.UserData) (models.UserData, models.StatusCode)
 	CheckUser(userData models.UserData) models.StatusCode
+	FindUser(name string) ([]models.UserData, models.StatusCode)
 }

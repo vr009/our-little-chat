@@ -58,3 +58,7 @@ func (uc *UserdataUseCase) CheckUser(userData models.UserData) models.StatusCode
 	}
 	return models.OK
 }
+
+func (uc *UserdataUseCase) FindUser(name string) ([]models.UserData, models.StatusCode) {
+	return uc.repo.FindUser(name)
+}

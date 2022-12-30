@@ -47,6 +47,7 @@ func main() {
 			"AddUser":    "/user/new",
 			"CheckUser":  "/user/auth",
 			"DeleteUser": "/user",
+			"FindUser":   "/user/search",
 		},
 	}
 	userDataClient := http.Client{}
@@ -70,6 +71,7 @@ func main() {
 	r.HandleFunc("/api/gateway/signup", gatewayHandler.SignUp).Methods("POST")
 	r.HandleFunc("/api/gateway/signin", gatewayHandler.SignIn).Methods("POST")
 	r.HandleFunc("/api/gateway/logout", gatewayHandler.LogOut).Methods("DELETE")
+	r.HandleFunc("/api/gateway/search", gatewayHandler.Find).Methods("GET")
 
 	log.Fatal(srv.ListenAndServe())
 }
