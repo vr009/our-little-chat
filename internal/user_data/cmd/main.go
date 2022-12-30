@@ -13,6 +13,7 @@ import (
 	"our-little-chatik/internal/user_data/internal/repo"
 	"our-little-chatik/internal/user_data/internal/usecase"
 
+	"github.com/golang/glog"
 	"github.com/gorilla/mux"
 	"github.com/jackc/pgx/v4/pgxpool"
 	"github.com/spf13/viper"
@@ -31,7 +32,7 @@ func GetConnectionString() (string, error) {
 }
 
 func main() {
-	configPath := os.Getenv("GATEWAY_CONFIG")
+	configPath := os.Getenv("USER_DATA_CONFIG")
 	viper.AddConfigPath(configPath)
 	viper.SetConfigName("user-data-config.yaml")
 	viper.SetConfigType("yaml")
@@ -55,10 +56,7 @@ func main() {
 	if err != nil {
 		panic("ERROR: : " + err.Error())
 	} else {
-		println("Connected to postgres: ")
-		println(connString)
-		fmt.Println(conn.Config())
-		fmt.Println(conn.Stat())
+		glog.Infof("Connected to postgres: %s", connString)
 	}
 
 	repo := repo.NewPersonRepo(conn)
