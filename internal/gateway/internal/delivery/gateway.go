@@ -22,6 +22,14 @@ type Error struct {
 	Msg string `json:"message"`
 }
 
+// SignIn godoc
+// @Summary Sign in a user
+// @Accept  json
+// @Success 200
+// @Failure 400 {object} Error
+// @Failure 404 {object} Error
+// @Failure 500 {object} Error
+// @Router /api/gateway/signin [post]
 func (h *GatewayHandler) SignIn(w http.ResponseWriter, r *http.Request) {
 	user := models.User{}
 	err := json.NewDecoder(r.Body).Decode(&user)
@@ -46,6 +54,14 @@ func (h *GatewayHandler) SignIn(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
+// SignUp godoc
+// @Summary Sign up a user
+// @Accept  json
+// @Success 200
+// @Failure 400 {object} Error
+// @Failure 404 {object} Error
+// @Failure 500 {object} Error
+// @Router /api/gateway/signup [post]
 func (h *GatewayHandler) SignUp(w http.ResponseWriter, r *http.Request) {
 	user := models.User{}
 	err := json.NewDecoder(r.Body).Decode(&user)
@@ -67,6 +83,14 @@ func (h *GatewayHandler) SignUp(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
+// LogOut godoc
+// @Summary Log out a user
+// @Accept  json
+// @Success 200
+// @Failure 400 {object} Error
+// @Failure 404 {object} Error
+// @Failure 500 {object} Error
+// @Router /api/gateway/logout [delete]
 func (h *GatewayHandler) LogOut(w http.ResponseWriter, r *http.Request) {
 	session := models.Session{}
 	cookies := r.Cookies()

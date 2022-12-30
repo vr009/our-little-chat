@@ -1,0 +1,75 @@
+definitions:
+  internal_delivery.Error:
+    properties:
+      message:
+        type: string
+    type: object
+  our-little-chatik_internal_gateway_internal_delivery.Error:
+    properties:
+      message:
+        type: string
+    type: object
+info:
+  contact: {}
+paths:
+  /api/gateway/logout:
+    delete:
+      consumes:
+      - application/json
+      responses:
+        "200":
+          description: OK
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/internal_delivery.Error'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_delivery.Error'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/internal_delivery.Error'
+      summary: Log out a user
+  /api/gateway/signin:
+    post:
+      consumes:
+      - application/json
+      responses:
+        "200":
+          description: OK
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/internal_delivery.Error'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_delivery.Error'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/internal_delivery.Error'
+      summary: Sign in a user
+  /api/gateway/signup:
+    post:
+      consumes:
+      - application/json
+      responses:
+        "200":
+          description: OK
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/internal_delivery.Error'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_delivery.Error'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/internal_delivery.Error'
+      summary: Sign up a user
+swagger: "2.0"
