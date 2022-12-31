@@ -11,8 +11,6 @@ import (
 	"github.com/jackc/pgx/v4/pgxpool"
 )
 
-//todo поправить имена в sql-запросах
-
 const (
 	InsertQuery = "INSERT INTO users(user_id, nickname, name, surname, password, last_auth, registered, avatar, contact_list) " +
 		"VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9);"
