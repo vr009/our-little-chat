@@ -77,7 +77,7 @@ func main() {
 
 	router.HandleFunc("/api/v1/user/auth", handler.CheckUserData).Methods("POST")
 
-	router.HandleFunc("api/v1/user/search", handler.FindUser).Methods("GET")
+	router.HandleFunc("/api/v1/user/search", handler.FindUser).Methods("GET")
 
 	srv := &http.Server{Handler: router, Addr: ":" + strconv.Itoa(appConfig.Port)}
 

@@ -202,6 +202,7 @@ func (udh *UserdataHandler) FindUser(w http.ResponseWriter, r *http.Request) {
 	if name == "" {
 		w.WriteHeader(http.StatusNotFound)
 	}
+	glog.Infof("Searching for %s", name)
 	users, errCode := udh.useCase.FindUser(name)
 	if errCode != models.OK {
 		handleErrorCode(errCode, w)

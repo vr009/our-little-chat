@@ -21,7 +21,7 @@ const (
 	GetQuery       = "SELECT user_id, nickname, name, surname, last_auth, registered, avatar, contact_list  FROM users WHERE user_id=$1;"
 	GetNameQuery   = "SELECT user_id, nickname, name, surname, password, last_auth, registered, avatar, contact_list  FROM users WHERE nickname=$1;"
 	ListQuery      = "SELECT * FROM users;"
-	FindUsersQuery = "SELECT user_id, nickname, name, surname FROM users WHERE name LIKE '$1%' LIMIT 5"
+	FindUsersQuery = "SELECT user_id, nickname, name, surname FROM users WHERE nickname LIKE LOWER($1) LIMIT 10"
 )
 
 type PersonRepo struct {
@@ -123,6 +123,7 @@ func (pr *PersonRepo) GetAllUsers() ([]models.UserData, models.StatusCode) {
 func (pr *PersonRepo) FindUser(name string) ([]models.UserData, models.StatusCode) {
 	rows, err := pr.conn.Query(context.Background(), FindUsersQuery, name)
 	if err != nil && err != sql.ErrNoRows {
+		glog.Errorf(err.Error())
 		return nil, models.InternalError
 	}
 	list := make([]models.UserData, 0)
@@ -131,5 +132,6 @@ func (pr *PersonRepo) FindUser(name string) ([]models.UserData, models.StatusCod
 		rows.Scan(&person.UserID, &person.Nickname, &person.Name, &person.Surname)
 		list = append(list, person)
 	}
+	glog.Infof("%v", list)
 	return list, models.OK
 }

@@ -90,7 +90,7 @@ func (handler *UserDataHandler) CheckUser(user *models.User) error {
 }
 
 func (handler *UserDataHandler) FindUser(name string) ([]models.User, error) {
-	req, err := http.NewRequest("GET", handler.cfg.GetPath("FindUser"), nil)
+	req, err := http.NewRequest("GET", handler.cfg.GetPath("FindUser")+"?name="+name, nil)
 	if err != nil {
 		return nil, err
 	}
