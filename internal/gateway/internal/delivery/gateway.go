@@ -122,6 +122,13 @@ func (h *GatewayHandler) LogOut(w http.ResponseWriter, r *http.Request) {
 func (h *GatewayHandler) Find(w http.ResponseWriter, r *http.Request) {
 	session := models.Session{}
 	cookie, err := r.Cookie("Token")
+	if err != nil {
+		w.WriteHeader(http.StatusForbidden)
+		errObj := &Error{Msg: "No cookie provided"}
+		body, _ := json.Marshal(&errObj)
+		w.Write(body)
+		return
+	}
 	session.Token = cookie.Value
 	if session.Token == "" {
 		errObj := &Error{Msg: "No cookie provided"}
