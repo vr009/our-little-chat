@@ -104,12 +104,21 @@ func (h *GatewayHandler) LogOut(w http.ResponseWriter, r *http.Request) {
 
 	err = h.uc.LogOut(session)
 	if err != nil {
+		errObj := &Error{Msg: "Failed to log out"}
+		body, _ := json.Marshal(&errObj)
 		w.WriteHeader(http.StatusInternalServerError)
+		w.Write(body)
 		return
 	}
 	w.WriteHeader(http.StatusOK)
 }
 
+// Find godoc
+// @Summary Find a user
+// @Success 200 {object} []models.User
+// @Failure 400 {object} Error
+// @Failure 500 {object} Error
+// @Router /api/gateway/search [get]
 func (h *GatewayHandler) Find(w http.ResponseWriter, r *http.Request) {
 	session := models.Session{}
 	cookie, err := r.Cookie("Token")
@@ -126,7 +135,10 @@ func (h *GatewayHandler) Find(w http.ResponseWriter, r *http.Request) {
 
 	users, err := h.uc.FindUser(name)
 	if err != nil {
+		errObj := &Error{Msg: "Failed to find a user"}
+		body, _ := json.Marshal(&errObj)
 		w.WriteHeader(http.StatusInternalServerError)
+		w.Write(body)
 		return
 	}
 	body, err := json.Marshal(&users)
