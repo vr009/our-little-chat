@@ -1,6 +1,6 @@
 FROM tarantool/tarantool:latest
 
-COPY core.lua /opt/tarantool
+COPY internal/message_queue/core.lua /opt/tarantool
 
 EXPOSE 3301
 

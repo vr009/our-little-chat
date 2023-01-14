@@ -2,6 +2,7 @@ package repo
 
 import (
 	"context"
+	"time"
 
 	models2 "our-little-chatik/internal/chat/models"
 	"our-little-chatik/internal/models"
@@ -64,7 +65,7 @@ func (repo *MongoRepo) GetChatMessages(chat models2.Chat, opts models.Opts) ([]m
 
 func (clr *MongoRepo) FetchChatList(user models.User) ([]models.ChatItem, error) {
 	col := clr.chatListDB.Collection("chat_list")
-	ctx := context.TODO()
+	ctx, _ := context.WithDeadline(context.Background(), time.Now().Add(time.Second*2))
 
 	findOpts := options.Find().
 		SetSort(bson.D{{"last_read", -1}})
@@ -77,6 +78,9 @@ func (clr *MongoRepo) FetchChatList(user models.User) ([]models.ChatItem, error)
 	}
 
 	cursor, err := col.Find(ctx, filter, findOpts)
+	if ctx.Err() == context.Canceled || ctx.Err() == context.DeadlineExceeded {
+		return []models.ChatItem{}, nil
+	}
 	if err != nil {
 		return nil, err
 	}

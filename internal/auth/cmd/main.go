@@ -47,7 +47,7 @@ func main() {
 	client := redis.NewClient(&dbInfo)
 
 	if client == nil {
-		panic("client doesnt work")
+		log.Fatal("client doesnt work")
 	}
 
 	fmt.Printf("Redis started at port %s \n", appConfig.DataBase.Port)

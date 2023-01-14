@@ -43,18 +43,18 @@ func main() {
 	appConfig := &AppConfig{}
 	err := viper.Unmarshal(&appConfig)
 	if err != nil {
-		panic(err)
+		log.Fatal(err)
 	}
 
 	connString, err := GetConnectionString()
 	if err != nil {
-		panic(err)
+		log.Fatal(err)
 	}
 
 	conn, err := pgxpool.Connect(context.Background(), connString)
 
 	if err != nil {
-		panic("ERROR: : " + err.Error())
+		log.Fatal("ERROR: : " + err.Error())
 	} else {
 		glog.Infof("Connected to postgres: %s", connString)
 	}

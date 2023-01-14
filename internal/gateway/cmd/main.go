@@ -32,7 +32,7 @@ func main() {
 	appConfig := &AppConfig{}
 	err := viper.Unmarshal(&appConfig)
 	if err != nil {
-		panic(err)
+		log.Fatal(err)
 	}
 
 	r := mux.NewRouter()
