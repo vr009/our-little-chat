@@ -1,5 +1,8 @@
 .SILENT:
-.PHONY: run migrate-Users migrate-Users-drop user-data-service-up
+.PHONY: run migrate-Users migrate-Users-drop user-data-service-up start
+
+start:
+	docker-compose build && docker-compose up -d && docker ps
 
 run:
 	docker-compose up --remove-orphans --build
