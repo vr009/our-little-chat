@@ -77,10 +77,10 @@ func main() {
 
 	r := mux.NewRouter()
 
-	r.HandleFunc("/api/v1/chat/conv", handler.GetChatMessages).Methods("GET")
-	r.HandleFunc("/api/v1/chat/list", handler.GetChatList).Methods("GET")
-	r.HandleFunc("/api/v1/chat/new", handler.PostNewChat).Methods("POST")
-	r.HandleFunc("/api/v1/chat", handler.PostChat).Methods("POST")
+	r.HandleFunc("/api/v1/conv", handler.GetChatMessages).Methods("GET")
+	r.HandleFunc("/api/v1/list", handler.GetChatList).Methods("GET")
+	r.HandleFunc("/api/v1/new", handler.PostNewChat).Methods("POST")
+	r.HandleFunc("/api/v1/active", handler.PostChat).Methods("POST")
 
 	srv := &http.Server{Handler: r, Addr: ":" + strconv.Itoa(appConfig.Port)}
 
