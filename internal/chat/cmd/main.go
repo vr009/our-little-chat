@@ -41,14 +41,15 @@ func main() {
 	configPath := os.Getenv("CHAT_CONFIG")
 	viper.AddConfigPath(configPath)
 	viper.SetConfigName("chat-config.yaml")
+	viper.SetConfigType("yaml")
 	if err := viper.ReadInConfig(); err != nil {
-		log.Fatal("Failed to read a config file")
+		log.Fatal("Failed to read a config file ", err)
 	}
 
 	appConfig := AppConfig{}
 	err := viper.Unmarshal(&appConfig)
 	if err != nil {
-		panic(err)
+		log.Fatal(err)
 	}
 
 	ttAddr := appConfig.TT.Host + ":" + strconv.Itoa(appConfig.TT.Port)
@@ -56,14 +57,14 @@ func main() {
 
 	ttClient, err := tarantool.Connect(ttAddr, ttOpts)
 	if err != nil {
-		panic("failed to connect to tarantool")
+		log.Fatal(err.Error())
 	}
 	defer ttClient.Close()
 
 	ctx := context.Background()
 	mongoClient, err := mongo.Connect(ctx, options.Client().ApplyURI(appConfig.DB.URI))
 	if err != nil {
-		panic(err)
+		log.Fatal(err)
 	}
 
 	db := mongoClient.Database("chat_db")
@@ -71,6 +72,7 @@ func main() {
 	repom := repo.NewMongoRepo(db, cldb)
 	repoTT := repo.NewTarantoolRepo(ttClient)
 	uc := usecase.NewChatUseCase(repom, repoTT)
+
 	handler := delivery.NewChatHandler(uc)
 
 	r := mux.NewRouter()

@@ -68,25 +68,28 @@ func (ah *AuthHandler) GetToken(w http.ResponseWriter, r *http.Request) {
 
 func (ah *AuthHandler) GetUser(w http.ResponseWriter, r *http.Request) {
 	token := r.Header.Get("Token")
-
+	glog.Warningf("hit %s", token)
 	if token == "" {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
-
+	glog.Warningf("ok %s", token)
 	session := models2.Session{
 		Token: token,
 	}
 
 	s, errCode := ah.useCase.GetUser(session)
 
+	user := models2.User{UserID: s.UserID}
+
 	if errCode != models.OK {
+		glog.Warningf("not ok %s", token)
 		checkErrorCode(errCode, w)
 		return
 	}
 
-	a, err := json.Marshal(&s)
-
+	body, err := json.Marshal(&user)
+	glog.Warningf("%v", s.UserID)
 	if err != nil {
 		glog.Errorf(err.Error())
 		w.WriteHeader(http.StatusInternalServerError)
@@ -94,12 +97,13 @@ func (ah *AuthHandler) GetUser(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusOK)
-	_, err = w.Write(a)
+	_, err = w.Write(body)
 
 	if err != nil {
 		glog.Errorf(err.Error())
 		return
 	}
+	glog.Warningf("ok ok %v", s)
 }
 
 func (ah *AuthHandler) DeleteSession(w http.ResponseWriter, r *http.Request) {

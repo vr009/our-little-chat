@@ -50,7 +50,7 @@ func (h *GatewayHandler) SignIn(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	http.SetCookie(w, &http.Cookie{Name: "Token", Value: session.Token})
+	http.SetCookie(w, &http.Cookie{Name: "Token", Value: session.Token, Path: "/"})
 	w.WriteHeader(http.StatusOK)
 }
 
@@ -79,7 +79,7 @@ func (h *GatewayHandler) SignUp(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	http.SetCookie(w, &http.Cookie{Name: "Token", Value: session.Token})
+	http.SetCookie(w, &http.Cookie{Name: "Token", Value: session.Token, Path: "/"})
 	w.WriteHeader(http.StatusOK)
 }
 
@@ -117,6 +117,7 @@ func (h *GatewayHandler) LogOut(w http.ResponseWriter, r *http.Request) {
 // @Summary Find a user
 // @Success 200 {object} []models.User
 // @Failure 400 {object} Error
+// @Failure 403 {object} Error
 // @Failure 500 {object} Error
 // @Router /api/gateway/search [get]
 func (h *GatewayHandler) Find(w http.ResponseWriter, r *http.Request) {

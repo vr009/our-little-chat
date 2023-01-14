@@ -51,7 +51,7 @@ services:
     build:
       context: .
       dockerfile: deployments/chat.Dockerfile
-    command: ./chat-history-service
+    command: ./chat-service
     environment:
       CHAT_CONFIG: configs/.
     ports:
@@ -123,3 +123,15 @@ services:
     restart: unless-stopped
     ports:
       - 5432:5432
+
+  nginx:
+    image: nginx:latest
+    ports:
+      - 80:80
+    volumes:
+      - ./configs/:/etc/nginx/conf.d/
+    depends_on:
+      - gateway
+      - user-data
+      - auth
+      - peer

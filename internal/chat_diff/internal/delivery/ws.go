@@ -4,12 +4,14 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"github.com/gorilla/websocket"
 	"log"
 	"net/http"
+	"time"
+
 	"our-little-chatik/internal/chat_diff/internal"
 	"our-little-chatik/internal/chat_diff/internal/models"
-	"time"
+
+	"github.com/gorilla/websocket"
 )
 
 var upgrader = websocket.Upgrader{

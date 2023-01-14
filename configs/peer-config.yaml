@@ -1,7 +1,7 @@
-port: 8080
+port: 8084
 
 db:
-  host: 127.0.0.1
+  host: message-core
   port: 3301
   username: test
   password: test

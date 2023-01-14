@@ -7,10 +7,14 @@ import (
 
 	"our-little-chatik/internal/chat/internal"
 	models2 "our-little-chatik/internal/chat/models"
+	"our-little-chatik/internal/common"
 	"our-little-chatik/internal/models"
 
+	"github.com/golang/glog"
 	"github.com/google/uuid"
 )
+
+var defaultAuthUrl string = "http://auth:8087/api/v1/auth/user"
 
 type ChatHandler struct {
 	usecase internal.ChatUseCase
@@ -32,6 +36,14 @@ func NewChatHandler(usecase internal.ChatUseCase) *ChatHandler {
 // @Failure 500
 // @Router /chat/conv [get]
 func (c *ChatHandler) GetChatMessages(w http.ResponseWriter, r *http.Request) {
+	_, err := common.AuthHook(r, defaultAuthUrl)
+	if err != nil {
+		w.WriteHeader(http.StatusForbidden)
+		errObj := models.Error{Msg: "Invalid token"}
+		body, _ := json.Marshal(errObj)
+		w.Write(body)
+		return
+	}
 	idStr := r.Header.Get("CHAT_ID")
 	offset, err := strconv.ParseInt(r.Header.Get("OFFSET"), 10, 64)
 	if err != nil {
@@ -82,23 +94,26 @@ func (c *ChatHandler) GetChatMessages(w http.ResponseWriter, r *http.Request) {
 // @Router /accounts/{id} [get]
 func (clh *ChatHandler) GetChatList(w http.ResponseWriter, r *http.Request) {
 	var err error
-	idStr := r.Header.Get("UserID")
-	user := models.User{}
-	user.UserID, err = uuid.Parse(idStr)
+	user, err := common.AuthHook(r, defaultAuthUrl)
 	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
+		w.WriteHeader(http.StatusForbidden)
+		errObj := models.Error{Msg: "Invalid token"}
+		body, _ := json.Marshal(errObj)
+		w.Write(body)
 		return
 	}
 
-	chats, err := clh.usecase.GetChatList(user)
+	chats, err := clh.usecase.GetChatList(*user)
 	if err != nil {
+		glog.Error("HERE1" + err.Error())
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
 	w.WriteHeader(http.StatusOK)
-	body, err := json.Marshal(chats)
+	body, err := json.Marshal(&chats)
 	if err != nil {
+		glog.Error("HERE2" + err.Error())
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
@@ -106,7 +121,14 @@ func (clh *ChatHandler) GetChatList(w http.ResponseWriter, r *http.Request) {
 }
 
 func (clh *ChatHandler) PostNewChat(w http.ResponseWriter, r *http.Request) {
-	var err error
+	_, err := common.AuthHook(r, defaultAuthUrl)
+	if err != nil {
+		w.WriteHeader(http.StatusForbidden)
+		errObj := models.Error{Msg: "Invalid token"}
+		body, _ := json.Marshal(errObj)
+		w.Write(body)
+		return
+	}
 	chat := models2.Chat{}
 
 	err = json.NewDecoder(r.Body).Decode(&chat)
@@ -131,7 +153,14 @@ func (clh *ChatHandler) PostNewChat(w http.ResponseWriter, r *http.Request) {
 }
 
 func (clh *ChatHandler) PostChat(w http.ResponseWriter, r *http.Request) {
-	var err error
+	_, err := common.AuthHook(r, defaultAuthUrl)
+	if err != nil {
+		w.WriteHeader(http.StatusForbidden)
+		errObj := models.Error{Msg: "Invalid token"}
+		body, _ := json.Marshal(errObj)
+		w.Write(body)
+		return
+	}
 	chat := models2.Chat{}
 
 	err = json.NewDecoder(r.Body).Decode(&chat)

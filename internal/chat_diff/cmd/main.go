@@ -34,6 +34,7 @@ func main() {
 	configPath := os.Getenv("CHAT_DIFF_CONFIG")
 	viper.AddConfigPath(configPath)
 	viper.SetConfigName("chat-diff-config.yaml")
+	viper.SetConfigType("yaml")
 	if err := viper.ReadInConfig(); err != nil {
 		log.Fatal("Failed to read a config file")
 	}
@@ -41,7 +42,7 @@ func main() {
 	appConfig := AppConfig{}
 	err := viper.Unmarshal(&appConfig)
 	if err != nil {
-		panic(err)
+		log.Fatal(err)
 	}
 
 	ttAddr := appConfig.DB.Host + ":" + strconv.Itoa(appConfig.DB.Port)
@@ -49,7 +50,7 @@ func main() {
 
 	conn, err := tarantool.Connect(ttAddr, ttOpts)
 	if err != nil {
-		panic("failed to connect to tarantool")
+		log.Fatal("failed to connect to tarantool")
 	}
 	defer conn.Close()
 	repo := repo2.NewTarantoolRepo(conn)
