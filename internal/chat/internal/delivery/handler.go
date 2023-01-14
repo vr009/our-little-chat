@@ -10,7 +10,6 @@ import (
 	"our-little-chatik/internal/common"
 	"our-little-chatik/internal/models"
 
-	"github.com/golang/glog"
 	"github.com/google/uuid"
 )
 
@@ -105,7 +104,6 @@ func (clh *ChatHandler) GetChatList(w http.ResponseWriter, r *http.Request) {
 
 	chats, err := clh.usecase.GetChatList(*user)
 	if err != nil {
-		glog.Error("HERE1" + err.Error())
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
@@ -113,7 +111,6 @@ func (clh *ChatHandler) GetChatList(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	body, err := json.Marshal(&chats)
 	if err != nil {
-		glog.Error("HERE2" + err.Error())
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
