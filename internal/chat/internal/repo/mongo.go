@@ -92,3 +92,8 @@ func (clr *MongoRepo) FetchChatList(user models.User) ([]models.ChatItem, error)
 	}
 	return chats, nil
 }
+
+func (clr *MongoRepo) InsertChat(chat models2.Chat) error {
+	_, err := clr.chatListDB.Collection("chat_list").InsertOne(context.Background(), &chat)
+	return err
+}

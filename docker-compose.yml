@@ -130,6 +130,7 @@ services:
       - 80:80
     volumes:
       - ./configs/:/etc/nginx/conf.d/
+      - ./temp/dist/:/var/www/html/
     depends_on:
       - gateway
       - user-data

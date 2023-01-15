@@ -3,9 +3,9 @@
 
 frontend:
 	mkdir temp && cd temp && git clone https://github.com/vr009/our_little_chatik_frontend.git --recursive &&\
-	cd our_little_chatik_frontend && yarn build
+	cd our_little_chatik_frontend && yarn build && cp -r dist ..
 
-start:
+start: frontend
 	docker-compose build && docker-compose up -d && docker ps
 
 run:

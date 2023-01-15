@@ -69,7 +69,7 @@ func main() {
 
 	router.HandleFunc("/api/v1/user/all", handler.GetAllUsers).Methods("GET")
 
-	router.HandleFunc("/api/v1/user", handler.GetUser).Methods("GET")
+	router.HandleFunc("/api/v1/user/me", handler.GetUser).Methods("GET")
 
 	router.HandleFunc("/api/v1/user", handler.UpdateUser).Methods("POST")
 
