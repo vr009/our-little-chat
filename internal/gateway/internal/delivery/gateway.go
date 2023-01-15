@@ -80,7 +80,7 @@ func (h *GatewayHandler) SignUp(w http.ResponseWriter, r *http.Request) {
 	}
 
 	http.SetCookie(w, &http.Cookie{Name: "Token", Value: session.Token, Path: "/"})
-	w.WriteHeader(http.StatusOK)
+	w.WriteHeader(http.StatusCreated)
 }
 
 // LogOut godoc

@@ -10,6 +10,7 @@ import (
 	repo2 "our-little-chatik/internal/peer/internal/repo"
 	usecase2 "our-little-chatik/internal/peer/internal/usecase"
 
+	"github.com/golang/glog"
 	"github.com/spf13/viper"
 	"github.com/tarantool/go-tarantool"
 )
@@ -35,6 +36,8 @@ func main() {
 		log.Fatal("Failed to read a config file")
 	}
 
+	glog.V(2)
+
 	appConfig := AppConfig{}
 	err := viper.Unmarshal(&appConfig)
 	if err != nil {
@@ -59,7 +62,7 @@ func main() {
 		peerServer.WSServe(w, r)
 	})
 
-	log.Printf("service started at :%d", appConfig.Port)
+	glog.Infof("service started at :%d", appConfig.Port)
 
 	err = http.ListenAndServe(":"+strconv.Itoa(appConfig.Port), nil)
 	if err != nil {
