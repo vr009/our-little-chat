@@ -125,8 +125,8 @@
       "delete": {
         "summary": "Log out a user",
         "responses": {
-          "200": {
-            "description": "OK"
+          "301": {
+            "description": "Moved Permanently"
           },
           "400": {
             "description": "Bad Request",
