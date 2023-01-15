@@ -6,7 +6,7 @@
   },
   "servers": [
     {
-      "url": "https://virtserver.swaggerhub.com/vr/public/1.0.0",
+      "url": "https://virtserver.swaggerhub.com/SLAVARIANOV/public/1.0.0",
       "description": "SwaggerHub API Auto Mocking"
     }
   ],
@@ -72,8 +72,7 @@
     },
     "/auth/signin": {
       "post": {
-        "summary": "Server heartbeat operation",
-        "description": "This operation shows how to override the global security defined above, as we want to open it up for all users.",
+        "summary": "Sign in a user",
         "requestBody": {
           "content": {
             "application/json": {
@@ -124,8 +123,7 @@
     },
     "/auth/logout": {
       "delete": {
-        "summary": "Server heartbeat operation",
-        "description": "This operation shows how to override the global security defined above, as we want to open it up for all users.",
+        "summary": "Log out a user",
         "responses": {
           "200": {
             "description": "OK"
@@ -164,16 +162,16 @@
         "security": []
       }
     },
-    "/search/{name}": {
+    "/search": {
       "get": {
         "summary": "Find a user using keywords",
         "parameters": [
           {
             "name": "name",
-            "in": "path",
+            "in": "query",
             "required": true,
-            "style": "simple",
-            "explode": false,
+            "style": "form",
+            "explode": true,
             "schema": {
               "minimum": 1,
               "type": "string"
@@ -186,7 +184,10 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/User"
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/User"
+                  }
                 }
               }
             }

@@ -140,12 +140,12 @@ func (clh *ChatHandler) PostNewChat(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.WriteHeader(http.StatusOK)
 	body, err := json.Marshal(createdChat)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
+	w.WriteHeader(http.StatusCreated)
 	w.Write(body)
 }
 
