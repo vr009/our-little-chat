@@ -12,9 +12,12 @@ import (
 	"our-little-chatik/internal/auth/internal/usecase"
 
 	"github.com/go-redis/redis/v9"
+	"github.com/golang/glog"
 	"github.com/gorilla/mux"
 	"github.com/spf13/viper"
 )
+
+var defaultLevelLog glog.Level = 2
 
 func main() {
 	configPath := os.Getenv("AUTH_CONFIG")
@@ -30,6 +33,8 @@ func main() {
 			fmt.Println("Config file was found but another error was produced")
 		}
 	}
+
+	glog.V(defaultLevelLog)
 
 	appConfig := models.AppConfig{}
 
@@ -50,7 +55,7 @@ func main() {
 		log.Fatal("client doesnt work")
 	}
 
-	fmt.Printf("Redis started at port %s \n", appConfig.DataBase.Port)
+	glog.Infof("Redis started at port %s \n", appConfig.DataBase.Port)
 
 	db := repo.NewDataBase(client, appConfig.DataBase.TtlHours)
 	useCase := usecase.NewAuthUseCase(db)
@@ -80,7 +85,7 @@ func main() {
 
 	srv := &http.Server{Handler: router, Addr: appConfig.Address}
 
-	fmt.Printf("Main.go started at port %s \n", srv.Addr)
+	glog.Infof("Main.go started at port %s \n", srv.Addr)
 
 	log.Fatal(srv.ListenAndServe())
 }
