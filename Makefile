@@ -1,6 +1,10 @@
 .SILENT:
 .PHONY: run migrate-Users migrate-Users-drop user-data-service-up start
 
+frontend:
+	mkdir temp && cd temp && git clone https://github.com/vr009/our_little_chatik_frontend.git --recursive &&\
+	cd our_little_chatik_frontend && yarn build
+
 start:
 	docker-compose build && docker-compose up -d && docker ps
 

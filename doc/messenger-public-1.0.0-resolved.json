@@ -34,8 +34,8 @@
           "required": true
         },
         "responses": {
-          "200": {
-            "description": "OK"
+          "301": {
+            "description": "Moved Permanently"
           },
           "400": {
             "description": "Bad Request",
@@ -84,8 +84,8 @@
           "required": true
         },
         "responses": {
-          "200": {
-            "description": "OK"
+          "301": {
+            "description": "Moved Permanently"
           },
           "400": {
             "description": "Bad Request",
