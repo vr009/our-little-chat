@@ -8,6 +8,7 @@ import (
 type ChatRepo interface {
 	GetChatMessages(chat models2.Chat, opts models.Opts) ([]models.Message, error)
 	FetchChatList(user models.User) ([]models.ChatItem, error)
+	InsertChat(models2.Chat) error
 }
 
 type QueueRepo interface {

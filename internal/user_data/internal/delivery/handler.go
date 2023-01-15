@@ -4,11 +4,12 @@ import (
 	"encoding/json"
 	"net/http"
 
+	"our-little-chatik/internal/common"
+	models2 "our-little-chatik/internal/models"
 	"our-little-chatik/internal/user_data/internal"
 	"our-little-chatik/internal/user_data/internal/models"
 
 	"github.com/golang/glog"
-	"github.com/google/uuid"
 )
 
 type UserdataHandler struct {
@@ -76,15 +77,17 @@ func (udh *UserdataHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (udh *UserdataHandler) GetUser(w http.ResponseWriter, r *http.Request) {
-	userID := r.Header.Get("UserNickName")
+var defaultAuthUrl = "http://auth:8087/api/v1/auth/user"
 
-	if userID == "" {
-		w.WriteHeader(http.StatusBadRequest)
+func (udh *UserdataHandler) GetUser(w http.ResponseWriter, r *http.Request) {
+	user, err := common.AuthHook(r, defaultAuthUrl)
+	if err != nil {
+		w.WriteHeader(http.StatusForbidden)
+		errObj := models2.Error{Msg: "Invalid token"}
+		body, _ := json.Marshal(errObj)
+		w.Write(body)
 		return
 	}
-
-	uuidFormString, err := uuid.Parse(userID)
 
 	if err != nil {
 		glog.Errorf(err.Error())
@@ -93,7 +96,7 @@ func (udh *UserdataHandler) GetUser(w http.ResponseWriter, r *http.Request) {
 	}
 
 	person := models.UserData{}
-	person.UserID = uuidFormString
+	person.UserID = user.UserID
 
 	s, errCode := udh.useCase.GetUser(person)
 

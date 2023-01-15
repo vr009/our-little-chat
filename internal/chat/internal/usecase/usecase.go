@@ -7,6 +7,7 @@ import (
 	models2 "our-little-chatik/internal/chat/models"
 	"our-little-chatik/internal/models"
 
+	"github.com/golang/glog"
 	"github.com/google/uuid"
 )
 
@@ -40,6 +41,10 @@ func (ch *ChatUseCase) GetChatList(user models.User) ([]models.ChatItem, error) 
 
 func (ch *ChatUseCase) CreateNewChat(chat models2.Chat) (models2.Chat, error) {
 	chat.ChatID = uuid.New()
+	err := ch.repo.InsertChat(chat)
+	if err != nil {
+		glog.Error(err.Error())
+	}
 	return ch.queue.InsertChat(chat)
 }
 
