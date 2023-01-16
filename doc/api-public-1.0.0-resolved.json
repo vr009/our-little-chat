@@ -8,14 +8,10 @@
     {
       "url": "https://virtserver.swaggerhub.com/SLAVARIANOV/public/1.0.0",
       "description": "SwaggerHub API Auto Mocking"
-    }
-  ],
-  "security": [
+    },
     {
-      "application": [
-        "read",
-        "write"
-      ]
+      "url": "http://localhost",
+      "description": "local one"
     }
   ],
   "paths": {
@@ -34,8 +30,8 @@
           "required": true
         },
         "responses": {
-          "301": {
-            "description": "Moved Permanently"
+          "200": {
+            "description": "OK"
           },
           "400": {
             "description": "Bad Request",
@@ -84,8 +80,8 @@
           "required": true
         },
         "responses": {
-          "301": {
-            "description": "Moved Permanently"
+          "200": {
+            "description": "OK"
           },
           "400": {
             "description": "Bad Request",
@@ -125,8 +121,8 @@
       "delete": {
         "summary": "Log out a user",
         "responses": {
-          "301": {
-            "description": "Moved Permanently"
+          "200": {
+            "description": "OK"
           },
           "400": {
             "description": "Bad Request",
@@ -159,7 +155,73 @@
             }
           }
         },
-        "security": []
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      }
+    },
+    "/user/me": {
+      "get": {
+        "summary": "Get info about myself",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/User"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "InternalServerError",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
       }
     },
     "/search": {
@@ -233,66 +295,11 @@
             }
           }
         },
-        "security": []
-      }
-    },
-    "/user/me": {
-      "get": {
-        "summary": "Get info about myself",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                    "$ref": "#/components/schemas/User"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Forbidden",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Not Found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "InternalServerError",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
+        "security": [
+          {
+            "cookieAuth": []
           }
-        },
-        "security": []
+        ]
       }
     },
     "/chat/conv": {
@@ -385,7 +392,11 @@
             }
           }
         },
-        "security": []
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
       }
     },
     "/chat/list": {
@@ -446,7 +457,11 @@
             }
           }
         },
-        "security": []
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
       }
     },
     "/chat/new": {
@@ -507,7 +522,11 @@
             }
           }
         },
-        "security": []
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
       }
     },
     "/chat/active": {
@@ -568,7 +587,11 @@
             }
           }
         },
-        "security": []
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
       }
     }
   },
@@ -682,17 +705,10 @@
       }
     },
     "securitySchemes": {
-      "application": {
-        "type": "oauth2",
-        "flows": {
-          "clientCredentials": {
-            "tokenUrl": "http://example.com/oauth/token",
-            "scopes": {
-              "write": "allows modifying resources",
-              "read": "allows reading resources"
-            }
-          }
-        }
+      "cookieAuth": {
+        "type": "apiKey",
+        "name": "Token",
+        "in": "cookie"
       }
     }
   }
