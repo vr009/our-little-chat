@@ -73,7 +73,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/UserAuth"
+                "$ref": "#/components/schemas/UserAuthLogin"
               }
             }
           },
@@ -638,6 +638,17 @@
             "type": "string"
           },
           "surname": {
+            "type": "string"
+          }
+        }
+      },
+      "UserAuthLogin": {
+        "type": "object",
+        "properties": {
+          "nickname": {
+            "type": "string"
+          },
+          "password": {
             "type": "string"
           }
         }
