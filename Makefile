@@ -1,7 +1,8 @@
 .SILENT:
 .PHONY: run migrate-Users migrate-Users-drop user-data-service-up start
+INDEX_PATH ?= temp/dist/index.html
 
-frontend:
+${INDEX_PATH} frontend:
 	mkdir temp && cd temp && git clone https://github.com/vr009/our_little_chatik_frontend.git --recursive &&\
 	cd our_little_chatik_frontend && npm install vite && npm run build && cp -r dist ..
 
