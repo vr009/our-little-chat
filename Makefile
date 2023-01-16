@@ -5,7 +5,7 @@ BRANCH := main
 
 ${INDEX_PATH} frontend:
 	mkdir temp && cd temp && git clone https://github.com/vr009/our_little_chatik_frontend.git --recursive &&\
-	cd our_little_chatik_frontend && git checkout ${BRANCH} && npm install vite && npm run build && cp -r dist ..
+	cd our_little_chatik_frontend && git checkout ${BRANCH} && yarn install && yarn build && cp -r dist ..
 
 start: frontend
 	docker-compose build && docker-compose up -d && docker ps
