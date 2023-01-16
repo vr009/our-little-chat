@@ -51,8 +51,7 @@ func (h *GatewayHandler) SignIn(w http.ResponseWriter, r *http.Request) {
 	}
 
 	http.SetCookie(w, &http.Cookie{Name: "Token", Value: session.Token, Path: "/"})
-	w.Header().Set("Location", "/")
-	w.WriteHeader(http.StatusMovedPermanently)
+	http.Redirect(w, r, "/", http.StatusSeeOther)
 }
 
 // SignUp godoc
@@ -81,8 +80,7 @@ func (h *GatewayHandler) SignUp(w http.ResponseWriter, r *http.Request) {
 	}
 
 	http.SetCookie(w, &http.Cookie{Name: "Token", Value: session.Token, Path: "/"})
-	w.Header().Set("Location", "/")
-	w.WriteHeader(http.StatusMovedPermanently)
+	http.Redirect(w, r, "/", http.StatusSeeOther)
 }
 
 // LogOut godoc
@@ -112,8 +110,7 @@ func (h *GatewayHandler) LogOut(w http.ResponseWriter, r *http.Request) {
 		w.Write(body)
 		return
 	}
-	w.Header().Set("Location", "/")
-	w.WriteHeader(http.StatusMovedPermanently)
+	http.Redirect(w, r, "/", http.StatusSeeOther)
 }
 
 // Find godoc
