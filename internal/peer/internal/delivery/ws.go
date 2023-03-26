@@ -8,10 +8,10 @@ import (
 	"net/http"
 	"time"
 
-	"our-little-chatik/internal/common"
 	models2 "our-little-chatik/internal/models"
 	"our-little-chatik/internal/peer/internal"
 	"our-little-chatik/internal/peer/internal/models"
+	"our-little-chatik/internal/pkg"
 
 	"github.com/golang/glog"
 	"github.com/gorilla/websocket"
@@ -173,7 +173,7 @@ func (ws *WebSocketClient) read() {
 var defaultAuthUrl string = "http://auth:8087/api/v1/auth/user"
 
 func (server *PeerServer) WSServe(w http.ResponseWriter, r *http.Request) {
-	user, err := common.AuthHook(r, defaultAuthUrl)
+	user, err := pkg.AuthHook(r, defaultAuthUrl)
 	if err != nil {
 		w.WriteHeader(http.StatusForbidden)
 		errObj := models2.Error{Msg: "Invalid token"}

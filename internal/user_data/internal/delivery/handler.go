@@ -4,8 +4,8 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"our-little-chatik/internal/common"
 	models2 "our-little-chatik/internal/models"
+	"our-little-chatik/internal/pkg"
 	"our-little-chatik/internal/user_data/internal"
 	"our-little-chatik/internal/user_data/internal/models"
 
@@ -80,7 +80,7 @@ func (udh *UserdataHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
 var defaultAuthUrl = "http://auth:8087/api/v1/auth/user"
 
 func (udh *UserdataHandler) GetUser(w http.ResponseWriter, r *http.Request) {
-	user, err := common.AuthHook(r, defaultAuthUrl)
+	user, err := pkg.AuthHook(r, defaultAuthUrl)
 	if err != nil {
 		w.WriteHeader(http.StatusForbidden)
 		errObj := models2.Error{Msg: "Invalid token"}

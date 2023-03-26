@@ -8,6 +8,8 @@ COPY ./ ./
 
 EXPOSE 8081
 
+RUN apt update && apt install libssl-dev -y
+
 RUN go mod download
 
 RUN go mod tidy

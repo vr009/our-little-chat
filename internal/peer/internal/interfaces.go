@@ -20,8 +20,8 @@ type MessageManager interface {
 	// EnqueueChatIfNotExists enqueues a passed Chat to an internal queue of chats.
 	// If the chat already exists it finds it and return.
 	EnqueueChatIfNotExists(chat *models.Chat) *models.Chat
-	// DequeueChat dequeues chat from internal common queue
+	// DequeueChat dequeues chat from internal pkg queue
 	DequeueChat(chat *models.Chat)
-	// EnqueueChat enqueues chat in internal common queue
+	// EnqueueChat enqueues chat in internal pkg queue
 	EnqueueChat(chat *models.Chat)
 }

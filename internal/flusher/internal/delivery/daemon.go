@@ -3,8 +3,9 @@ package delivery
 import (
 	"context"
 	"log"
-	"our-little-chatik/internal/flusher/internal"
 	"time"
+
+	"our-little-chatik/internal/flusher/internal"
 )
 
 type FlusherD struct {
@@ -27,14 +28,6 @@ func (d *FlusherD) Work(ctx context.Context, period int) {
 			}
 			err = d.persistantRepo.PersistAllMessages(messages)
 			//log.Println("persisted", messages)
-			if err != nil {
-				log.Println(err)
-			}
-			chats, err := d.queueRepo.FetchAllChats()
-			if err != nil {
-				log.Println(err)
-			}
-			err = d.persistantRepo.PersistAllChats(chats)
 			if err != nil {
 				log.Println(err)
 			}

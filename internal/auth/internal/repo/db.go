@@ -10,9 +10,9 @@ import (
 	"our-little-chatik/internal/auth/internal/models"
 	models2 "our-little-chatik/internal/models"
 
-	"github.com/go-redis/redis/v9"
 	"github.com/golang/glog"
 	"github.com/google/uuid"
+	"github.com/redis/go-redis/v9"
 )
 
 type DataBase struct {

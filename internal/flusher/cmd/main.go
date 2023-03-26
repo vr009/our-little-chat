@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
 	"os"
@@ -10,13 +11,12 @@ import (
 	"our-little-chatik/internal/flusher/internal/delivery"
 	"our-little-chatik/internal/flusher/internal/repo"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/spf13/viper"
 	"github.com/tarantool/go-tarantool"
-	"go.mongodb.org/mongo-driver/mongo"
-	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
-type MongoConfig struct {
+type PostgresConfig struct {
 	URI      string
 	Username string
 	Password string
@@ -31,12 +31,19 @@ type TTConfig struct {
 
 type AppConfig struct {
 	Port   int
-	DB     MongoConfig
+	DB     PostgresConfig
 	TT     TTConfig
 	Period int
 }
 
-// TODO 2 different mongo dbases
+func GetConnectionString() (string, error) {
+	key, ok := os.LookupEnv("DATABASE_URL")
+	if !ok {
+		return "", errors.New("connection string not found")
+	}
+	return key, nil
+}
+
 func main() {
 	configPath := os.Getenv("FLUSHER_CONFIG")
 	viper.AddConfigPath(configPath)
@@ -62,27 +69,16 @@ func main() {
 	defer ttClient.Close()
 
 	ctx := context.Background()
-	mongoClient, err := mongo.Connect(ctx, options.Client().ApplyURI(appConfig.DB.URI))
+	connStr, err := GetConnectionString()
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	defer func() {
-		if err = mongoClient.Disconnect(ctx); err != nil {
-			log.Fatal(err)
-		}
-	}()
-
-	dbMsgs := mongoClient.Database("chat_db")
-	dbChatList := mongoClient.Database("chat_list_db")
-
-	msgsCol := dbMsgs.Collection("chat")
-	chatListCol := dbChatList.Collection("chat_list")
-
-	//msgsCol.Indexes().CreateOne()
-	//chatListCol.Indexes().CreateOne()
-
-	m := repo.NewMongoRepo(msgsCol, chatListCol)
+	conn, err := pgx.Connect(ctx, connStr)
+	if err != nil {
+		panic(err)
+	}
+	m := repo.NewPostgresRepo(conn)
 	t := repo.NewTarantoolRepo(ttClient)
 
 	daemon := delivery.NewFlusherD(t, m)
