@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"log"
 	"net/http"
 	"os"
@@ -13,10 +14,9 @@ import (
 
 	"github.com/golang/glog"
 	"github.com/gorilla/mux"
+	"github.com/jackc/pgx/v5"
 	"github.com/spf13/viper"
 	"github.com/tarantool/go-tarantool"
-	"go.mongodb.org/mongo-driver/mongo"
-	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 type MongoConfig struct {
@@ -36,6 +36,14 @@ type TTConfig struct {
 	Port     int
 	Username string
 	Password string
+}
+
+func GetConnectionString() (string, error) {
+	key, ok := os.LookupEnv("DATABASE_URL")
+	if !ok {
+		return "", errors.New("connection string not found")
+	}
+	return key, nil
 }
 
 func main() {
@@ -65,24 +73,31 @@ func main() {
 	defer ttClient.Close()
 
 	ctx := context.Background()
-	mongoClient, err := mongo.Connect(ctx, options.Client().ApplyURI(appConfig.DB.URI))
+	connStr, err := GetConnectionString()
 	if err != nil {
-		log.Fatal(err)
+		panic(err)
 	}
 
-	db := mongoClient.Database("chat_db")
-	cldb := mongoClient.Database("chat_list_db")
-	repom := repo.NewMongoRepo(db, cldb)
+	conn, err := pgx.Connect(ctx, connStr)
+	if err != nil {
+		panic(err)
+	}
+
+	repop := repo.NewPostgresRepo(conn)
 	repoTT := repo.NewTarantoolRepo(ttClient)
-	uc := usecase.NewChatUseCase(repom, repoTT)
+	uc := usecase.NewChatUseCase(repop, repoTT)
 
 	handler := delivery.NewChatHandler(uc)
 
 	r := mux.NewRouter()
 
+	// Getting chat messages
 	r.HandleFunc("/api/v1/conv", handler.GetChatMessages).Methods("GET")
+	// Getting the list of users chats
 	r.HandleFunc("/api/v1/list", handler.GetChatList).Methods("GET")
+	// Creating a new chat
 	r.HandleFunc("/api/v1/new", handler.PostNewChat).Methods("POST")
+	// Activating a chat
 	r.HandleFunc("/api/v1/active", handler.PostChat).Methods("POST")
 
 	srv := &http.Server{Handler: r, Addr: ":" + strconv.Itoa(appConfig.Port)}

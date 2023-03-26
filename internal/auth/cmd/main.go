@@ -11,9 +11,9 @@ import (
 	"our-little-chatik/internal/auth/internal/repo"
 	"our-little-chatik/internal/auth/internal/usecase"
 
-	"github.com/go-redis/redis/v9"
 	"github.com/golang/glog"
 	"github.com/gorilla/mux"
+	"github.com/redis/go-redis/v9"
 	"github.com/spf13/viper"
 )
 

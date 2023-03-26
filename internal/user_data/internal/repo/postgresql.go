@@ -8,7 +8,7 @@ import (
 	"our-little-chatik/internal/user_data/internal/models"
 
 	"github.com/golang/glog"
-	"github.com/jackc/pgx/v4/pgxpool"
+	"github.com/jackc/pgx/v5"
 )
 
 const (
@@ -23,10 +23,10 @@ const (
 )
 
 type PersonRepo struct {
-	conn *pgxpool.Pool
+	conn *pgx.Conn
 }
 
-func NewPersonRepo(conn *pgxpool.Pool) *PersonRepo {
+func NewPersonRepo(conn *pgx.Conn) *PersonRepo {
 	return &PersonRepo{
 		conn: conn,
 	}

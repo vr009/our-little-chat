@@ -22,17 +22,17 @@ services:
     ports:
       - 3301:3301
 
-  chat-diff-service:
-    build:
-      context: .
-      dockerfile: deployments/chat_diff.Dockerfile
-    environment:
-      CHAT_DIFF_CONFIG: configs/.
-    command: ./chat-diff-service
-    ports:
-      - 8081:8081
-    depends_on:
-      - message-core
+#  chat-diff-service:
+#    build:
+#      context: .
+#      dockerfile: deployments/chat_diff.Dockerfile
+#    environment:
+#      CHAT_DIFF_CONFIG: configs/.
+#    command: ./chat-diff-service
+#    ports:
+#      - 8081:8081
+#    depends_on:
+#      - message-core
 
   flusher-service:
     build:
@@ -41,11 +41,12 @@ services:
     command: ./flusher-service
     environment:
       FLUSHER_CONFIG: configs/.
+      DATABASE_URL: "user=service password=test host=db-chat port=5432 dbname=chats"
     ports:
       - 8082:8082
     depends_on:
       - message-core
-      - mongo-all
+      - db-chat
 
   chat-service:
     build:
@@ -54,11 +55,13 @@ services:
     command: ./chat-service
     environment:
       CHAT_CONFIG: configs/.
+      DATABASE_URL: "user=service password=test host=db-chat port=5432 dbname=chats"
+      DATABASE_ALTERNATIVE_URL: "postgresql://db-chat:5432/chats?user=service&password=test"
     ports:
       - 8083:8083
     depends_on:
       - message-core
-      - mongo-all
+      - db-chat
 
   peer:
     build:
@@ -71,11 +74,6 @@ services:
       - 8084:8084
     depends_on:
       - message-core
-
-  mongo-all:
-    image: mongo
-    ports:
-      - 27017:27017
 
   auth:
     build:
@@ -105,7 +103,7 @@ services:
       dockerfile: ./deployments/user_data.Dockerfile
     environment:
       USER_DATA_CONFIG: configs/.
-      DATABASE_URL: "user=service password=test host=db-user-data port=5432 dbname=persons"
+      DATABASE_URL: "user=service password=test host=db-user-data port=5432 dbname=users"
     command: ./user-data-service
     ports:
       - 8086:8086
@@ -115,7 +113,7 @@ services:
   db-user-data:
     image: postgres:13.3
     environment:
-      POSTGRES_DB: persons
+      POSTGRES_DB: users
       POSTGRES_USER: service
       POSTGRES_PASSWORD: test
     volumes:
@@ -123,6 +121,18 @@ services:
     restart: unless-stopped
     ports:
       - 5432:5432
+
+  db-chat:
+    image: postgres:13.3
+    environment:
+      POSTGRES_DB: "chats"
+      POSTGRES_USER: "service"
+      POSTGRES_PASSWORD: "test"
+    volumes:
+      - ./internal/chat/db/migrations:/docker-entrypoint-initdb.d
+    restart: unless-stopped
+    ports:
+      - 5433:5432
 
   nginx:
     image: nginx:latest

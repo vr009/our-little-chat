@@ -15,7 +15,7 @@ import (
 
 	"github.com/golang/glog"
 	"github.com/gorilla/mux"
-	"github.com/jackc/pgx/v4/pgxpool"
+	"github.com/jackc/pgx/v5"
 	"github.com/spf13/viper"
 )
 
@@ -51,7 +51,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	conn, err := pgxpool.Connect(context.Background(), connString)
+	conn, err := pgx.Connect(context.Background(), connString)
 
 	if err != nil {
 		log.Fatal("ERROR: : " + err.Error())

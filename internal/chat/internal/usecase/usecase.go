@@ -1,8 +1,6 @@
 package usecase
 
 import (
-	"fmt"
-
 	"our-little-chatik/internal/chat/internal"
 	models2 "our-little-chatik/internal/chat/models"
 	"our-little-chatik/internal/models"
@@ -23,13 +21,11 @@ func NewChatUseCase(rep internal.ChatRepo, queue internal.QueueRepo) *ChatUseCas
 func (ch *ChatUseCase) FetchChatMessages(chat models2.Chat, opts models.Opts) ([]models.Message, error) {
 	msgs, err := ch.queue.GetFreshMessagesFromChat(chat)
 	if err != nil {
-		fmt.Println(err)
-		//return nil, err
+		glog.Error(err)
 	}
 	oldMsgs, err := ch.repo.GetChatMessages(chat, opts)
 	if err != nil {
-		fmt.Println(err)
-		return nil, err
+		glog.Error(err)
 	}
 	msgs = append(msgs, oldMsgs...)
 	return msgs, nil
