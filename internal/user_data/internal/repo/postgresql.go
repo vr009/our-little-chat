@@ -3,7 +3,6 @@ package repo
 import (
 	"context"
 	"database/sql"
-	"fmt"
 
 	"our-little-chatik/internal/user_data/internal/models"
 
@@ -86,9 +85,10 @@ func (pr *PersonRepo) UpdateUser(personNew models.UserData) (models.UserData, mo
 
 func (pr *PersonRepo) GetUser(person models.UserData) (models.UserData, models.StatusCode) {
 	rows := pr.conn.QueryRow(context.Background(), GetQuery, person.UserID)
+	glog.Warningf("SEARCHING FOR %v", person.UserID)
 	err := rows.Scan(&person.UserID, &person.Nickname, &person.Name, &person.Surname, &person.LastAuth, &person.Registered, &person.Avatar, &person.ContactList)
 	if err != nil {
-		fmt.Println(err)
+		glog.Errorf("user %v not found: %v", person, err)
 		return models.UserData{}, models.NotFound
 	}
 	return person, models.OK
@@ -98,7 +98,7 @@ func (pr *PersonRepo) GetUserForItsName(person models.UserData) (models.UserData
 	rows := pr.conn.QueryRow(context.Background(), GetNameQuery, person.Nickname)
 	err := rows.Scan(&person.UserID, &person.Nickname, &person.Name, &person.Surname, &person.Password)
 	if err != nil {
-		fmt.Println(err)
+		glog.Errorf("user %v not found: %v", person, err)
 		return models.UserData{}, models.NotFound
 	}
 	return person, models.OK
