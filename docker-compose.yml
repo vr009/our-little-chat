@@ -48,7 +48,7 @@ services:
       - message-core
       - db-chat
 
-  chat-service:
+  chat:
     build:
       context: .
       dockerfile: deployments/chat.Dockerfile

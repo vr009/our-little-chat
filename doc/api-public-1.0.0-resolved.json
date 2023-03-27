@@ -224,7 +224,7 @@
         ]
       }
     },
-    "/search": {
+    "/user/search": {
       "get": {
         "summary": "Find a user using keywords",
         "parameters": [
