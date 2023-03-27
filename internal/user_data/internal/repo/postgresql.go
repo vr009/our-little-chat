@@ -17,7 +17,7 @@ const (
 	DeleteQuery    = "DELETE FROM users WHERE user_id=$1;"
 	UpdateQuery    = "UPDATE users SET nickname=$1, name=$2, surname=$3, last_auth=$4, registered=$5, avatar=$6, contact_list=$7 WHERE user_id=$8;"
 	GetQuery       = "SELECT user_id, nickname, name, surname, last_auth, registered, avatar, contact_list  FROM users WHERE user_id=$1;"
-	GetNameQuery   = "SELECT user_id, nickname, name, surname, password, last_auth, registered, avatar, contact_list  FROM users WHERE nickname=$1;"
+	GetNameQuery   = "SELECT user_id, nickname, name, surname, password  FROM users WHERE nickname=$1;"
 	ListQuery      = "SELECT * FROM users;"
 	FindUsersQuery = "SELECT user_id, nickname, name, surname FROM users WHERE nickname LIKE LOWER($1) LIMIT 10"
 )
@@ -96,7 +96,7 @@ func (pr *PersonRepo) GetUser(person models.UserData) (models.UserData, models.S
 
 func (pr *PersonRepo) GetUserForItsName(person models.UserData) (models.UserData, models.StatusCode) {
 	rows := pr.conn.QueryRow(context.Background(), GetNameQuery, person.Nickname)
-	err := rows.Scan(&person.UserID, &person.Nickname, &person.Name, &person.Surname, &person.Password, &person.LastAuth, &person.Registered, &person.Avatar, &person.ContactList)
+	err := rows.Scan(&person.UserID, &person.Nickname, &person.Name, &person.Surname, &person.Password)
 	if err != nil {
 		fmt.Println(err)
 		return models.UserData{}, models.NotFound

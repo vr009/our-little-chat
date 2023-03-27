@@ -40,7 +40,7 @@ func (handler *UserDataHandler) AddUser(user *models.User) (*models.User, error)
 		return nil, err
 	}
 	if resp.StatusCode != 200 {
-		return nil, fmt.Errorf("failed to add a user")
+		return nil, fmt.Errorf("failed to add a user: status %d", resp.StatusCode)
 	}
 
 	newUser := &models.User{}
@@ -84,7 +84,7 @@ func (handler *UserDataHandler) CheckUser(user *models.User) error {
 		return err
 	}
 	if resp.StatusCode != 200 {
-		return fmt.Errorf("failed to add a user")
+		return fmt.Errorf("failed to check a user: status %d", resp.StatusCode)
 	}
 	return nil
 }
