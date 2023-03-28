@@ -1,8 +1,9 @@
 package repo
 
 import (
-	"github.com/tarantool/go-tarantool"
 	"our-little-chatik/internal/models"
+
+	"github.com/tarantool/go-tarantool"
 )
 
 type TarantoolRepo struct {
@@ -23,10 +24,10 @@ func (tt *TarantoolRepo) FetchAllMessages() ([]models.Message, error) {
 	return msgs, nil
 }
 
-func (tt *TarantoolRepo) FetchAllChats() ([]models.Chat, error) {
+func (tt *TarantoolRepo) FetchChatListUpdate() ([]models.ChatItem, error) {
 	conn := tt.conn
-	chats := []models.Chat{}
-	err := conn.CallTyped("flush_chats", []interface{}{}, &chats)
+	chats := []models.ChatItem{}
+	err := conn.CallTyped("fetch_all_chats_upd", []interface{}{}, &chats)
 	if err != nil {
 		return nil, err
 	}

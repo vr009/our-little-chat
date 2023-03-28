@@ -2,15 +2,17 @@ package models
 
 import (
 	"fmt"
+
 	"github.com/google/uuid"
 	"gopkg.in/vmihailenco/msgpack.v2"
 )
 
 type ChatItem struct {
-	ChatID      uuid.UUID `json:"chat_id" bson:"chat_id"`
-	LastSender  uuid.UUID `json:"last_sender" bson:"last_sender"`
-	LastMsg     string    `json:"last_msg" bson:"last_msg"`
-	LastMessage float64   `json:"last_message" bson:"last_message"`
+	ChatID      uuid.UUID `json:"chat_id"`
+	LastSender  uuid.UUID `json:"last_sender"`
+	MsgID       uuid.UUID `json:"msg_id"`
+	LastMsg     string    `json:"last_msg"`
+	LastMessage float64   `json:"last_message"`
 }
 
 func (ch *ChatItem) DecodeMsgpack(d *msgpack.Decoder) error {
@@ -34,6 +36,11 @@ func (ch *ChatItem) DecodeMsgpack(d *msgpack.Decoder) error {
 		return err
 	}
 	ch.LastSender, _ = uuid.Parse(uuidStr)
+	//msg id
+	if uuidStr, err = d.DecodeString(); err != nil {
+		return err
+	}
+	ch.MsgID, _ = uuid.Parse(uuidStr)
 	//payload
 	if ch.LastMsg, err = d.DecodeString(); err != nil {
 		return err

@@ -18,6 +18,6 @@ type UserdataUseCase interface {
 	GetUser(userData models.UserData) (models.UserData, models.StatusCode)
 	DeleteUser(userData models.UserData) models.StatusCode
 	UpdateUser(userData models.UserData) (models.UserData, models.StatusCode)
-	CheckUser(userData models.UserData) models.StatusCode
+	CheckUser(userData models.UserData) (models.UserData, models.StatusCode)
 	FindUser(name string) ([]models.UserData, models.StatusCode)
 }

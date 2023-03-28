@@ -46,6 +46,7 @@ box.schema.space.create('chats_upd',
             if_not_exists = true,
             format = { { 'chat_id', type = 'uuid', unique = true  },
                        { 'sender_id', type = 'uuid' },
+                       { 'msg_id', type = 'uuid' },
                        { 'payload', type = 'string' },
                        { 'created_at', type = 'number' } }
         })
@@ -106,6 +107,7 @@ function queue.put(chat_id, sender_id, payload)
     box.space.chats_upd:replace{
         uuid.fromstr(chat_id),
         uuid.fromstr(sender_id),
+        msg_id,
         payload,
         created_at,
     }
@@ -179,6 +181,7 @@ function queue.fetch_chat_list_update(user_id, chat_list)
                 table.insert(batch, {
                     chat['chat_id']:str(),
                     chat['sender_id']:str(),
+                    chat['msg_id']:str(),
                     chat['payload'],
                     chat['created_at'],
                 })
@@ -191,6 +194,11 @@ end
 function queue.fetch_chat_list_update_for_single_user(user_id)
     local chat_list = box.space.chat_participants:select(uuid.fromstr(user_id))
     local batch = queue.fetch_chat_list_update(uuid.fromstr(user_id), chat_list)
+    return batch
+end
+
+function queue.fetch_chat_list_update_for_all_users()
+    local batch = box.space.chats_upd:select()
     return batch
 end
 
@@ -252,6 +260,9 @@ rawset(_G, 'take_msgs', queue.take_new_messages_from_space)
 
 -- returns a list of chats with new unread messages
 rawset(_G, 'fetch_chats_upd', queue.fetch_chat_list_update_for_single_user)
+
+-- returns a list of chats with new unread messages
+rawset(_G, 'fetch_all_chats_upd', queue.fetch_chat_list_update_for_all_users)
 
 rawset(_G, 'flush_msgs', queue.flush_all_msgs)
 rawset(_G, 'flush_chats', queue.flush_chats)

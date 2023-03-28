@@ -1,16 +1,18 @@
 package pkg
 
 import (
-	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
+	"time"
 
 	"our-little-chatik/internal/models"
 
-	"github.com/golang/glog"
+	"github.com/golang-jwt/jwt/v5"
+	"github.com/google/uuid"
 )
 
-func AuthHook(r *http.Request, authUrl string) (*models.User, error) {
+func AuthHook(r *http.Request) (*models.User, error) {
 	session := models.Session{}
 
 	cookie, err := r.Cookie("Token")
@@ -19,31 +21,46 @@ func AuthHook(r *http.Request, authUrl string) (*models.User, error) {
 		err = fmt.Errorf("no cookie provided")
 		return nil, err
 	}
-
-	cl := http.Client{}
-	req, err := http.NewRequest(http.MethodGet, authUrl, nil)
-	if err != nil {
-		err := fmt.Errorf("failed to build a request %s: %s", authUrl, err.Error())
-		glog.Error(err.Error())
-		return nil, err
-	}
-
-	req.Header.Set("Token", session.Token)
-	resp, err := cl.Do(req)
-	if err != nil {
-		err := fmt.Errorf("failed to hook %s: %s", authUrl, err.Error())
-		glog.Error(err.Error())
-		return nil, err
-	}
-	glog.Warningf("here")
 	user := models.User{}
-	err = json.NewDecoder(resp.Body).Decode(&user)
-	if err != nil {
-		err := fmt.Errorf("failed to decode an answer from %s: %s", authUrl, err.Error())
-		glog.Error(err.Error())
-		return nil, err
+
+	token, err := jwt.Parse(session.Token, func(token *jwt.Token) (interface{}, error) {
+		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, fmt.Errorf("there was an error")
+		}
+
+		mySigningKey, err := GetSignedKey()
+		if err != nil {
+			return "", err
+		}
+
+		return []byte(mySigningKey), nil
+	})
+
+	if !token.Valid {
+		return nil, fmt.Errorf("invalid token\n")
 	}
-	glog.Warningf("here %v", user)
+
+	if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
+		expFl := claims["exp"].(float64)
+		exp := time.Unix(int64(expFl), 0)
+		if time.Until(exp) <= 0 {
+			return nil, fmt.Errorf("expired token")
+		}
+
+		authed := claims["authorized"].(bool)
+		if !authed {
+			return nil, fmt.Errorf("unauthorized token")
+		}
+
+		id, err := uuid.Parse(claims["UserID"].(string))
+		if err != nil {
+			return nil, fmt.Errorf("invalid token: %v\n", err)
+		}
+		user.UserID = id
+		log.Println("PARSED", id)
+	} else {
+		return nil, fmt.Errorf("spoiled token\n")
+	}
 
 	return &user, nil
 }

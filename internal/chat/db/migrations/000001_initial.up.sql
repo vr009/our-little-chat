@@ -20,6 +20,6 @@ CREATE TABLE IF NOT EXISTS chat_participants
 CREATE TABLE IF NOT EXISTS chats
 (
     chat_id        uuid         NOT NULL PRIMARY KEY,
-    msg_id       uuid         REFERENCES messages(msg_id)
+    last_msg_id       uuid      REFERENCES messages(msg_id)
 );
 

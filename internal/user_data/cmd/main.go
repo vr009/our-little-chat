@@ -59,25 +59,26 @@ func main() {
 		glog.Infof("Connected to postgres: %s", connString)
 	}
 
-	repo := repo.NewPersonRepo(conn)
-	useCase := usecase.NewUserdataUseCase(repo)
-	handler := delivery.NewUserdataHandler(useCase)
+	personRepo := repo.NewPersonRepo(conn)
+	useCase := usecase.NewUserdataUseCase(personRepo)
+	userDataHandler := delivery.NewUserdataHandler(useCase)
+	authHandler := delivery.NewAuthHandler(useCase)
 
 	router := mux.NewRouter()
 
-	router.HandleFunc("/api/v1/user/new", handler.CreateUser).Methods("POST")
+	// Administration API
+	router.HandleFunc("/api/v1/user/new", userDataHandler.CreateUser).Methods("POST")
+	router.HandleFunc("/api/v1/user/all", userDataHandler.GetAllUsers).Methods("GET")
+	router.HandleFunc("/api/v1/user/me", userDataHandler.GetUser).Methods("GET")
+	router.HandleFunc("/api/v1/user", userDataHandler.UpdateUser).Methods("POST")
+	router.HandleFunc("/api/v1/user", userDataHandler.DeleteUser).Methods("DELETE")
+	router.HandleFunc("/api/v1/user/auth", userDataHandler.CheckUserData).Methods("POST")
+	router.HandleFunc("/api/v1/user/search", userDataHandler.FindUser).Methods("GET")
 
-	router.HandleFunc("/api/v1/user/all", handler.GetAllUsers).Methods("GET")
-
-	router.HandleFunc("/api/v1/user/me", handler.GetUser).Methods("GET")
-
-	router.HandleFunc("/api/v1/user", handler.UpdateUser).Methods("POST")
-
-	router.HandleFunc("/api/v1/user", handler.DeleteUser).Methods("DELETE")
-
-	router.HandleFunc("/api/v1/user/auth", handler.CheckUserData).Methods("POST")
-
-	router.HandleFunc("/api/v1/user/search", handler.FindUser).Methods("GET")
+	// Auth API
+	router.HandleFunc("/api/v1/auth/signup", authHandler.SignUp).Methods("POST")
+	router.HandleFunc("/api/v1/auth/signin", authHandler.Login).Methods("POST")
+	router.HandleFunc("/api/v1/auth/logout", authHandler.Logout).Methods("DELETE")
 
 	srv := &http.Server{Handler: router, Addr: ":" + strconv.Itoa(appConfig.Port)}
 

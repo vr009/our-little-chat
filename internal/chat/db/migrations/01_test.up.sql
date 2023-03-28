@@ -9,5 +9,5 @@ INSERT INTO messages (msg_id, chat_id, sender_id, payload, created_at) VALUES (
     '43b88a7a-f3ef-4631-be98-a2ed31137e8e',
     'Hello world!', 0.00);
 
-INSERT INTO chats (chat_id, msg_id) VALUES
+INSERT INTO chats (chat_id, last_msg_id) VALUES
       ('ddd37de5-6799-4158-9703-e536fb8071ac','b6e878eb-385c-4a30-a042-f7cc94d5c8de');
