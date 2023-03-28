@@ -10,6 +10,7 @@ import (
 	"our-little-chatik/internal/models"
 	"our-little-chatik/internal/pkg"
 
+	"github.com/golang/glog"
 	"github.com/google/uuid"
 )
 
@@ -80,7 +81,7 @@ func (c *ChatHandler) GetChatMessages(w http.ResponseWriter, r *http.Request) {
 }
 
 // GetChatList godoc
-// @Summary Show a account
+// @Summary Show an account
 // @Description get string by ID
 // @ID get-string-by-int
 // @Accept  json
@@ -104,6 +105,7 @@ func (clh *ChatHandler) GetChatList(w http.ResponseWriter, r *http.Request) {
 
 	chats, err := clh.usecase.GetChatList(*user)
 	if err != nil {
+		glog.Error(err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
@@ -111,6 +113,7 @@ func (clh *ChatHandler) GetChatList(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	body, err := json.Marshal(&chats)
 	if err != nil {
+		glog.Error(err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
@@ -118,7 +121,7 @@ func (clh *ChatHandler) GetChatList(w http.ResponseWriter, r *http.Request) {
 }
 
 func (clh *ChatHandler) PostNewChat(w http.ResponseWriter, r *http.Request) {
-	_, err := pkg.AuthHook(r)
+	usr, err := pkg.AuthHook(r)
 	if err != nil {
 		w.WriteHeader(http.StatusForbidden)
 		errObj := models.Error{Msg: "Invalid token"}
@@ -134,6 +137,7 @@ func (clh *ChatHandler) PostNewChat(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	chat.Participants = append(chat.Participants, usr.UserID)
 	createdChat, err := clh.usecase.CreateNewChat(chat)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
@@ -150,7 +154,7 @@ func (clh *ChatHandler) PostNewChat(w http.ResponseWriter, r *http.Request) {
 }
 
 func (clh *ChatHandler) PostChat(w http.ResponseWriter, r *http.Request) {
-	_, err := pkg.AuthHook(r)
+	usr, err := pkg.AuthHook(r)
 	if err != nil {
 		w.WriteHeader(http.StatusForbidden)
 		errObj := models.Error{Msg: "Invalid token"}
@@ -166,6 +170,7 @@ func (clh *ChatHandler) PostChat(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	chat.Participants = append(chat.Participants, usr.UserID)
 	err = clh.usecase.ActivateChat(chat)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
