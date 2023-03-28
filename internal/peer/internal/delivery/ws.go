@@ -170,10 +170,8 @@ func (ws *WebSocketClient) read() {
 	}
 }
 
-var defaultAuthUrl string = "http://auth:8087/api/v1/auth/user"
-
 func (server *PeerServer) WSServe(w http.ResponseWriter, r *http.Request) {
-	user, err := pkg.AuthHook(r, defaultAuthUrl)
+	user, err := pkg.AuthHook(r)
 	if err != nil {
 		w.WriteHeader(http.StatusForbidden)
 		errObj := models2.Error{Msg: "Invalid token"}

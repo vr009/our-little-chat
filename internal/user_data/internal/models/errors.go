@@ -11,3 +11,7 @@ const (
 	Deleted
 	Conflict
 )
+
+type Error struct {
+	Msg string `json:"msg"`
+}

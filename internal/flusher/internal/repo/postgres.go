@@ -11,7 +11,7 @@ import (
 
 const (
 	InsertMsgQuery = "INSERT INTO messages VALUES (?, ?, ?, ?, ?)"
-	UpdateChatInfo = "UPDATE chats SET last_msg=? WHERE chat_id=?"
+	UpdateChatInfo = "UPDATE chats SET last_msg_id=? WHERE chat_id=?"
 )
 
 type PostgresRepo struct {
@@ -30,12 +30,27 @@ func (pr PostgresRepo) PersistAllMessages(msgs []models.Message) error {
 			Exec(func(ct pgconn.CommandTag) error {
 				return nil
 			})
-		batch.Queue(UpdateChatInfo, msg.MsgID, msg.ChatID)
 	}
 	err := pr.conn.SendBatch(ctx, batch).Close()
 	if err != nil {
 		return err
 	}
 
+	return nil
+}
+
+func (pr PostgresRepo) PersistChatListUpdate(chats []models.ChatItem) error {
+	ctx := context.Background()
+	batch := &pgx.Batch{}
+	for _, chat := range chats {
+		batch.Queue(UpdateChatInfo, chat.ChatID, chat.MsgID).
+			Exec(func(ct pgconn.CommandTag) error {
+				return nil
+			})
+	}
+	err := pr.conn.SendBatch(ctx, batch).Close()
+	if err != nil {
+		return err
+	}
 	return nil
 }

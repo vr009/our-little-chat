@@ -1,20 +1,6 @@
 version: '3.9'
 
 services:
-  gateway:
-    build:
-      context: .
-      dockerfile: deployments/gateway.Dockerfile
-    environment:
-      GATEWAY_CONFIG: configs/.
-    command: ./gateway-service
-    restart: unless-stopped
-    ports:
-      - 8080:8080
-    depends_on:
-      - auth
-      - user-data
-
   message-core:
     build:
       context: .
@@ -75,34 +61,13 @@ services:
     depends_on:
       - message-core
 
-  auth:
-    build:
-      context: .
-      dockerfile: deployments/auth.Dockerfile
-    command: ./auth-service
-    environment:
-      AUTH_CONFIG: configs/.
-    ports:
-      - 8087:8087
-    depends_on:
-      - db-auth
-
-  db-auth:
-    image: redis:alpine
-    command: redis-server
-    volumes:
-      - $PWD/redis-data:/var/lib/redis
-      - $PWD/redis.conf:/usr/local/etc/redis/redis.conf
-    restart: unless-stopped
-    ports:
-      - 6379:6379
-
   user-data:
     build:
       context: .
       dockerfile: ./deployments/user_data.Dockerfile
     environment:
       USER_DATA_CONFIG: configs/.
+      JWT_SIGNED_KEY: "test"
       DATABASE_URL: "user=service password=test host=db-user-data port=5432 dbname=users"
     command: ./user-data-service
     ports:
@@ -128,6 +93,7 @@ services:
       POSTGRES_DB: "chats"
       POSTGRES_USER: "service"
       POSTGRES_PASSWORD: "test"
+      JWT_SIGNED_KEY: "test"
     volumes:
       - ./internal/chat/db/migrations:/docker-entrypoint-initdb.d
     restart: unless-stopped
@@ -142,7 +108,5 @@ services:
       - ./configs/:/etc/nginx/conf.d/
       - ./temp/dist/:/var/www/html/dist/
     depends_on:
-      - gateway
       - user-data
-      - auth
       - peer

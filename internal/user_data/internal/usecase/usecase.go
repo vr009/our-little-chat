@@ -47,16 +47,16 @@ func (uc *UserdataUseCase) UpdateUser(userData models.UserData) (models.UserData
 	return uc.repo.UpdateUser(userData)
 }
 
-func (uc *UserdataUseCase) CheckUser(userData models.UserData) models.StatusCode {
+func (uc *UserdataUseCase) CheckUser(userData models.UserData) (models.UserData, models.StatusCode) {
 	userFromRepo, code := uc.repo.GetUserForItsName(userData)
 	if code == models.NotFound {
-		return code
+		return models.UserData{}, code
 	}
 	err := bcrypt.CompareHashAndPassword([]byte(userFromRepo.Password), []byte(userData.Password))
 	if err != nil {
-		return models.Forbidden
+		return models.UserData{}, models.Forbidden
 	}
-	return models.OK
+	return userFromRepo, models.OK
 }
 
 func (uc *UserdataUseCase) FindUser(name string) ([]models.UserData, models.StatusCode) {

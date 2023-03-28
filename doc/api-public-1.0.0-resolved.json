@@ -6,10 +6,6 @@
   },
   "servers": [
     {
-      "url": "https://virtserver.swaggerhub.com/SLAVARIANOV/public/1.0.0",
-      "description": "SwaggerHub API Auto Mocking"
-    },
-    {
       "url": "http://localhost",
       "description": "local one"
     }

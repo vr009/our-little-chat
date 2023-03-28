@@ -6,6 +6,8 @@ import (
 	"time"
 
 	"our-little-chatik/internal/flusher/internal"
+
+	"github.com/golang/glog"
 )
 
 type FlusherD struct {
@@ -27,9 +29,19 @@ func (d *FlusherD) Work(ctx context.Context, period int) {
 				continue
 			}
 			err = d.persistantRepo.PersistAllMessages(messages)
-			//log.Println("persisted", messages)
+			glog.Infoln("persisted", messages)
 			if err != nil {
 				log.Println(err)
+			}
+
+			chats, err := d.queueRepo.FetchChatListUpdate()
+			if err != nil {
+				continue
+			}
+			err = d.persistantRepo.PersistChatListUpdate(chats)
+			glog.Infoln("persisted", chats)
+			if err != nil {
+				glog.Error(err)
 			}
 		case <-ctx.Done():
 			log.Println("work loop ended")

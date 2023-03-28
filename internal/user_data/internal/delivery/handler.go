@@ -54,15 +54,15 @@ func (udh *UserdataHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
 
 	glog.Infof("Unmarshalled: %v", person)
 
-	newPeson, errCode := udh.useCase.CreateUser(person)
+	newPerson, errCode := udh.useCase.CreateUser(person)
 	if errCode != models.OK {
 		handleErrorCode(errCode, w)
 		return
 	}
 
-	glog.Infof("Created: %v", newPeson)
+	glog.Infof("Created: %v", newPerson)
 
-	buf, err := json.Marshal(&newPeson)
+	buf, err := json.Marshal(&newPerson)
 	if err != nil {
 		glog.Errorf(err.Error())
 		w.WriteHeader(http.StatusInternalServerError)
@@ -77,10 +77,8 @@ func (udh *UserdataHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-var defaultAuthUrl = "http://auth:8087/api/v1/auth/user"
-
 func (udh *UserdataHandler) GetUser(w http.ResponseWriter, r *http.Request) {
-	user, err := pkg.AuthHook(r, defaultAuthUrl)
+	user, err := pkg.AuthHook(r)
 	if err != nil {
 		w.WriteHeader(http.StatusForbidden)
 		errObj := models2.Error{Msg: "Invalid token"}
@@ -190,7 +188,7 @@ func (udh *UserdataHandler) CheckUserData(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	errCode := udh.useCase.CheckUser(person)
+	_, errCode := udh.useCase.CheckUser(person)
 
 	if errCode != models.OK {
 		handleErrorCode(errCode, w)
