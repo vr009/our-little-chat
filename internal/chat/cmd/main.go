@@ -11,6 +11,7 @@ import (
 	"our-little-chatik/internal/chat/internal/delivery"
 	"our-little-chatik/internal/chat/internal/repo"
 	"our-little-chatik/internal/chat/internal/usecase"
+	"our-little-chatik/internal/chat/middleware"
 
 	"github.com/golang/glog"
 	"github.com/gorilla/mux"
@@ -100,7 +101,8 @@ func main() {
 	// Activating a chat
 	r.HandleFunc("/api/v1/active", handler.PostChat).Methods("POST")
 
-	srv := &http.Server{Handler: r, Addr: ":" + strconv.Itoa(appConfig.Port)}
+	srv := &http.Server{Handler: middleware.Logger(r),
+		Addr: ":" + strconv.Itoa(appConfig.Port)}
 
 	log.Printf("Listening port: %d", appConfig.Port)
 	log.Printf("addres to query: %s", "http://localhost:"+strconv.Itoa(appConfig.Port)+"/api/v1/")

@@ -43,6 +43,7 @@ services:
       CHAT_CONFIG: configs/.
       DATABASE_URL: "user=service password=test host=db-chat port=5432 dbname=chats"
       DATABASE_ALTERNATIVE_URL: "postgresql://db-chat:5432/chats?user=service&password=test"
+      JWT_SIGNED_KEY: "test"
     ports:
       - 8083:8083
     depends_on:
@@ -93,7 +94,6 @@ services:
       POSTGRES_DB: "chats"
       POSTGRES_USER: "service"
       POSTGRES_PASSWORD: "test"
-      JWT_SIGNED_KEY: "test"
     volumes:
       - ./internal/chat/db/migrations:/docker-entrypoint-initdb.d
     restart: unless-stopped
