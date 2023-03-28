@@ -10,8 +10,8 @@ import (
 )
 
 const (
-	InsertMsgQuery = "INSERT INTO messages VALUES (?, ?, ?, ?, ?)"
-	UpdateChatInfo = "UPDATE chats SET last_msg_id=? WHERE chat_id=?"
+	InsertMsgQuery = "INSERT INTO messages VALUES ($1, $2, $3, $4, $5)"
+	UpdateChatInfo = "UPDATE chats SET last_msg_id=$1 WHERE chat_id=$2"
 )
 
 type PostgresRepo struct {
