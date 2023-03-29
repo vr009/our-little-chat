@@ -3,9 +3,11 @@ package repo
 import (
 	"errors"
 	"fmt"
-	"github.com/tarantool/go-tarantool"
 	"log"
+
 	"our-little-chatik/internal/peer/internal/models"
+
+	"github.com/tarantool/go-tarantool"
 )
 
 // TODO rewrite it to websockets
@@ -26,9 +28,11 @@ func (tt *TarantoolRepo) SendPayload(msg *models.Message) error {
 		msg.SenderID.String(),
 		msg.Payload})
 	if err != nil {
+		fmt.Println(err)
 		return err
 	}
 	if resp == nil {
+		fmt.Println("Response is nil after Call")
 		return errors.New("Response is nil after Call")
 	}
 	if len(resp.Data) < 1 {

@@ -47,7 +47,7 @@ func GetConnectionString() (string, error) {
 func main() {
 	configPath := os.Getenv("FLUSHER_CONFIG")
 	viper.AddConfigPath(configPath)
-	viper.SetConfigName("config")
+	viper.SetConfigName("flusher-config.yaml")
 	viper.SetConfigType("yaml")
 	if err := viper.ReadInConfig(); err != nil {
 		log.Fatal("Failed to read a config file")
