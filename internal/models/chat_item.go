@@ -22,7 +22,7 @@ func (ch *ChatItem) DecodeMsgpack(d *msgpack.Decoder) error {
 	if l, err = d.DecodeSliceLen(); err != nil {
 		return err
 	}
-	if l != 4 {
+	if l != 5 {
 		return fmt.Errorf("array len doesn't match: %d", l)
 	}
 
