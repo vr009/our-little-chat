@@ -36,8 +36,10 @@ func (tt *TarantoolRepo) SendPayload(msg *models.Message) error {
 		return errors.New("Response is nil after Call")
 	}
 	if len(resp.Data) < 1 {
+		fmt.Println("Response.Data is empty after Eval")
 		return errors.New("Response.Data is empty after Eval")
 	}
+	fmt.Println("SUCCEED")
 	return nil
 }
 func (tt *TarantoolRepo) FetchUpdates(chat *models.Chat, peer *models.Peer) ([]models.Message, error) {

@@ -142,10 +142,10 @@ func (ws *WebSocketClient) read() {
 		}
 		msg := &models.Message{}
 		message = bytes.TrimSpace(bytes.Replace(message, newline, space, -1))
-		err = json.Unmarshal(message, msg)
+		err = json.Unmarshal(message, &msg)
 		if err != nil {
 			log.Println("failed to unmarshal message", err)
-			return
+			continue
 		}
 		fmt.Println("Received", msg)
 		if ws.currentPeer != nil && !msg.SessionStart {
