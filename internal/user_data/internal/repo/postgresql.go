@@ -18,7 +18,7 @@ const (
 	GetQuery       = "SELECT user_id, nickname, name, surname, last_auth, registered, avatar, contact_list  FROM users WHERE user_id=$1;"
 	GetNameQuery   = "SELECT user_id, nickname, name, surname, password  FROM users WHERE nickname=$1;"
 	ListQuery      = "SELECT * FROM users;"
-	FindUsersQuery = "SELECT user_id, nickname, name, surname FROM users WHERE nickname LIKE LOWER($1) LIMIT 10"
+	FindUsersQuery = "SELECT user_id, nickname, name, surname FROM users WHERE nickname LIKE LOWER($1 || '%') LIMIT 10"
 )
 
 type PersonRepo struct {
