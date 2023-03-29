@@ -57,7 +57,7 @@ local queue = {}
 
 function queue.create_chat(users, chat_id)
     if chat_id == nil then
-        chat_id = uuid()
+        chat_id = uuid.str()
     end
 
     local chat = box.space.chat_participants.index.chat_id_index:select({ uuid.fromstr(chat_id) })
@@ -100,7 +100,7 @@ function queue.put(chat_id, sender_id, payload)
         return
     end
 
-    local msg_id = uuid()
+    local msg_id = uuid.new()
     local created_at = fiber.time()
 
     -- we put the id of the last message for chat list update
@@ -119,9 +119,10 @@ function queue.put(chat_id, sender_id, payload)
         payload, created_at}
 
     if res ~= nil then
+        print('ok')
         return{chat_id, msg_id:str(), sender_id, payload, created_at}
     end
-
+    print('nok')
     return res
 end
 
