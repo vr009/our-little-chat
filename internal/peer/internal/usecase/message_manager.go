@@ -2,6 +2,8 @@ package usecase
 
 import (
 	"container/list"
+	"fmt"
+
 	"our-little-chatik/internal/peer/internal"
 	"our-little-chatik/internal/peer/internal/models"
 )
@@ -46,6 +48,7 @@ func (m *MessageManagerImpl) Work() {
 					}
 					select {
 					case msg := <-peer.MsgToSend:
+						fmt.Println("Sending", msg)
 						m.repo.SendPayload(msg)
 					default:
 					}

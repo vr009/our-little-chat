@@ -20,7 +20,7 @@ services:
 #    depends_on:
 #      - message-core
 
-  flusher-service:
+  flusher:
     build:
       context: .
       dockerfile: deployments/flusher.Dockerfile

@@ -8,10 +8,8 @@ import (
 	"net/http"
 	"time"
 
-	models2 "our-little-chatik/internal/models"
 	"our-little-chatik/internal/peer/internal"
 	"our-little-chatik/internal/peer/internal/models"
-	"our-little-chatik/internal/pkg"
 
 	"github.com/golang/glog"
 	"github.com/gorilla/websocket"
@@ -149,7 +147,7 @@ func (ws *WebSocketClient) read() {
 			log.Println("failed to unmarshal message", err)
 			return
 		}
-
+		fmt.Println("Received", msg)
 		if ws.currentPeer != nil && !msg.SessionStart {
 			ws.currentPeer.MsgToSend <- msg
 			continue
@@ -171,15 +169,15 @@ func (ws *WebSocketClient) read() {
 }
 
 func (server *PeerServer) WSServe(w http.ResponseWriter, r *http.Request) {
-	user, err := pkg.AuthHook(r)
-	if err != nil {
-		w.WriteHeader(http.StatusForbidden)
-		errObj := models2.Error{Msg: "Invalid token"}
-		body, _ := json.Marshal(errObj)
-		w.Write(body)
-		glog.Error(errObj.Msg)
-		return
-	}
+	//user, err := pkg.AuthHook(r)
+	//if err != nil {
+	//	w.WriteHeader(http.StatusForbidden)
+	//	errObj := models2.Error{Msg: "Invalid token"}
+	//	body, _ := json.Marshal(errObj)
+	//	w.Write(body)
+	//	glog.Error(errObj.Msg)
+	//	return
+	//}
 	upgrader.CheckOrigin = func(r *http.Request) bool { return true }
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
@@ -187,7 +185,7 @@ func (server *PeerServer) WSServe(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	client := newWebSocketClient(conn, server.manager)
-	glog.Infof("Created new connection:\nID: %s", user.UserID)
+	//glog.Infof("Created new connection:\nID: %s", user.UserID)
 	client.disconnected = make(chan struct{})
 	go client.write()
 	go client.read()

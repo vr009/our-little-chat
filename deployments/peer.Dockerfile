@@ -8,7 +8,7 @@ COPY ./ ./
 
 EXPOSE 8082
 
-RUN go mod download
+#RUN go mod download
 
 RUN go mod tidy
 

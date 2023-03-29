@@ -270,11 +270,11 @@ rawset(_G, 'fetch_msgs', queue.fetch_all_user_msgs)
 
 box.once('debug', function() box.schema.user.grant('guest', 'super') end)
 
-box.schema.user.create('test', {password = 'test'})
-box.schema.user.grant('test', 'execute', 'universe')
-box.schema.user.grant('test', 'read,write', 'space', 'messages')
-box.schema.user.grant('test', 'read,write', 'space', 'chat_participants')
-box.schema.user.grant('test', 'read,write', 'space', 'chats_upd')
+box.schema.user.create('test', {password = 'test', if_not_exists = true})
+box.schema.user.grant('test', 'execute', 'universe', nil, {if_not_exists=true})
+box.schema.user.grant('test', 'read,write', 'space', 'messages', {if_not_exists=true})
+box.schema.user.grant('test', 'read,write', 'space', 'chat_participants', {if_not_exists=true})
+box.schema.user.grant('test', 'read,write', 'space', 'chats_upd', {if_not_exists=true})
 
 return queue
 
