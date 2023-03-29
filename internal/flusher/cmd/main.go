@@ -11,6 +11,7 @@ import (
 	"our-little-chatik/internal/flusher/internal/delivery"
 	"our-little-chatik/internal/flusher/internal/repo"
 
+	"github.com/golang/glog"
 	"github.com/jackc/pgx/v5"
 	"github.com/spf13/viper"
 	"github.com/tarantool/go-tarantool"
@@ -58,7 +59,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-
+	glog.V(2)
 	ttAddr := appConfig.TT.Host + ":" + strconv.Itoa(appConfig.TT.Port)
 	ttOpts := tarantool.Opts{User: appConfig.DB.Username, Pass: appConfig.DB.Password}
 

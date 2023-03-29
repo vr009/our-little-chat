@@ -30,16 +30,19 @@ func (d *FlusherD) Work(ctx context.Context, period int) {
 			}
 			err = d.persistantRepo.PersistAllMessages(messages)
 			glog.Infoln("persisted", messages)
+			log.Println("persisted", messages)
 			if err != nil {
 				log.Println(err)
 			}
 
 			chats, err := d.queueRepo.FetchChatListUpdate()
 			if err != nil {
+				log.Println(err)
 				continue
 			}
 			err = d.persistantRepo.PersistChatListUpdate(chats)
 			glog.Infoln("persisted", chats)
+			log.Println("persisted chats", chats)
 			if err != nil {
 				glog.Error(err)
 			}

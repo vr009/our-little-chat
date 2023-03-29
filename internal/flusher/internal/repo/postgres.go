@@ -12,6 +12,7 @@ import (
 const (
 	InsertMsgQuery = "INSERT INTO messages VALUES ($1, $2, $3, $4, $5)"
 	UpdateChatInfo = "UPDATE chats SET last_msg_id=$1 WHERE chat_id=$2"
+	UpsertChatInfo = "INSERT INTO chats (chat_id, last_msg_id) VALUES ($1, $2) ON CONFLICT (chat_id) DO UPDATE SET last_msg_id=EXCLUDED.last_msg_id"
 )
 
 type PostgresRepo struct {
@@ -43,7 +44,7 @@ func (pr PostgresRepo) PersistChatListUpdate(chats []models.ChatItem) error {
 	ctx := context.Background()
 	batch := &pgx.Batch{}
 	for _, chat := range chats {
-		batch.Queue(UpdateChatInfo, chat.ChatID, chat.MsgID).
+		batch.Queue(UpsertChatInfo, chat.ChatID, chat.MsgID).
 			Exec(func(ct pgconn.CommandTag) error {
 				return nil
 			})

@@ -199,7 +199,16 @@ function queue.fetch_chat_list_update_for_single_user(user_id)
 end
 
 function queue.fetch_chat_list_update_for_all_users()
-    local batch = box.space.chats_upd:select()
+    local batch = {}
+    for _, tuple in box.space.chats_upd:pairs() do
+        table.insert(batch, {
+            tuple['chat_id']:str(),
+            tuple['sender_id']:str(),
+            tuple['msg_id']:str(),
+            tuple['payload'],
+            tuple['created_at'],
+        })
+    end
     return batch
 end
 
