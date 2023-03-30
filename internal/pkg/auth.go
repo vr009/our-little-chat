@@ -16,6 +16,9 @@ func AuthHook(r *http.Request) (*models.User, error) {
 	session := models.Session{}
 
 	cookie, err := r.Cookie("Token")
+	if err != nil {
+		return nil, err
+	}
 	session.Token = cookie.Value
 	if session.Token == "" {
 		err = fmt.Errorf("no cookie provided")

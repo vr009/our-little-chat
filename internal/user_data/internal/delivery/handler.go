@@ -199,6 +199,14 @@ func (udh *UserdataHandler) CheckUserData(w http.ResponseWriter, r *http.Request
 }
 
 func (udh *UserdataHandler) FindUser(w http.ResponseWriter, r *http.Request) {
+	_, err := pkg.AuthHook(r)
+	if err != nil {
+		w.WriteHeader(http.StatusForbidden)
+		errObj := models2.Error{Msg: "Invalid token"}
+		body, _ := json.Marshal(errObj)
+		w.Write(body)
+		return
+	}
 	name := r.URL.Query().Get("name")
 	if name == "" {
 		w.WriteHeader(http.StatusNotFound)
