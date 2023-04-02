@@ -2,6 +2,7 @@ package delivery
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"strconv"
 
@@ -53,23 +54,27 @@ func (c *ChatHandler) GetChatMessages(w http.ResponseWriter, r *http.Request) {
 	idStr := r.Header.Get("CHAT_ID")
 	offset, err := strconv.ParseInt(r.Header.Get("OFFSET"), 10, 64)
 	if err != nil {
+		fmt.Println(err)
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
 	limit, err := strconv.ParseInt(r.Header.Get("LIMIT"), 10, 64)
 	if err != nil {
+		fmt.Println(err)
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
 	opts := models.Opts{Limit: limit, Page: offset}
 	chatID, err := uuid.Parse(idStr)
 	if err != nil {
+		fmt.Println(err)
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
 	chat := models2.Chat{ChatID: chatID}
 	msgs, err := c.usecase.FetchChatMessages(chat, opts)
 	if err != nil {
+		fmt.Println(err)
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
