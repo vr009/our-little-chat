@@ -20,15 +20,8 @@ import (
 	"github.com/tarantool/go-tarantool"
 )
 
-type MongoConfig struct {
-	URI      string
-	Username string
-	Password string
-}
-
 type AppConfig struct {
 	Port int
-	DB   MongoConfig
 	TT   TTConfig
 }
 
@@ -65,7 +58,7 @@ func main() {
 	glog.V(2)
 
 	ttAddr := appConfig.TT.Host + ":" + strconv.Itoa(appConfig.TT.Port)
-	ttOpts := tarantool.Opts{User: appConfig.DB.Username, Pass: appConfig.DB.Password}
+	ttOpts := tarantool.Opts{User: appConfig.TT.Username, Pass: appConfig.TT.Password}
 
 	ttClient, err := tarantool.Connect(ttAddr, ttOpts)
 	if err != nil {

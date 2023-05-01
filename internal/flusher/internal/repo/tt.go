@@ -33,3 +33,13 @@ func (tt *TarantoolRepo) FetchChatListUpdate() ([]models.ChatItem, error) {
 	}
 	return chats, nil
 }
+
+func (tt *TarantoolRepo) FetchChatParticipants() ([]models.Chat, error) {
+	conn := tt.conn
+	chats := []models.Chat{}
+	err := conn.CallTyped("flush_chats_participants", []interface{}{}, &chats)
+	if err != nil {
+		return nil, err
+	}
+	return chats, nil
+}
