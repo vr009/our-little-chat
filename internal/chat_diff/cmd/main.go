@@ -61,7 +61,7 @@ func main() {
 
 	go chatManager.Work()
 
-	http.HandleFunc("/ws", func(w http.ResponseWriter, r *http.Request) {
+	http.HandleFunc("/chatdiff/ws", func(w http.ResponseWriter, r *http.Request) {
 		chatServer.WSServe(w, r)
 	})
 

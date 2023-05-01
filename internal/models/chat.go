@@ -2,14 +2,15 @@ package models
 
 import (
 	"fmt"
+
 	"github.com/google/uuid"
 	"gopkg.in/vmihailenco/msgpack.v2"
 )
 
 type Chat struct {
-	Participant uuid.UUID `json:"participant" bson:"participant"`
-	ChatID      uuid.UUID `json:"chat_id" bson:"chat_id"`
-	LastRead    float64   `json:"last_read" bson:"last_read"`
+	Participant   uuid.UUID `json:"participant" bson:"participant"`
+	ChatID        uuid.UUID `json:"chat_id" bson:"chat_id"`
+	LastReadMsgID uuid.UUID `json:"last_read_msg_id" bson:"last_read"`
 }
 
 func (c *Chat) EncodeMsgpack(e *msgpack.Encoder) error {
@@ -40,9 +41,10 @@ func (c *Chat) DecodeMsgpack(d *msgpack.Decoder) error {
 	}
 	c.ChatID, _ = uuid.Parse(uuidStr)
 
-	//timestamp
-	if c.LastRead, err = d.DecodeFloat64(); err != nil {
+	//msg_id
+	if uuidStr, err = d.DecodeString(); err != nil {
 		return err
 	}
+	c.LastReadMsgID, _ = uuid.Parse(uuidStr)
 	return nil
 }
