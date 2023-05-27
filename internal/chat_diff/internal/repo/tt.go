@@ -2,9 +2,11 @@ package repo
 
 import (
 	"fmt"
+
+	"our-little-chatik/internal/models"
+
 	"github.com/google/uuid"
 	"github.com/tarantool/go-tarantool"
-	models2 "our-little-chatik/internal/chat_diff/internal/models"
 )
 
 // TODO rewrite it to websockets
@@ -18,17 +20,16 @@ func NewTarantoolRepo(conn *tarantool.Connection) *TarantoolRepo {
 	return &TarantoolRepo{conn: conn}
 }
 
-func (tt *TarantoolRepo) FetchUpdates(user models2.ChatUser) []models2.ChatItem {
+func (tt *TarantoolRepo) FetchUpdates(user models.User) []models.ChatItem {
 	conn := tt.conn
-	updates := []models2.ChatItem{}
+	updates := []models.ChatItem{}
 
-	//err := conn.CallTyped("fetch_chats_upd", []interface{}{user.ID}, &updates)
-	resp, err := conn.Call("fetch_chats_upd", []interface{}{user.ID.String()})
+	resp, err := conn.Call("fetch_unread_messages", []interface{}{user.UserID.String()})
 	if err != nil {
 		return nil
 	}
 
-	updates = make([]models2.ChatItem, len(resp.Data))
+	updates = make([]models.ChatItem, len(resp.Data))
 	for i, el := range resp.Data {
 		sl := el.([]interface{})
 		if len(sl) < 1 {

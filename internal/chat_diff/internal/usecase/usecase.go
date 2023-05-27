@@ -2,7 +2,7 @@ package usecase
 
 import (
 	"our-little-chatik/internal/chat_diff/internal"
-	models2 "our-little-chatik/internal/chat_diff/internal/models"
+	"our-little-chatik/internal/models"
 )
 
 type Usecase struct {
@@ -13,6 +13,6 @@ func NewUsecase(repo internal.ChatDiffRepo) *Usecase {
 	return &Usecase{repo: repo}
 }
 
-func (uc *Usecase) GetUpdates(user models2.ChatUser) []models2.ChatItem {
+func (uc *Usecase) GetUpdates(user models.User) []models.ChatItem {
 	return uc.repo.FetchUpdates(user)
 }
