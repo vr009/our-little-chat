@@ -20,7 +20,7 @@ box.schema.space.create('messages',
 box.space.messages:create_index('chat_index', 
         {if_not_exists = true, parts = { { 1, 'uuid' }, {5, 'number'} }})
 
-box.space.messages:create_index('msg_index', 
+box.space.messages:create_index('msg_index',
         {if_not_exists = true, parts = { { 2, 'uuid' }}})
 
 box.space.messages:create_index('sender_index', 
@@ -33,7 +33,7 @@ box.schema.space.create('chat_participants',
             if_not_exists = true,
             format = { { 'participant_id', type = 'uuid' },
                        { 'chat_id' , type = 'uuid'},
-                       { 'last_read_msg_id', type = 'uuid' }}
+                       { 'last_read_msg_id', type = 'string' }}
         })
 
 box.space.chat_participants:create_index('participant_index', 
@@ -75,7 +75,7 @@ function queue.create_chat(users, chat_id)
 
     local chat = box.space.chat_participants.index.chat_id_index:select({ uuid.fromstr(chat_id) })
     if chat[1] ~= nil then
-        log.info('chat exists')
+        print('chat exists', chat[1])
         return
     end
 
@@ -84,14 +84,15 @@ function queue.create_chat(users, chat_id)
         box.space.chat_participants:insert({
             uuid.fromstr(user_id),
             uuid.fromstr(chat_id),
-            nil,
+            '',
         })
     end
+    print('here')
     return {chat_id}
 end
 
 function queue.add_user_to_chat(chat_id, user_id)
-    box.space.chat_participants:replace({user_id, chat_id, nil})
+    box.space.chat_participants:replace({user_id, chat_id, ''})
 end
 
 function queue.get_members(chat_id)
@@ -107,9 +108,9 @@ end
 --c5f0ae14-d06b-4ffd-9bcd-6df01243a9c5, 62391bd9-157c-4513-8e7c-c082e00d2b7e, 61f98c94-de3c-491a-b9c7-1ea214b3ec13
 function queue.put(chat_id, sender_id, payload)
     local res_chat_id = box.space.chat_participants.index.participant_index:select({ uuid.fromstr(sender_id), uuid.fromstr(chat_id) })[1]
-    log.info(res_chat_id)
+    print(res_chat_id)
     if res_chat_id == nil then
-        log.info('doesnt exist')
+        print('doesnt exist')
         return
     end
 
@@ -151,21 +152,20 @@ function queue.take_new_messages_from_space(chat_id, receiver_id)
     -- to know the last update of the chat
     local user_info = box.space.chat_participants.index.participant_index:get({uuid.fromstr(receiver_id), uuid.fromstr(chat_id)})
     if user_info == nil then
+        print('got null')
         return {}
     else
-        local msg_since_not_read_id = user_info['last_read_msg_id']
-        if msg_since_not_read_id == nil then
+        if user_info['last_read_msg_id'] == '' then
             since_not_read = 0
         else
-            since_not_read = bos.space.messages.index.msg_index:get(msg_since_not_read_id)
+            since_not_read = box.space.messages.index.msg_index:get(uuid.fromstr(user_info['last_read_msg_id']))['created_at']
         end
     end
-
     local last_message_id
     -- collect messages since the since_not_read number
     local batch = {}
     for _, message in box.space.messages.index.chat_index:pairs({ uuid.fromstr(chat_id) }) do
-        if (since_not_read <= message['created_at']) then
+        if (since_not_read < message['created_at']) then
             table.insert(batch, {
                 message['chat_id']:str(),
                 message['msg_id']:str(),
@@ -173,7 +173,7 @@ function queue.take_new_messages_from_space(chat_id, receiver_id)
                 message['payload'],
                 message['created_at'],
             })
-            log.info('found! : ', message[1]:str(), message[2]:str(), message[3]:str(), message[4], message[5])
+            print('found! : ', message[1]:str(), message[2]:str(), message[3]:str(), message[4], message[5])
             last_message_id = message['msg_id']
         end
     end
@@ -187,7 +187,7 @@ function queue.take_new_messages_from_space(chat_id, receiver_id)
     box.space.chat_participants:replace({
         uuid.fromstr(receiver_id),
         uuid.fromstr(chat_id),
-        last_message_id,
+        last_message_id:str(),
     })
     return batch
 end
@@ -242,7 +242,7 @@ function queue.flush_chats_participants()
         table.insert(batch, {
             chat['participant_id']:str(),
             chat['chat_id']:str(),
-            chat['last_read_msg_id'],
+            chat['last_read_msg_id']:str(),
         })
     end
     box.space.chat_participants:truncate()
