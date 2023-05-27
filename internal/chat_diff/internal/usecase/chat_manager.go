@@ -3,9 +3,10 @@ package usecase
 import (
 	"container/list"
 	"fmt"
-	"our-little-chatik/internal/chat_diff/internal"
-	models2 "our-little-chatik/internal/chat_diff/internal/models"
 	"time"
+
+	"our-little-chatik/internal/chat_diff/internal"
+	"our-little-chatik/internal/models"
 )
 
 type ChatManager struct {
@@ -19,15 +20,15 @@ func NewChatManager(repo internal.ChatDiffRepo) *ChatManager {
 	return m
 }
 
-func (manager *ChatManager) AddChatUser(user *models2.ChatUser) *models2.ChatUser {
+func (manager *ChatManager) AddChatUser(user *models.User) *models.User {
 	for el := manager.users.Front(); el != manager.users.Back(); el = el.Next() {
-		userToCompare := el.Value.(*models2.ChatUser)
-		if userToCompare.ID == user.ID {
+		userToCompare := el.Value.(*models.User)
+		if userToCompare.UserID == user.UserID {
 			return userToCompare
 		}
 	}
 	el := manager.users.PushBack(user)
-	u := el.Value.(*models2.ChatUser)
+	u := el.Value.(*models.User)
 	fmt.Println("inserted", &u)
 	return u
 }
@@ -39,7 +40,7 @@ func (manager *ChatManager) Work() {
 				time.Sleep(time.Second)
 				continue
 			}
-			user := el.Value.(*models2.ChatUser)
+			user := el.Value.(*models.User)
 			updates := manager.repo.FetchUpdates(*user)
 			if len(updates) == 0 {
 				continue

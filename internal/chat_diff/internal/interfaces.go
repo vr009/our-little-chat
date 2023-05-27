@@ -1,21 +1,22 @@
 package internal
 
 import (
+	"our-little-chatik/internal/models"
+
 	"github.com/google/uuid"
-	models2 "our-little-chatik/internal/chat_diff/internal/models"
 )
 
 type ChatDiffUsecase interface {
-	GetUpdates(user models2.ChatUser) []models2.ChatItem
+	GetUpdates(user models.User) []models.ChatItem
 }
 
 type ChatDiffRepo interface {
-	FetchUpdates(user models2.ChatUser) []models2.ChatItem
+	FetchUpdates(user models.User) []models.ChatItem
 }
 
 type Manager interface {
 	Work()
-	AddChatUser(user *models2.ChatUser) *models2.ChatUser
+	AddChatUser(user *models.User) *models.User
 }
 
 type TokenResolver interface {

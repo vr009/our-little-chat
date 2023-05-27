@@ -43,7 +43,7 @@ box.space.chat_participants:create_index('chat_id_index',
         { if_not_exists = true, unique =true, parts = { { 2, 'uuid' }, { 1, 'uuid' }} })
 
 -- contains last messages in chat
-box.schema.space.create('chats_upd',
+box.schema.space.create('chat_last_msgs',
         {
             if_not_exists = true,
             format = { { 'chat_id', type = 'uuid', unique = true  },
@@ -52,7 +52,18 @@ box.schema.space.create('chats_upd',
                        { 'payload', type = 'string' },
                        { 'created_at', type = 'number' } }
         })
-box.space.chats_upd:create_index('chat_id_index',
+box.space.chat_last_msgs:create_index('chat_id_index',
+        { if_not_exists = true, unique =true, parts = { { 1, 'uuid' }} })
+
+-- contains unread messages of a chat
+box.schema.space.create('unread_msgs',
+        {
+            if_not_exists = true,
+            format = { { 'chat_id', type = 'uuid', unique = true },
+                       { 'msg_id', type = 'uuid' },
+                       { 'sender_id', type = 'uuid'}}
+        })
+box.space.unread_msgs:create_index('chat_id_index',
         { if_not_exists = true, unique =true, parts = { { 1, 'uuid' }} })
 
 local queue = {}
@@ -106,12 +117,19 @@ function queue.put(chat_id, sender_id, payload)
     local created_at = fiber.time()
 
     -- we put the id of the last message for chat list update
-    box.space.chats_upd:replace{
+    box.space.chat_last_msgs:replace{
         uuid.fromstr(chat_id),
         uuid.fromstr(sender_id),
         msg_id,
         payload,
         created_at,
+    }
+
+    -- replace an unread message in the chat
+    box.space.unread_msgs:replace{
+        uuid.fromstr(chat_id),
+        msg_id,
+        uuid.fromstr(sender_id)
     }
 
     local res = box.space.messages:insert{
@@ -160,6 +178,11 @@ function queue.take_new_messages_from_space(chat_id, receiver_id)
         end
     end
 
+    -- delete message from unread messages
+    box.space.unread_msgs:delete{
+        uuid.fromstr(chat_id),
+    }
+
     -- update the info about a user that has read the messages from chat
     box.space.chat_participants:replace({
         uuid.fromstr(receiver_id),
@@ -169,9 +192,9 @@ function queue.take_new_messages_from_space(chat_id, receiver_id)
     return batch
 end
 
-function queue.fetch_chat_list_update_for_all_users()
+function queue.fetch_last_chat_messages_for_all_users()
     local batch = {}
-    for _, tuple in box.space.chats_upd:pairs() do
+    for _, tuple in box.space.chat_last_msgs:pairs() do
         table.insert(batch, {
             tuple['chat_id']:str(),
             tuple['sender_id']:str(),
@@ -226,6 +249,26 @@ function queue.flush_chats_participants()
     return batch
 end
 
+-- this function returns all unread messages for a user
+function queue.fetch_unread_messages(user_id)
+    local chat_ids = box.space.chat_participants.index.participant_index:select({
+        uuid.fromstr(user_id)})
+    local batch = {}
+    for _, chat_id in pairs(chat_ids) do
+        local msg_id = box.space.unread_msgs.index.chat_id_index:get{chat_id}
+        local message = bos.space.messages.index.msg_index:get(msg_id)
+        if message['sender_id']:str() ~= user_id then
+            table.insert(batch, {
+                message['chat_id']:str(),
+                message['sender_id']:str(),
+                message['payload'],
+                message['created_at'],
+            })
+        end
+    end
+    return batch
+end
+
 -- create_chat creates a chat for passed users, the number of users is (seems) not limited
 rawset(_G, 'create_chat', queue.create_chat)
 -- add_user_to_chat just adds a user to the members of chat
@@ -239,8 +282,11 @@ rawset(_G, 'put', queue.put)
 -- get all unread messages
 rawset(_G, 'take_msgs', queue.take_new_messages_from_space)
 
--- returns a list of chats with new unread messages
-rawset(_G, 'fetch_all_chats_upd', queue.fetch_chat_list_update_for_all_users)
+-- returns a list of last messages of all chats
+rawset(_G, 'fetch_all_chat_last_msgs', queue.fetch_last_chat_messages_for_all_users)
+
+-- returns a list of unread messages
+rawset(_G, 'fetch_unread_messages', queue.fetch_unread_messages)
 
 rawset(_G, 'flush_msgs', queue.flush_all_msgs)
 rawset(_G, 'flush_chats_participants', queue.flush_chats_participants)
@@ -252,7 +298,7 @@ box.schema.user.create('test', {password = 'test', if_not_exists = true})
 box.schema.user.grant('test', 'execute', 'universe', nil, {if_not_exists=true})
 box.schema.user.grant('test', 'read,write', 'space', 'messages', {if_not_exists=true})
 box.schema.user.grant('test', 'read,write', 'space', 'chat_participants', {if_not_exists=true})
-box.schema.user.grant('test', 'read,write', 'space', 'chats_upd', {if_not_exists=true})
+box.schema.user.grant('test', 'read,write', 'space', 'chat_last_msgs', {if_not_exists=true})
 
 return queue
 

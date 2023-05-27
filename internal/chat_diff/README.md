@@ -1,0 +1,4 @@
+** Chat diff service
+
+** Idea
+
