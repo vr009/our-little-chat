@@ -1,5 +1,7 @@
 local fiber = require('fiber')
 local uuid = require('uuid')
+local log = require('log')
+log.cfg{ level='debug', log='tarantool.log'}
 
 box.cfg{
     listen = 3301,
@@ -62,7 +64,7 @@ function queue.create_chat(users, chat_id)
 
     local chat = box.space.chat_participants.index.chat_id_index:select({ uuid.fromstr(chat_id) })
     if chat[1] ~= nil then
-        print('chat exists')
+        log.info('chat exists')
         return
     end
 
@@ -71,14 +73,14 @@ function queue.create_chat(users, chat_id)
         box.space.chat_participants:insert({
             uuid.fromstr(user_id),
             uuid.fromstr(chat_id),
-            0,
+            nil,
         })
     end
     return {chat_id}
 end
 
 function queue.add_user_to_chat(chat_id, user_id)
-    box.space.chat_participants:replace({user_id, chat_id, 0})
+    box.space.chat_participants:replace({user_id, chat_id, nil})
 end
 
 function queue.get_members(chat_id)
@@ -94,9 +96,9 @@ end
 --c5f0ae14-d06b-4ffd-9bcd-6df01243a9c5, 62391bd9-157c-4513-8e7c-c082e00d2b7e, 61f98c94-de3c-491a-b9c7-1ea214b3ec13
 function queue.put(chat_id, sender_id, payload)
     local res_chat_id = box.space.chat_participants.index.participant_index:select({ uuid.fromstr(sender_id), uuid.fromstr(chat_id) })[1]
-    print(res_chat_id)
+    log.info(res_chat_id)
     if res_chat_id == nil then
-        print('doesnt exist')
+        log.info('doesnt exist')
         return
     end
 
@@ -119,10 +121,9 @@ function queue.put(chat_id, sender_id, payload)
         payload, created_at}
 
     if res ~= nil then
-        print('ok')
+        log.error({ 'failed to put a message', chat_id, msg_id:str(), sender_id, payload, created_at})
         return{chat_id, msg_id:str(), sender_id, payload, created_at}
     end
-    print('nok')
     return res
 end
 
@@ -154,7 +155,7 @@ function queue.take_new_messages_from_space(chat_id, receiver_id)
                 message['payload'],
                 message['created_at'],
             })
-            print('found! : ', message[1]:str(), message[2]:str(), message[3]:str(), message[4], message[5])
+            log.info('found! : ', message[1]:str(), message[2]:str(), message[3]:str(), message[4], message[5])
             last_message_id = message['msg_id']
         end
     end
