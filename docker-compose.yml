@@ -8,17 +8,17 @@ services:
     ports:
       - 3301:3301
 
-#  chat-diff-service:
-#    build:
-#      context: .
-#      dockerfile: deployments/chat_diff.Dockerfile
-#    environment:
-#      CHAT_DIFF_CONFIG: configs/.
-#    command: ./chat-diff-service
-#    ports:
-#      - 8081:8081
-#    depends_on:
-#      - message-core
+  chat-diff:
+    build:
+      context: .
+      dockerfile: deployments/chat_diff.Dockerfile
+    environment:
+      CHAT_DIFF_CONFIG: configs/.
+    command: ./chat-diff-service
+    ports:
+      - 8081:8081
+    depends_on:
+      - message-core
 
   flusher:
     build:
