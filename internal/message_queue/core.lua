@@ -107,18 +107,14 @@ end
 --chat_id, sender_id, receiver_id, payload
 --c5f0ae14-d06b-4ffd-9bcd-6df01243a9c5, 62391bd9-157c-4513-8e7c-c082e00d2b7e, 61f98c94-de3c-491a-b9c7-1ea214b3ec13
 function queue.put(chat_id, sender_id, payload)
-    local res_chat_id = box.space.chat_participants.index.participant_index:select({ uuid.fromstr(sender_id), uuid.fromstr(chat_id) })[1]
-    print(res_chat_id)
-    if res_chat_id == nil then
-        print('doesnt exist')
-        return
-    end
+    print('start')
 
     local msg_id = uuid.new()
     local created_at = fiber.time()
 
+    print('put before 0')
     -- we put the id of the last message for chat list update
-    box.space.chat_last_msgs:replace{
+    box.space.chat_last_msgs:put{
         uuid.fromstr(chat_id),
         uuid.fromstr(sender_id),
         msg_id,
@@ -126,12 +122,15 @@ function queue.put(chat_id, sender_id, payload)
         created_at,
     }
 
+    print('put before')
+    print('put before', uuid.fromstr(chat_id), msg_id, uuid.fromstr(sender_id))
     -- replace an unread message in the chat
-    box.space.unread_msgs:replace{
+    box.space.unread_msgs:put{
         uuid.fromstr(chat_id),
         msg_id,
         uuid.fromstr(sender_id)
     }
+    print('put ok')
 
     local res = box.space.messages:insert{
         uuid.fromstr(chat_id),
@@ -178,10 +177,20 @@ function queue.take_new_messages_from_space(chat_id, receiver_id)
         end
     end
 
+    if next(batch) == nil then
+        return batch
+    end
+
     -- delete message from unread messages
-    box.space.unread_msgs:delete{
-        uuid.fromstr(chat_id),
-    }
+    local msg = box.space.unread_msgs:get{uuid.fromstr(chat_id)}
+    if msg ~= null then
+        if msg['sender_id'] ~= receiver_id then
+            box.space.unread_msgs:delete{
+                uuid.fromstr(chat_id),
+            }
+            print('deleted')
+        end
+    end
 
     -- update the info about a user that has read the messages from chat
     box.space.chat_participants:replace({
@@ -251,12 +260,15 @@ end
 
 -- this function returns all unread messages for a user
 function queue.fetch_unread_messages(user_id)
-    local chat_ids = box.space.chat_participants.index.participant_index:select({
+    local chats = box.space.chat_participants.index.participant_index:select({
         uuid.fromstr(user_id)})
     local batch = {}
-    for _, chat_id in pairs(chat_ids) do
-        local msg_id = box.space.unread_msgs.index.chat_id_index:get{chat_id}
-        local message = bos.space.messages.index.msg_index:get(msg_id)
+    for _, chat in pairs(chats) do
+        print('0', chat['chat_id'])
+        local msg_id = box.space.unread_msgs.index.chat_id_index:get{chat['chat_id']}
+        print('1', msg_id[2])
+        local message = box.space.messages.index.msg_index:get(msg_id[2])
+        print(message)
         if message['sender_id']:str() ~= user_id then
             table.insert(batch, {
                 message['chat_id']:str(),
@@ -265,6 +277,10 @@ function queue.fetch_unread_messages(user_id)
                 message['payload'],
                 message['created_at'],
             })
+            box.space.unread_msgs:delete{
+                chat['chat_id'],
+            }
+            print('deleted')
         end
     end
     return batch
