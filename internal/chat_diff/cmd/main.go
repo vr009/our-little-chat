@@ -55,13 +55,11 @@ func main() {
 	defer conn.Close()
 	repo := repo2.NewTarantoolRepo(conn)
 	chatManager := usecase.NewChatManager(repo)
-	chatUsecase := usecase.NewUsecase(repo)
-	tokenResolver := usecase.NewAuthResolver()
-	chatServer := delivery.NewChatDiffService(chatUsecase, chatManager, tokenResolver)
+	chatServer := delivery.NewChatDiffService(chatManager)
 
 	go chatManager.Work()
 
-	http.HandleFunc("/chatdiff/ws", func(w http.ResponseWriter, r *http.Request) {
+	http.HandleFunc("/chat/diff/ws", func(w http.ResponseWriter, r *http.Request) {
 		chatServer.WSServe(w, r)
 	})
 

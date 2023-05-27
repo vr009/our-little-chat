@@ -46,7 +46,7 @@ func (ch *ChatItem) DecodeMsgpack(d *msgpack.Decoder) error {
 		return err
 	}
 
-	ch.LastMessage, _ = d.DecodeFloat64()
 	//timestamp
+	ch.LastMessage, _ = d.DecodeFloat64()
 	return nil
 }
