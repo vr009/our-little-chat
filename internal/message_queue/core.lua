@@ -261,6 +261,7 @@ function queue.fetch_unread_messages(user_id)
             table.insert(batch, {
                 message['chat_id']:str(),
                 message['sender_id']:str(),
+                message['msg_id']:str(),
                 message['payload'],
                 message['created_at'],
             })
@@ -299,6 +300,7 @@ box.schema.user.grant('test', 'execute', 'universe', nil, {if_not_exists=true})
 box.schema.user.grant('test', 'read,write', 'space', 'messages', {if_not_exists=true})
 box.schema.user.grant('test', 'read,write', 'space', 'chat_participants', {if_not_exists=true})
 box.schema.user.grant('test', 'read,write', 'space', 'chat_last_msgs', {if_not_exists=true})
+box.schema.user.grant('test', 'read,write', 'space', 'unread_msgs', {if_not_exists=true})
 
 return queue
 

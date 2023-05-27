@@ -9,7 +9,8 @@ import (
 	"time"
 
 	"our-little-chatik/internal/chat_diff/internal"
-	"our-little-chatik/internal/chat_diff/internal/models"
+	models2 "our-little-chatik/internal/chat_diff/internal/models"
+	"our-little-chatik/internal/models"
 
 	"github.com/gorilla/websocket"
 )
@@ -39,27 +40,24 @@ const (
 )
 
 type ChatDiffService struct {
-	uc            internal.ChatDiffUsecase
-	manager       internal.Manager
-	tokenResolver internal.TokenResolver
+	manager internal.Manager
 }
 
-func NewChatDiffService(uc internal.ChatDiffUsecase, manager internal.Manager, tokenResolver internal.TokenResolver) *ChatDiffService {
-	return &ChatDiffService{uc: uc, manager: manager, tokenResolver: tokenResolver}
+func NewChatDiffService(manager internal.Manager) *ChatDiffService {
+	return &ChatDiffService{manager: manager}
 }
 
 type WebSocketClient struct {
-	conn          *websocket.Conn
-	currentUser   *models.ChatUser
-	manager       internal.Manager
-	tokenResolver internal.TokenResolver
+	conn        *websocket.Conn
+	currentUser *models2.ChatDiffUser
+	manager     internal.Manager
 
 	// Buffered channel of outbound messages.
 	send chan []byte
 }
 
-func newWebSocketClient(conn *websocket.Conn, manager internal.Manager, tokenResolver internal.TokenResolver) *WebSocketClient {
-	client := &WebSocketClient{conn: conn, manager: manager, tokenResolver: tokenResolver}
+func newWebSocketClient(conn *websocket.Conn, manager internal.Manager) *WebSocketClient {
+	client := &WebSocketClient{conn: conn, manager: manager}
 	return client
 }
 
@@ -129,25 +127,19 @@ func (ws *WebSocketClient) read() {
 			}
 			break
 		}
-		authInfo := &models.Auth{}
+		user := &models.User{}
 		message = bytes.TrimSpace(bytes.Replace(message, newline, space, -1))
-		err = json.Unmarshal(message, authInfo)
+		err = json.Unmarshal(message, user)
 		if err != nil {
 			log.Fatalf("failed to unmarshal message")
 		}
 
-		chatUser := &models.ChatUser{}
-		chatUser.Updates = make(chan []models.ChatItem)
-		id, err := ws.tokenResolver.ResolveToken(authInfo.Token)
-		if err != nil {
-			log.Fatalf("failed to resolve token")
-		}
-		chatUser.ID = id
+		chatUser := &models2.ChatDiffUser{User: *user}
 
 		ws.currentUser = ws.manager.AddChatUser(chatUser)
 
 		fmt.Println("returned", ws.currentUser, &ws.currentUser)
-		log.Println(authInfo)
+		log.Println(user)
 	}
 }
 
@@ -158,7 +150,7 @@ func (server *ChatDiffService) WSServe(w http.ResponseWriter, r *http.Request) {
 		log.Fatal(err)
 		return
 	}
-	client := newWebSocketClient(conn, server.manager, server.tokenResolver)
+	client := newWebSocketClient(conn, server.manager)
 	go client.write()
 	go client.read()
 }
