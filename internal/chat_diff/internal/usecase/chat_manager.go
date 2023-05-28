@@ -35,6 +35,16 @@ func (manager *ChatManager) AddChatUser(user *models2.ChatDiffUser) *models2.Cha
 	return u
 }
 
+func (manager *ChatManager) DequeueChatUser(chat *models2.ChatDiffUser) {
+	for e := manager.users.Front(); e != nil; e = e.Next() {
+		ch := e.Value.(*models2.ChatDiffUser)
+		id := ch.User.UserID
+		if id == chat.User.UserID {
+			manager.users.Remove(e)
+		}
+	}
+}
+
 func (manager *ChatManager) Work() {
 	for {
 		for el := manager.users.Front(); el != nil; el = el.Next() {
