@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"os"
 	"testing"
@@ -14,10 +15,11 @@ import (
 )
 
 type testItem struct {
-	path         string
-	method       string
-	prepareBody  func() []byte
-	expectedCode int
+	path          string
+	method        string
+	prepareBody   func() []byte
+	expectedCode  int
+	checkResponse func(resp *http.Response) error
 }
 
 func TestAPI(t *testing.T) {
@@ -27,6 +29,73 @@ func TestAPI(t *testing.T) {
 		testCookie *http.Cookie
 		client     http.Client
 	}{
+		{
+			name: "signup get all users",
+			tasks: []testItem{
+				{
+					path:   "/api/v1/auth/signup",
+					method: "POST",
+					prepareBody: func() []byte {
+						person := models.UserData{
+							User: models2.User{
+								Name:     "test5",
+								Surname:  "test5",
+								Nickname: "test5",
+								Password: "test5",
+							},
+						}
+						body, _ := json.Marshal(person)
+						return body
+					},
+					expectedCode: http.StatusSeeOther,
+					checkResponse: func(resp *http.Response) error {
+						return nil
+					},
+				},
+				{
+					path:   "/api/v1/auth/signup",
+					method: "POST",
+					prepareBody: func() []byte {
+						person := models.UserData{
+							User: models2.User{
+								Name:     "test6",
+								Surname:  "test6",
+								Nickname: "test6",
+								Password: "test6",
+							},
+						}
+						body, _ := json.Marshal(person)
+						return body
+					},
+					expectedCode: http.StatusSeeOther,
+					checkResponse: func(resp *http.Response) error {
+						return nil
+					},
+				},
+				{
+					path:   "/api/v1/user/all",
+					method: "GET",
+					prepareBody: func() []byte {
+						return nil
+					},
+
+					expectedCode: http.StatusOK,
+					checkResponse: func(resp *http.Response) error {
+						users := []models.UserData{}
+						err := json.NewDecoder(resp.Body).Decode(&users)
+						if len(users) != 2 {
+							return fmt.Errorf("not enough users found")
+						}
+						for _, user := range users {
+							if user.Nickname == "" {
+								return fmt.Errorf("empty nickname by a found user")
+							}
+						}
+						return err
+					},
+				},
+			},
+		},
 		{
 			name: "signup login logout logout",
 			tasks: []testItem{
@@ -46,6 +115,9 @@ func TestAPI(t *testing.T) {
 						return body
 					},
 					expectedCode: http.StatusSeeOther,
+					checkResponse: func(resp *http.Response) error {
+						return nil
+					},
 				},
 				{
 					path:   "/api/v1/auth/login",
@@ -61,6 +133,9 @@ func TestAPI(t *testing.T) {
 						return body
 					},
 					expectedCode: http.StatusSeeOther,
+					checkResponse: func(resp *http.Response) error {
+						return nil
+					},
 				},
 				{
 					path:   "/api/v1/auth/logout",
@@ -69,6 +144,9 @@ func TestAPI(t *testing.T) {
 						return nil
 					},
 					expectedCode: http.StatusSeeOther,
+					checkResponse: func(resp *http.Response) error {
+						return nil
+					},
 				},
 				{
 					path:   "/api/v1/auth/logout",
@@ -77,6 +155,9 @@ func TestAPI(t *testing.T) {
 						return nil
 					},
 					expectedCode: http.StatusBadRequest,
+					checkResponse: func(resp *http.Response) error {
+						return nil
+					},
 				},
 			},
 		},
@@ -99,6 +180,9 @@ func TestAPI(t *testing.T) {
 						return body
 					},
 					expectedCode: http.StatusSeeOther,
+					checkResponse: func(resp *http.Response) error {
+						return nil
+					},
 				},
 				{
 					path:   "/api/v1/auth/signup",
@@ -116,6 +200,9 @@ func TestAPI(t *testing.T) {
 						return body
 					},
 					expectedCode: http.StatusSeeOther,
+					checkResponse: func(resp *http.Response) error {
+						return nil
+					},
 				},
 				{
 					path:   "/api/v1/auth/signup",
@@ -133,6 +220,9 @@ func TestAPI(t *testing.T) {
 						return body
 					},
 					expectedCode: http.StatusBadRequest,
+					checkResponse: func(resp *http.Response) error {
+						return nil
+					},
 				},
 			},
 		},
@@ -155,6 +245,9 @@ func TestAPI(t *testing.T) {
 						return body
 					},
 					expectedCode: http.StatusSeeOther,
+					checkResponse: func(resp *http.Response) error {
+						return nil
+					},
 				},
 				{
 					path:   "/api/v1/user/me",
@@ -163,6 +256,9 @@ func TestAPI(t *testing.T) {
 						return nil
 					},
 					expectedCode: http.StatusOK,
+					checkResponse: func(resp *http.Response) error {
+						return nil
+					},
 				},
 			},
 		},
@@ -185,6 +281,9 @@ func TestAPI(t *testing.T) {
 						return body
 					},
 					expectedCode: http.StatusSeeOther,
+					checkResponse: func(resp *http.Response) error {
+						return nil
+					},
 				},
 				{
 					path:   "/api/v1/user/search?name=test1",
@@ -193,6 +292,17 @@ func TestAPI(t *testing.T) {
 						return nil
 					},
 					expectedCode: http.StatusOK,
+					checkResponse: func(resp *http.Response) error {
+						person := models.UserData{}
+						err := json.NewDecoder(resp.Body).Decode(&person)
+						if err != nil {
+							return err
+						}
+						if person.Nickname != "test4" {
+							return fmt.Errorf("wrong person returned: %v", person)
+						}
+						return nil
+					},
 				},
 			},
 		},
