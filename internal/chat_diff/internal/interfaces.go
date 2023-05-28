@@ -6,7 +6,7 @@ import (
 )
 
 type ChatDiffRepo interface {
-	FetchUpdates(user models.User) []models.ChatItem
+	FetchUpdates(user models2.User) []models.ChatItem
 }
 
 type Manager interface {

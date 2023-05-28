@@ -10,7 +10,6 @@ import (
 
 	"our-little-chatik/internal/chat_diff/internal"
 	models2 "our-little-chatik/internal/chat_diff/internal/models"
-	"our-little-chatik/internal/models"
 
 	"github.com/gorilla/websocket"
 )
@@ -127,7 +126,7 @@ func (ws *WebSocketClient) read() {
 			}
 			break
 		}
-		user := &models.User{}
+		user := &models2.User{}
 		message = bytes.TrimSpace(bytes.Replace(message, newline, space, -1))
 		err = json.Unmarshal(message, user)
 		if err != nil {

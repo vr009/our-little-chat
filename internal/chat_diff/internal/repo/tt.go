@@ -3,6 +3,7 @@ package repo
 import (
 	"fmt"
 
+	models2 "our-little-chatik/internal/chat_diff/internal/models"
 	"our-little-chatik/internal/models"
 
 	"github.com/tarantool/go-tarantool"
@@ -19,7 +20,7 @@ func NewTarantoolRepo(conn *tarantool.Connection) *TarantoolRepo {
 	return &TarantoolRepo{conn: conn}
 }
 
-func (tt *TarantoolRepo) FetchUpdates(user models.User) []models.ChatItem {
+func (tt *TarantoolRepo) FetchUpdates(user models2.User) []models.ChatItem {
 	conn := tt.conn
 	updates := []models.ChatItem{}
 
