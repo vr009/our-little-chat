@@ -2,6 +2,8 @@
 .PHONY: run migrate-Users migrate-Users-drop user-data-service-up start
 INDEX_PATH ?= temp/dist/index.html
 BRANCH := main
+USERS_DB_URL := 'postgres://postgres:admin@0.0.0.0:5433/users?sslmode=disable'
+USERS_MIGRATIONS_PATH := ./internal/user_data/db/migrations
 
 ${INDEX_PATH} frontend:
 	mkdir temp && cd temp && git clone https://github.com/vr009/our_little_chatik_frontend.git --recursive &&\
@@ -14,10 +16,7 @@ run:
 	docker-compose up --remove-orphans --build
 
 migrate-users:
-	migrate -path ./internal/user_data/db/migrations -database 'postgres://postgres:admin@0.0.0.0:5433/users?sslmode=disable' up
+	migrate -path ${USERS_MIGRATIONS_PATH} -database ${USERS_DB_URL} up
 
 migrate-users-drop:
-	migrate -path ./internal/user_data/db/migrations -database 'postgres://postgres:adminy@0.0.0.0:5433/users?sslmode=disable' drop
-
-user-data-service-up:
-	docker-compose build && docker-compose up
+	migrate -path ${USERS_MIGRATIONS_PATH} -database ${USERS_DB_URL} drop
