@@ -53,6 +53,8 @@ type WebSocketClient struct {
 
 	// Buffered channel of outbound messages.
 	send chan []byte
+
+	disconnected chan struct{}
 }
 
 func newWebSocketClient(conn *websocket.Conn, manager internal.Manager) *WebSocketClient {
@@ -98,6 +100,8 @@ func (ws *WebSocketClient) write() {
 			if err := ws.conn.WriteMessage(websocket.PingMessage, nil); err != nil {
 				return
 			}
+		case <-ws.disconnected:
+			return
 		}
 	}
 }
@@ -110,6 +114,8 @@ func (ws *WebSocketClient) write() {
 func (ws *WebSocketClient) read() {
 	defer func() {
 		ws.conn.Close()
+		ws.disconnected <- struct{}{}
+		ws.manager.DequeueChatUser(ws.currentUser)
 	}()
 	ws.conn.SetReadLimit(maxMessageSize)
 	ws.conn.SetReadDeadline(time.Now().Add(pongWait))
@@ -150,6 +156,7 @@ func (server *ChatDiffService) WSServe(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	client := newWebSocketClient(conn, server.manager)
+	client.disconnected = make(chan struct{})
 	go client.write()
 	go client.read()
 }

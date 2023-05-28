@@ -12,4 +12,5 @@ type ChatDiffRepo interface {
 type Manager interface {
 	Work()
 	AddChatUser(user *models2.ChatDiffUser) *models2.ChatDiffUser
+	DequeueChatUser(chat *models2.ChatDiffUser)
 }
