@@ -69,15 +69,17 @@ func main() {
 	// Administration API
 	router.HandleFunc("/api/v1/user/new", userDataHandler.CreateUser).Methods("POST")
 	router.HandleFunc("/api/v1/user/all", userDataHandler.GetAllUsers).Methods("GET")
-	router.HandleFunc("/api/v1/user/me", userDataHandler.GetUser).Methods("GET")
 	router.HandleFunc("/api/v1/user", userDataHandler.UpdateUser).Methods("POST")
 	router.HandleFunc("/api/v1/user", userDataHandler.DeleteUser).Methods("DELETE")
 	router.HandleFunc("/api/v1/user/auth", userDataHandler.CheckUserData).Methods("POST")
+
+	// Common API
+	router.HandleFunc("/api/v1/user/me", userDataHandler.GetUser).Methods("GET")
 	router.HandleFunc("/api/v1/user/search", userDataHandler.FindUser).Methods("GET")
 
 	// Auth API
 	router.HandleFunc("/api/v1/auth/signup", authHandler.SignUp).Methods("POST")
-	router.HandleFunc("/api/v1/auth/signin", authHandler.Login).Methods("POST")
+	router.HandleFunc("/api/v1/auth/login", authHandler.Login).Methods("POST")
 	router.HandleFunc("/api/v1/auth/logout", authHandler.Logout).Methods("DELETE")
 
 	srv := &http.Server{Handler: router, Addr: ":" + strconv.Itoa(appConfig.Port)}

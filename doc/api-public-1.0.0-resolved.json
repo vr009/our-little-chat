@@ -62,7 +62,7 @@
         }
       }
     },
-    "/auth/signin": {
+    "/auth/login": {
       "post": {
         "summary": "Sign in a user",
         "requestBody": {

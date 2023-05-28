@@ -1,0 +1,28 @@
+version: '3.9'
+
+services:
+  test-user-data:
+    build:
+      context: .
+      dockerfile: ./deployments/user_data.Dockerfile
+    environment:
+      USER_DATA_CONFIG: configs/.
+      JWT_SIGNED_KEY: "test"
+      DATABASE_URL: "user=service password=test host=test-db-user-data port=5432 dbname=users"
+    command: ./user-data-service
+    ports:
+      - 8086:8086
+    depends_on:
+      - test-db-user-data
+
+  test-db-user-data:
+    image: postgres:13.3
+    environment:
+      POSTGRES_DB: users
+      POSTGRES_USER: service
+      POSTGRES_PASSWORD: test
+    volumes:
+      - ./internal/user_data/db/migrations:/docker-entrypoint-initdb.d
+    restart: unless-stopped
+    ports:
+      - 5432:5432
