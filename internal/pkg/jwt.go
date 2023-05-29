@@ -8,7 +8,7 @@ import (
 	"our-little-chatik/internal/models"
 
 	"github.com/golang-jwt/jwt/v5"
-	"github.com/golang/glog"
+	"golang.org/x/exp/slog"
 )
 
 func GetSignedKey() (string, error) {
@@ -39,7 +39,7 @@ func GenerateJWTToken(user models.User, expireCookie bool) (string, error) {
 
 	tokenString, err := token.SignedString([]byte(mySignedKey))
 	if err != nil {
-		glog.Error("generating JWT Token failed")
+		slog.Error("generating JWT Token failed")
 		return "", err
 	}
 

@@ -13,10 +13,10 @@ import (
 	"our-little-chatik/internal/user_data/internal/repo"
 	"our-little-chatik/internal/user_data/internal/usecase"
 
-	"github.com/golang/glog"
 	"github.com/gorilla/mux"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/spf13/viper"
+	"golang.org/x/exp/slog"
 )
 
 type AppConfig struct {
@@ -51,11 +51,13 @@ func main() {
 		log.Fatal(err)
 	}
 
+	slog.SetDefault(slog.New(slog.NewTextHandler(os.Stderr, nil)))
+
 	pool, err := pgxpool.New(context.Background(), connString)
 	if err != nil {
 		log.Fatal("ERROR: : " + err.Error())
 	} else {
-		glog.Infof("Connected to postgres: %s", connString)
+		slog.Info("Connected to postgres: %s", connString)
 	}
 	defer pool.Close()
 

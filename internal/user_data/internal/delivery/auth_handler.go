@@ -8,7 +8,7 @@ import (
 	"our-little-chatik/internal/user_data/internal"
 	"our-little-chatik/internal/user_data/internal/models"
 
-	"github.com/golang/glog"
+	"golang.org/x/exp/slog"
 )
 
 type AuthHandler struct {
@@ -26,13 +26,12 @@ func (h *AuthHandler) SignUp(w http.ResponseWriter, r *http.Request) {
 
 	err := json.NewDecoder(r.Body).Decode(&person)
 	if err != nil {
-		glog.Errorf(err.Error())
+		slog.Error(err.Error())
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
 
-	glog.Infof("Unmarshalled: %v", person)
-
+	slog.Info("Unmarshalled:", "person", slog.AnyValue(person))
 	newPerson, errCode := h.useCase.CreateUser(person)
 	if errCode != models.OK {
 		handleErrorCode(errCode, w)
@@ -41,7 +40,7 @@ func (h *AuthHandler) SignUp(w http.ResponseWriter, r *http.Request) {
 
 	token, err := pkg.GenerateJWTToken(newPerson.User, false)
 	if err != nil {
-		glog.Error(err)
+		slog.Error(err.Error())
 		handleErrorCode(models.InternalError, w)
 		return
 	}
@@ -55,12 +54,12 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 
 	err := json.NewDecoder(r.Body).Decode(&person)
 	if err != nil {
-		glog.Errorf(err.Error())
+		slog.Error(err.Error())
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
 
-	glog.Infof("Unmarshalled: %v", person)
+	slog.Info("Unmarshalled:", "person", slog.AnyValue(person))
 
 	usr, code := h.useCase.CheckUser(person)
 	if code != models.OK {

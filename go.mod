@@ -12,5 +12,6 @@ require (
 	github.com/spf13/viper v1.15.0
 	github.com/tarantool/go-tarantool v1.10.0
 	golang.org/x/crypto v0.6.0
+	golang.org/x/exp v0.0.0-20230522175609-2e198f4a06a1 // indirect
 	gopkg.in/vmihailenco/msgpack.v2 v2.9.2
 )

@@ -9,7 +9,7 @@ import (
 	"our-little-chatik/internal/user_data/internal"
 	"our-little-chatik/internal/user_data/internal/models"
 
-	"github.com/golang/glog"
+	"golang.org/x/exp/slog"
 )
 
 type UserdataHandler struct {
@@ -35,7 +35,7 @@ func (udh *UserdataHandler) GetAllUsers(w http.ResponseWriter, r *http.Request) 
 		_, err = w.Write(body)
 
 		if err != nil {
-			glog.Errorf(err.Error())
+			slog.Error(err.Error())
 			return
 		}
 		return
@@ -48,12 +48,12 @@ func (udh *UserdataHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
 
 	err := json.NewDecoder(r.Body).Decode(&person)
 	if err != nil {
-		glog.Errorf(err.Error())
+		slog.Error(err.Error())
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
 
-	glog.Infof("Unmarshalled: %v", person)
+	slog.Info("Unmarshalled:", "person", slog.AnyValue(person))
 
 	newPerson, errCode := udh.useCase.CreateUser(person)
 	if errCode != models.OK {
@@ -61,11 +61,11 @@ func (udh *UserdataHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	glog.Infof("Created: %v", newPerson)
+	slog.Info("Created: ", slog.AnyValue(newPerson))
 
 	buf, err := json.Marshal(&newPerson)
 	if err != nil {
-		glog.Errorf(err.Error())
+		slog.Error(err.Error())
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
@@ -73,7 +73,7 @@ func (udh *UserdataHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	_, err = w.Write(buf)
 	if err != nil {
-		glog.Errorf(err.Error())
+		slog.Error(err.Error())
 		return
 	}
 }
@@ -89,7 +89,7 @@ func (udh *UserdataHandler) GetUser(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err != nil {
-		glog.Errorf(err.Error())
+		slog.Error(err.Error())
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
@@ -107,7 +107,7 @@ func (udh *UserdataHandler) GetUser(w http.ResponseWriter, r *http.Request) {
 	a, err := json.Marshal(&s)
 
 	if err != nil {
-		glog.Errorf(err.Error())
+		slog.Error(err.Error())
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
@@ -116,7 +116,7 @@ func (udh *UserdataHandler) GetUser(w http.ResponseWriter, r *http.Request) {
 	_, err = w.Write(a)
 
 	if err != nil {
-		glog.Errorf(err.Error())
+		slog.Error(err.Error())
 		return
 	}
 }
@@ -127,7 +127,7 @@ func (udh *UserdataHandler) DeleteUser(w http.ResponseWriter, r *http.Request) {
 	err := json.NewDecoder(r.Body).Decode(&person)
 
 	if err != nil {
-		glog.Errorf(err.Error())
+		slog.Error(err.Error())
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
@@ -148,7 +148,7 @@ func (udh *UserdataHandler) UpdateUser(w http.ResponseWriter, r *http.Request) {
 	err := json.NewDecoder(r.Body).Decode(&person)
 
 	if err != nil {
-		glog.Errorf(err.Error())
+		slog.Error(err.Error())
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
@@ -163,7 +163,7 @@ func (udh *UserdataHandler) UpdateUser(w http.ResponseWriter, r *http.Request) {
 	a, err := json.Marshal(&s)
 
 	if err != nil {
-		glog.Errorf(err.Error())
+		slog.Error(err.Error())
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
@@ -172,7 +172,7 @@ func (udh *UserdataHandler) UpdateUser(w http.ResponseWriter, r *http.Request) {
 	_, err = w.Write(a)
 
 	if err != nil {
-		glog.Errorf(err.Error())
+		slog.Error(err.Error())
 		return
 	}
 
@@ -184,7 +184,7 @@ func (udh *UserdataHandler) CheckUserData(w http.ResponseWriter, r *http.Request
 	err := json.NewDecoder(r.Body).Decode(&person)
 
 	if err != nil {
-		glog.Errorf(err.Error())
+		slog.Error(err.Error())
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
@@ -212,7 +212,7 @@ func (udh *UserdataHandler) FindUser(w http.ResponseWriter, r *http.Request) {
 	if name == "" {
 		w.WriteHeader(http.StatusNotFound)
 	}
-	glog.Infof("Searching for %s", name)
+	slog.Info("Searching for " + name)
 	users, errCode := udh.useCase.FindUser(name)
 	if errCode != models.OK {
 		handleErrorCode(errCode, w)
@@ -220,7 +220,7 @@ func (udh *UserdataHandler) FindUser(w http.ResponseWriter, r *http.Request) {
 	}
 	body, err := json.Marshal(users)
 	if err != nil {
-		glog.Errorf("Failed to marshal body for users: %s", err)
+		slog.Error("Failed to marshal body for users: " + err.Error())
 		handleErrorCode(models.InternalError, w)
 		return
 	}
