@@ -424,3 +424,43 @@ func BenchmarkAPILoginSeq(b *testing.B) {
 		}
 	}
 }
+
+func BenchmarkTestAPIParallel(b *testing.B) {
+	prepareBody := func() []byte {
+		person := models.UserData{
+			User: models2.User{
+				Name:     "test1",
+				Surname:  "test1",
+				Nickname: "test1",
+				Password: "test1",
+			},
+		}
+		body, _ := json.Marshal(person)
+		return body
+	}
+
+	b.RunParallel(func(pb *testing.PB) {
+		for pb.Next() {
+			client := http.Client{}
+			host := os.Getenv("TEST_HOST")
+			req, err := http.NewRequest("POST", host+"/api/v1/auth/login",
+				bytes.NewBuffer(prepareBody()))
+			if err != nil {
+				b.Fatalf("Failed to prepare a request: %s", err)
+			}
+
+			client.CheckRedirect = func(req *http.Request, via []*http.Request) error {
+				return http.ErrUseLastResponse
+			}
+			resp, err := client.Do(req)
+			if err != nil {
+				b.Fatalf("Failed while performing a request: %s", err)
+			}
+
+			if resp.StatusCode != http.StatusSeeOther {
+				b.Fatalf("returned status code is wrong %d, expected %d",
+					resp.StatusCode, http.StatusSeeOther)
+			}
+		}
+	})
+}

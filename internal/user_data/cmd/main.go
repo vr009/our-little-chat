@@ -15,7 +15,7 @@ import (
 
 	"github.com/golang/glog"
 	"github.com/gorilla/mux"
-	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/spf13/viper"
 )
 
@@ -51,15 +51,16 @@ func main() {
 		log.Fatal(err)
 	}
 
-	conn, err := pgx.Connect(context.Background(), connString)
+	pool, err := pgxpool.New(context.Background(), connString)
 
 	if err != nil {
 		log.Fatal("ERROR: : " + err.Error())
 	} else {
 		glog.Infof("Connected to postgres: %s", connString)
 	}
+	defer pool.Close()
 
-	personRepo := repo.NewPersonRepo(conn)
+	personRepo := repo.NewPersonRepo(pool)
 	useCase := usecase.NewUserdataUseCase(personRepo)
 	userDataHandler := delivery.NewUserdataHandler(useCase)
 	authHandler := delivery.NewAuthHandler(useCase)

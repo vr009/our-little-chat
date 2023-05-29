@@ -7,7 +7,7 @@ import (
 	"our-little-chatik/internal/user_data/internal/models"
 
 	"github.com/golang/glog"
-	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 const (
@@ -22,18 +22,18 @@ const (
 )
 
 type PersonRepo struct {
-	conn *pgx.Conn
+	pool *pgxpool.Pool
 }
 
-func NewPersonRepo(conn *pgx.Conn) *PersonRepo {
+func NewPersonRepo(pool *pgxpool.Pool) *PersonRepo {
 	return &PersonRepo{
-		conn: conn,
+		pool: pool,
 	}
 }
 
 func (pr *PersonRepo) CreateUser(person models.UserData) (models.UserData, models.StatusCode) {
 	glog.Infof("Creating user %s", person)
-	_, err := pr.conn.Exec(context.Background(),
+	_, err := pr.pool.Exec(context.Background(),
 		InsertQuery,
 		person.UserID,
 		person.Nickname,
@@ -54,7 +54,7 @@ func (pr *PersonRepo) CreateUser(person models.UserData) (models.UserData, model
 }
 
 func (pr *PersonRepo) DeleteUser(person models.UserData) models.StatusCode {
-	_, err := pr.conn.Exec(context.Background(), DeleteQuery, person.UserID)
+	_, err := pr.pool.Exec(context.Background(), DeleteQuery, person.UserID)
 	if err != nil {
 		return models.InternalError
 	}
@@ -75,7 +75,7 @@ func (pr *PersonRepo) UpdateUser(personNew models.UserData) (models.UserData, mo
 		personOld.LastAuth = personNew.LastAuth
 	}
 
-	_, err := pr.conn.Exec(context.Background(), UpdateQuery, personNew.Nickname, &personNew.Name, &personNew.Surname, personNew.LastAuth, personNew.Registered, personNew.Avatar, personNew.ContactList, personNew.UserID)
+	_, err := pr.pool.Exec(context.Background(), UpdateQuery, personNew.Nickname, &personNew.Name, &personNew.Surname, personNew.LastAuth, personNew.Registered, personNew.Avatar, personNew.ContactList, personNew.UserID)
 	if err != nil {
 		return personOld, models.BadRequest
 	}
@@ -84,7 +84,7 @@ func (pr *PersonRepo) UpdateUser(personNew models.UserData) (models.UserData, mo
 }
 
 func (pr *PersonRepo) GetUser(person models.UserData) (models.UserData, models.StatusCode) {
-	rows := pr.conn.QueryRow(context.Background(), GetQuery, person.UserID)
+	rows := pr.pool.QueryRow(context.Background(), GetQuery, person.UserID)
 	glog.Warningf("SEARCHING FOR %v", person.UserID)
 	err := rows.Scan(&person.UserID, &person.Nickname, &person.Name, &person.Surname, &person.LastAuth, &person.Registered, &person.Avatar, &person.ContactList)
 	if err != nil {
@@ -95,7 +95,7 @@ func (pr *PersonRepo) GetUser(person models.UserData) (models.UserData, models.S
 }
 
 func (pr *PersonRepo) GetUserForItsName(person models.UserData) (models.UserData, models.StatusCode) {
-	rows := pr.conn.QueryRow(context.Background(), GetNameQuery, person.Nickname)
+	rows := pr.pool.QueryRow(context.Background(), GetNameQuery, person.Nickname)
 	err := rows.Scan(&person.UserID, &person.Nickname, &person.Name, &person.Surname, &person.Password)
 	if err != nil {
 		glog.Errorf("user %v not found: %v", person, err)
@@ -105,10 +105,11 @@ func (pr *PersonRepo) GetUserForItsName(person models.UserData) (models.UserData
 }
 
 func (pr *PersonRepo) GetAllUsers() ([]models.UserData, models.StatusCode) {
-	rows, err := pr.conn.Query(context.Background(), ListQuery)
+	rows, err := pr.pool.Query(context.Background(), ListQuery)
 	if err != nil && err != sql.ErrNoRows {
 		return nil, models.InternalError
 	}
+	defer rows.Close()
 	list := make([]models.UserData, 0)
 	for rows.Next() {
 		person := models.UserData{}
@@ -119,11 +120,12 @@ func (pr *PersonRepo) GetAllUsers() ([]models.UserData, models.StatusCode) {
 }
 
 func (pr *PersonRepo) FindUser(name string) ([]models.UserData, models.StatusCode) {
-	rows, err := pr.conn.Query(context.Background(), FindUsersQuery, name)
+	rows, err := pr.pool.Query(context.Background(), FindUsersQuery, name)
 	if err != nil && err != sql.ErrNoRows {
 		glog.Errorf(err.Error())
 		return nil, models.InternalError
 	}
+	defer rows.Close()
 	list := make([]models.UserData, 0)
 	for rows.Next() {
 		person := models.UserData{}
