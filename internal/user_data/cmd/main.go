@@ -52,7 +52,6 @@ func main() {
 	}
 
 	pool, err := pgxpool.New(context.Background(), connString)
-
 	if err != nil {
 		log.Fatal("ERROR: : " + err.Error())
 	} else {
