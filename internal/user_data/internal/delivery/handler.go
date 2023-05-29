@@ -38,6 +38,7 @@ func (udh *UserdataHandler) GetAllUsers(w http.ResponseWriter, r *http.Request) 
 			glog.Errorf(err.Error())
 			return
 		}
+		return
 	}
 	w.WriteHeader(http.StatusBadRequest)
 }
@@ -220,6 +221,8 @@ func (udh *UserdataHandler) FindUser(w http.ResponseWriter, r *http.Request) {
 	body, err := json.Marshal(users)
 	if err != nil {
 		glog.Errorf("Failed to marshal body for users: %s", err)
+		handleErrorCode(models.InternalError, w)
+		return
 	}
 	w.WriteHeader(http.StatusOK)
 	w.Write(body)
