@@ -8,6 +8,7 @@ import (
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 const (
@@ -17,16 +18,16 @@ const (
 )
 
 type PostgresRepo struct {
-	conn *pgx.Conn
+	pool *pgxpool.Pool
 }
 
-func NewPostgresRepo(conn *pgx.Conn) *PostgresRepo {
-	return &PostgresRepo{conn: conn}
+func NewPostgresRepo(pool *pgxpool.Pool) *PostgresRepo {
+	return &PostgresRepo{pool: pool}
 }
 
 func (pr PostgresRepo) GetChatMessages(chat models2.Chat, opts models.Opts) ([]models.Message, error) {
 	ctx := context.Background()
-	rows, err := pr.conn.Query(ctx, GetMessagesQuery, chat.ChatID, opts.Page, opts.Limit)
+	rows, err := pr.pool.Query(ctx, GetMessagesQuery, chat.ChatID, opts.Page, opts.Limit)
 	if err != nil {
 		return nil, err
 	}
@@ -45,7 +46,7 @@ func (pr PostgresRepo) GetChatMessages(chat models2.Chat, opts models.Opts) ([]m
 
 func (pr PostgresRepo) FetchChatList(user models.User) ([]models.ChatItem, error) {
 	ctx := context.Background()
-	rows, err := pr.conn.Query(ctx, FetchChatListQuery, user.UserID)
+	rows, err := pr.pool.Query(ctx, FetchChatListQuery, user.UserID)
 	if err != nil {
 		return nil, err
 	}
@@ -73,7 +74,7 @@ func (pr PostgresRepo) InsertChat(chat models2.Chat) error {
 		})
 	}
 
-	err := pr.conn.SendBatch(ctx, batch).Close()
+	err := pr.pool.SendBatch(ctx, batch).Close()
 	if err != nil {
 		return err
 	}

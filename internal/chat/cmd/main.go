@@ -14,7 +14,7 @@ import (
 	"our-little-chatik/internal/chat/middleware"
 
 	"github.com/gorilla/mux"
-	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/spf13/viper"
 	"github.com/tarantool/go-tarantool"
 	"golang.org/x/exp/slog"
@@ -72,12 +72,13 @@ func main() {
 		panic(err)
 	}
 
-	conn, err := pgx.Connect(ctx, connStr)
+	pool, err := pgxpool.New(ctx, connStr)
 	if err != nil {
 		panic(err)
 	}
+	defer pool.Close()
 
-	repop := repo.NewPostgresRepo(conn)
+	repop := repo.NewPostgresRepo(pool)
 	repoTT := repo.NewTarantoolRepo(ttClient)
 	uc := usecase.NewChatUseCase(repop, repoTT)
 
