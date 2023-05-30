@@ -13,11 +13,11 @@ import (
 	"our-little-chatik/internal/chat/internal/usecase"
 	"our-little-chatik/internal/chat/middleware"
 
-	"github.com/golang/glog"
 	"github.com/gorilla/mux"
 	"github.com/jackc/pgx/v5"
 	"github.com/spf13/viper"
 	"github.com/tarantool/go-tarantool"
+	"golang.org/x/exp/slog"
 )
 
 type AppConfig struct {
@@ -55,7 +55,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	glog.V(2)
+	slog.SetDefault(slog.New(slog.NewTextHandler(os.Stderr, nil)))
 
 	ttAddr := appConfig.TT.Host + ":" + strconv.Itoa(appConfig.TT.Port)
 	ttOpts := tarantool.Opts{User: appConfig.TT.Username, Pass: appConfig.TT.Password}

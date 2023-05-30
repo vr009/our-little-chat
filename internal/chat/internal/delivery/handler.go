@@ -11,8 +11,8 @@ import (
 	"our-little-chatik/internal/models"
 	"our-little-chatik/internal/pkg"
 
-	"github.com/golang/glog"
 	"github.com/google/uuid"
+	"golang.org/x/exp/slog"
 )
 
 type ChatHandler struct {
@@ -29,7 +29,7 @@ func (c *ChatHandler) GetChatMessages(w http.ResponseWriter, r *http.Request) {
 	var err error
 	defer func() {
 		if err != nil {
-			glog.Error(err)
+			slog.Error(err.Error())
 		}
 	}()
 	_, err = pkg.AuthHook(r)
@@ -84,7 +84,7 @@ func (clh *ChatHandler) GetChatList(w http.ResponseWriter, r *http.Request) {
 	var err error
 	defer func() {
 		if err != nil {
-			glog.Error(err)
+			slog.Error(err.Error())
 		}
 	}()
 	user, err := pkg.AuthHook(r)
@@ -98,7 +98,7 @@ func (clh *ChatHandler) GetChatList(w http.ResponseWriter, r *http.Request) {
 
 	chats, err := clh.usecase.GetChatList(*user)
 	if err != nil {
-		glog.Error(err)
+		slog.Error(err.Error())
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
@@ -106,7 +106,7 @@ func (clh *ChatHandler) GetChatList(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	body, err := json.Marshal(&chats)
 	if err != nil {
-		glog.Error(err)
+		slog.Error(err.Error())
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
@@ -117,7 +117,7 @@ func (clh *ChatHandler) PostNewChat(w http.ResponseWriter, r *http.Request) {
 	var err error
 	defer func() {
 		if err != nil {
-			glog.Error(err)
+			slog.Error(err.Error())
 		}
 	}()
 	usr, err := pkg.AuthHook(r)
@@ -155,7 +155,7 @@ func (clh *ChatHandler) PostNewChat(w http.ResponseWriter, r *http.Request) {
 	}
 	createdChat, err := clh.usecase.CreateNewChat(chat)
 	if err != nil {
-		glog.Error(err.Error())
+		slog.Error(err.Error())
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
@@ -173,7 +173,7 @@ func (clh *ChatHandler) PostChat(w http.ResponseWriter, r *http.Request) {
 	var err error
 	defer func() {
 		if err != nil {
-			glog.Error(err)
+			slog.Error(err.Error())
 		}
 	}()
 	usr, err := pkg.AuthHook(r)
