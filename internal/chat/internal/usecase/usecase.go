@@ -5,8 +5,8 @@ import (
 	models2 "our-little-chatik/internal/chat/models"
 	"our-little-chatik/internal/models"
 
-	"github.com/golang/glog"
 	"github.com/google/uuid"
+	"golang.org/x/exp/slog"
 )
 
 type ChatUseCase struct {
@@ -21,11 +21,11 @@ func NewChatUseCase(rep internal.ChatRepo, queue internal.QueueRepo) *ChatUseCas
 func (ch *ChatUseCase) FetchChatMessages(chat models2.Chat, opts models.Opts) ([]models.Message, error) {
 	msgs, err := ch.queue.GetFreshMessagesFromChat(chat)
 	if err != nil {
-		glog.Error(err)
+		slog.Error(err.Error())
 	}
 	oldMsgs, err := ch.repo.GetChatMessages(chat, opts)
 	if err != nil {
-		glog.Error(err)
+		slog.Error(err.Error())
 	}
 	msgs = append(msgs, oldMsgs...)
 	return msgs, nil
@@ -39,12 +39,19 @@ func (ch *ChatUseCase) CreateNewChat(chat models2.Chat) (models2.Chat, error) {
 	chat.ChatID = uuid.New()
 	err := ch.repo.InsertChat(chat)
 	if err != nil {
-		glog.Error(err.Error())
+		slog.Error(err.Error())
 	}
-	return ch.queue.InsertChat(chat)
+	newChat, err := ch.queue.InsertChat(chat)
+	if err != nil {
+		slog.Error(err.Error())
+	}
+	return newChat, err
 }
 
 func (ch *ChatUseCase) ActivateChat(chat models2.Chat) error {
 	_, err := ch.queue.InsertChat(chat)
+	if err != nil {
+		slog.Error(err.Error())
+	}
 	return err
 }
