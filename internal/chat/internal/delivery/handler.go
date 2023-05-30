@@ -15,8 +15,6 @@ import (
 	"github.com/google/uuid"
 )
 
-var defaultAuthUrl string = "http://auth:8087/api/v1/auth/user"
-
 type ChatHandler struct {
 	usecase internal.ChatUseCase
 }
@@ -27,15 +25,6 @@ func NewChatHandler(usecase internal.ChatUseCase) *ChatHandler {
 	}
 }
 
-// GetChatMessages godoc
-// @Summary Fetch the chat
-// @Description get chat by ID
-// @Produce  json
-// @Success 200 {object} []internal.models.Message
-// @Failure 400
-// @Failure 404
-// @Failure 500
-// @Router /chat/conv [get]
 func (c *ChatHandler) GetChatMessages(w http.ResponseWriter, r *http.Request) {
 	var err error
 	defer func() {
@@ -91,18 +80,6 @@ func (c *ChatHandler) GetChatMessages(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// GetChatList godoc
-// @Summary Show an account
-// @Description get string by ID
-// @ID get-string-by-int
-// @Accept  json
-// @Produce  json
-// @Param id path int true "Account ID"
-// @Success 200 {object} []models.ChatItem
-// @Failure 400
-// @Failure 404
-// @Failure 500
-// @Router /accounts/{id} [get]
 func (clh *ChatHandler) GetChatList(w http.ResponseWriter, r *http.Request) {
 	var err error
 	defer func() {
@@ -159,6 +136,7 @@ func (clh *ChatHandler) PostNewChat(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	includeSelf := true
 	for _, participant := range chat.Participants {
 		if participant == uuid.Nil {
 			w.WriteHeader(http.StatusBadRequest)
@@ -167,11 +145,17 @@ func (clh *ChatHandler) PostNewChat(w http.ResponseWriter, r *http.Request) {
 			w.Write(body)
 			return
 		}
+		if participant == usr.UserID {
+			includeSelf = false
+		}
 	}
 
-	chat.Participants = append(chat.Participants, usr.UserID)
+	if includeSelf {
+		chat.Participants = append(chat.Participants, usr.UserID)
+	}
 	createdChat, err := clh.usecase.CreateNewChat(chat)
 	if err != nil {
+		glog.Error(err.Error())
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
