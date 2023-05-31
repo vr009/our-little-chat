@@ -27,21 +27,21 @@ func (h *AuthHandler) SignUp(w http.ResponseWriter, r *http.Request) {
 	err := json.NewDecoder(r.Body).Decode(&person)
 	if err != nil {
 		slog.Error(err.Error())
-		w.WriteHeader(http.StatusBadRequest)
+		handleErrorCode(models.BadRequest, w, models.Error{Msg: "Bad format"})
 		return
 	}
 
 	slog.Info("Unmarshalled:", "person", slog.AnyValue(person))
 	newPerson, errCode := h.useCase.CreateUser(person)
 	if errCode != models.OK {
-		handleErrorCode(errCode, w)
+		handleErrorCode(errCode, w, models.Error{Msg: "Creating user failed"})
 		return
 	}
 
 	token, err := pkg.GenerateJWTToken(newPerson.User, false)
 	if err != nil {
 		slog.Error(err.Error())
-		handleErrorCode(models.InternalError, w)
+		handleErrorCode(models.InternalError, w, models.Error{Msg: "Fail while token generating"})
 		return
 	}
 
@@ -55,7 +55,7 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 	err := json.NewDecoder(r.Body).Decode(&person)
 	if err != nil {
 		slog.Error(err.Error())
-		w.WriteHeader(http.StatusBadRequest)
+		handleErrorCode(models.BadRequest, w, models.Error{Msg: "Bad format"})
 		return
 	}
 
@@ -63,7 +63,7 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 
 	usr, code := h.useCase.CheckUser(person)
 	if code != models.OK {
-		handleErrorCode(code, w)
+		handleErrorCode(code, w, models.Error{Msg: "Inaccessible user data"})
 		return
 	}
 
@@ -71,7 +71,8 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 
 	token, err := pkg.GenerateJWTToken(person.User, false)
 	if err != nil {
-		handleErrorCode(models.InternalError, w)
+		handleErrorCode(models.InternalError, w, models.Error{Msg: "Fail while token generating"})
+		return
 	}
 
 	http.SetCookie(w, &http.Cookie{Name: "Token", Value: token, Path: "/"})
@@ -90,7 +91,8 @@ func (h *AuthHandler) Logout(w http.ResponseWriter, r *http.Request) {
 
 	token, err := pkg.GenerateJWTToken(*user, true)
 	if err != nil {
-		handleErrorCode(models.InternalError, w)
+		handleErrorCode(models.InternalError, w, models.Error{Msg: "Fail while token generating"})
+		return
 	}
 
 	http.SetCookie(w, &http.Cookie{Name: "Token", Value: token, Path: "/"})

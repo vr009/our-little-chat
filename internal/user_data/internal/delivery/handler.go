@@ -4,11 +4,11 @@ import (
 	"encoding/json"
 	"net/http"
 
-	models2 "our-little-chatik/internal/models"
 	"our-little-chatik/internal/pkg"
 	"our-little-chatik/internal/user_data/internal"
 	"our-little-chatik/internal/user_data/internal/models"
 
+	"github.com/google/uuid"
 	"golang.org/x/exp/slog"
 )
 
@@ -57,7 +57,7 @@ func (udh *UserdataHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
 
 	newPerson, errCode := udh.useCase.CreateUser(person)
 	if errCode != models.OK {
-		handleErrorCode(errCode, w)
+		handleErrorCode(errCode, w, models.Error{Msg: "Failed to create user"})
 		return
 	}
 
@@ -66,12 +66,43 @@ func (udh *UserdataHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
 	buf, err := json.Marshal(&newPerson)
 	if err != nil {
 		slog.Error(err.Error())
-		w.WriteHeader(http.StatusInternalServerError)
+		handleErrorCode(errCode, w, models.Error{Msg: "Failed to marshal the response body"})
+		return
+	}
+
+	w.WriteHeader(http.StatusCreated)
+	_, err = w.Write(buf)
+	if err != nil {
+		slog.Error(err.Error())
+		return
+	}
+}
+
+func (udh *UserdataHandler) GetMe(w http.ResponseWriter, r *http.Request) {
+	user, err := pkg.AuthHook(r)
+	if err != nil {
+		handleErrorCode(models.Forbidden, w, models.Error{Msg: "Invalid token"})
+		return
+	}
+
+	person := models.UserData{}
+	person.UserID = user.UserID
+
+	s, errCode := udh.useCase.GetUser(person)
+	if errCode != models.OK {
+		handleErrorCode(errCode, w, models.Error{Msg: "Failed to find info about the user"})
+		return
+	}
+
+	a, err := json.Marshal(&s)
+	if err != nil {
+		slog.Error(err.Error())
+		handleErrorCode(models.InternalError, w, models.Error{Msg: "Failed to marshal response body"})
 		return
 	}
 
 	w.WriteHeader(http.StatusOK)
-	_, err = w.Write(buf)
+	_, err = w.Write(a)
 	if err != nil {
 		slog.Error(err.Error())
 		return
@@ -81,40 +112,38 @@ func (udh *UserdataHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
 func (udh *UserdataHandler) GetUser(w http.ResponseWriter, r *http.Request) {
 	user, err := pkg.AuthHook(r)
 	if err != nil {
-		w.WriteHeader(http.StatusForbidden)
-		errObj := models2.Error{Msg: "Invalid token"}
-		body, _ := json.Marshal(errObj)
-		w.Write(body)
+		handleErrorCode(models.Forbidden, w, models.Error{Msg: "Invalid token"})
+		slog.Error(err.Error())
 		return
 	}
 
+	idStr := r.URL.Query().Get("id")
+	id, err := uuid.Parse(idStr)
 	if err != nil {
-		slog.Error(err.Error())
-		w.WriteHeader(http.StatusInternalServerError)
+		handleErrorCode(models.BadRequest, w, models.Error{Msg: "Bad id format"})
 		return
 	}
+
+	slog.Info("requested info", "from user", user.UserID.String(), "about", idStr)
 
 	person := models.UserData{}
-	person.UserID = user.UserID
+	person.UserID = id
 
-	s, errCode := udh.useCase.GetUser(person)
-
+	person, errCode := udh.useCase.GetUser(person)
 	if errCode != models.OK {
-		handleErrorCode(errCode, w)
+		handleErrorCode(errCode, w, models.Error{Msg: "Failed to get info about the user"})
 		return
 	}
 
-	a, err := json.Marshal(&s)
-
+	a, err := json.Marshal(&person)
 	if err != nil {
 		slog.Error(err.Error())
-		w.WriteHeader(http.StatusInternalServerError)
+		handleErrorCode(models.InternalError, w, models.Error{Msg: "Failed to marshal response body"})
 		return
 	}
 
 	w.WriteHeader(http.StatusOK)
 	_, err = w.Write(a)
-
 	if err != nil {
 		slog.Error(err.Error())
 		return
@@ -125,7 +154,6 @@ func (udh *UserdataHandler) DeleteUser(w http.ResponseWriter, r *http.Request) {
 	person := models.UserData{}
 
 	err := json.NewDecoder(r.Body).Decode(&person)
-
 	if err != nil {
 		slog.Error(err.Error())
 		w.WriteHeader(http.StatusBadRequest)
@@ -133,9 +161,8 @@ func (udh *UserdataHandler) DeleteUser(w http.ResponseWriter, r *http.Request) {
 	}
 
 	errCode := udh.useCase.DeleteUser(person)
-
 	if errCode != models.OK {
-		handleErrorCode(errCode, w)
+		handleErrorCode(errCode, w, models.Error{Msg: "Failed to delete user"})
 		return
 	}
 
@@ -154,17 +181,15 @@ func (udh *UserdataHandler) UpdateUser(w http.ResponseWriter, r *http.Request) {
 	}
 
 	s, errCode := udh.useCase.UpdateUser(person)
-
 	if errCode != models.OK {
-		handleErrorCode(errCode, w)
+		handleErrorCode(errCode, w, models.Error{Msg: "User update failed"})
 		return
 	}
 
 	a, err := json.Marshal(&s)
-
 	if err != nil {
 		slog.Error(err.Error())
-		w.WriteHeader(http.StatusInternalServerError)
+		handleErrorCode(models.InternalError, w, models.Error{Msg: "Failed to marshal response body"})
 		return
 	}
 
@@ -190,9 +215,8 @@ func (udh *UserdataHandler) CheckUserData(w http.ResponseWriter, r *http.Request
 	}
 
 	_, errCode := udh.useCase.CheckUser(person)
-
 	if errCode != models.OK {
-		handleErrorCode(errCode, w)
+		handleErrorCode(errCode, w, models.Error{Msg: "User data is inaccessible"})
 		return
 	}
 
@@ -202,50 +226,48 @@ func (udh *UserdataHandler) CheckUserData(w http.ResponseWriter, r *http.Request
 func (udh *UserdataHandler) FindUser(w http.ResponseWriter, r *http.Request) {
 	_, err := pkg.AuthHook(r)
 	if err != nil {
-		w.WriteHeader(http.StatusForbidden)
-		errObj := models2.Error{Msg: "Invalid token"}
-		body, _ := json.Marshal(errObj)
-		w.Write(body)
+		handleErrorCode(models.Forbidden, w, models.Error{Msg: "Invalid token"})
 		return
 	}
+
 	name := r.URL.Query().Get("name")
 	if name == "" {
 		w.WriteHeader(http.StatusNotFound)
 	}
 	slog.Info("Searching for " + name)
+
 	users, errCode := udh.useCase.FindUser(name)
 	if errCode != models.OK {
-		handleErrorCode(errCode, w)
+		handleErrorCode(errCode, w, models.Error{Msg: "Inaccessible user data"})
 		return
 	}
+
 	body, err := json.Marshal(users)
 	if err != nil {
 		slog.Error("Failed to marshal body for users: " + err.Error())
-		handleErrorCode(models.InternalError, w)
+		handleErrorCode(models.InternalError, w, models.Error{Msg: "Failed to marshal response body"})
 		return
 	}
 	w.WriteHeader(http.StatusOK)
 	w.Write(body)
 }
 
-func handleErrorCode(errCode models.StatusCode, w http.ResponseWriter) {
-	if errCode == models.NotFound {
+func handleErrorCode(errCode models.StatusCode, w http.ResponseWriter, errObj models.Error) {
+	switch errCode {
+	case models.NotFound:
 		w.WriteHeader(http.StatusNotFound)
-		return
-	}
-
-	if errCode == models.InternalError {
+	case models.InternalError:
 		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
-
-	if errCode == models.BadRequest {
+	case models.BadRequest:
 		w.WriteHeader(http.StatusBadRequest)
-		return
+	case models.Forbidden:
+		w.WriteHeader(http.StatusForbidden)
+	default:
+		if errCode != models.OK {
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
 	}
-
-	if errCode != models.OK {
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
+	body, _ := json.Marshal(errObj)
+	w.Write(body)
 }
