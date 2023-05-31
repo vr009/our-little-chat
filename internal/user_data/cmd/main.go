@@ -68,15 +68,15 @@ func main() {
 
 	router := mux.NewRouter()
 
-	// Administration API
+	// CRUD API
 	router.HandleFunc("/api/v1/user/new", userDataHandler.CreateUser).Methods("POST")
 	router.HandleFunc("/api/v1/user", userDataHandler.UpdateUser).Methods("POST")
 	router.HandleFunc("/api/v1/user", userDataHandler.DeleteUser).Methods("DELETE")
-	router.HandleFunc("/api/v1/user/auth", userDataHandler.CheckUserData).Methods("POST")
+	router.HandleFunc("/api/v1/user", userDataHandler.GetUser).Methods("GET")
 
 	// Common API
 	router.HandleFunc("/api/v1/user/all", userDataHandler.GetAllUsers).Methods("GET")
-	router.HandleFunc("/api/v1/user/me", userDataHandler.GetUser).Methods("GET")
+	router.HandleFunc("/api/v1/user/me", userDataHandler.GetMe).Methods("GET")
 	router.HandleFunc("/api/v1/user/search", userDataHandler.FindUser).Methods("GET")
 
 	// Auth API
