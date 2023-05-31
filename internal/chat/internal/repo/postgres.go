@@ -9,6 +9,7 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"golang.org/x/exp/slog"
 )
 
 const (
@@ -74,9 +75,14 @@ func (pr PostgresRepo) InsertChat(chat models2.Chat) error {
 		})
 	}
 
-	err := pr.pool.SendBatch(ctx, batch).Close()
-	if err != nil {
-		return err
+	results := pr.pool.SendBatch(ctx, batch)
+	defer results.Close()
+	for _, participant := range chat.Participants {
+		_, err := results.Exec()
+		if err != nil {
+			slog.Error("Failed to add a chat user", "user", participant.String())
+			return err
+		}
 	}
 	return nil
 }
