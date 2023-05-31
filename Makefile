@@ -24,7 +24,7 @@ migrate-users-drop:
 integration-user-data-test:
 	docker-compose -f docker-compose-test.yml down &&\
 	docker-compose -f docker-compose-test.yml up -d test-db-user-data && sleep 1 &&\
-	docker-compose -f docker-compose-test.yml up -d test-user-data &&\
+	docker-compose -f docker-compose-test.yml up -d --build test-user-data &&\
 	go clean -testcache && TEST_HOST=http://localhost:8086 go test ./internal/user_data/cmd/... &&\
 	TEST_HOST=http://localhost:8086 go test -bench=. -run=^Benchmark -benchmem -benchtime=100x ./internal/user_data/cmd/... &&\
 	docker-compose -f docker-compose-test.yml down

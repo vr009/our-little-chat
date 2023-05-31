@@ -343,6 +343,96 @@ func TestAPI(t *testing.T) {
 	}
 }
 
+func TestCRUDAPI(t *testing.T) {
+	person := models.UserData{
+		User: models2.User{
+			Name:     "test7",
+			Surname:  "test7",
+			Nickname: "test7",
+			Password: "test7",
+		},
+	}
+	body, _ := json.Marshal(person)
+
+	client := http.Client{}
+	host := os.Getenv("TEST_HOST")
+	req, err := http.NewRequest("POST", host+"/api/v1/auth/signup",
+		bytes.NewBuffer(body))
+	if err != nil {
+		t.Fatalf("Failed to prepare a request: %s", err)
+	}
+
+	client.CheckRedirect = func(req *http.Request, via []*http.Request) error {
+		return http.ErrUseLastResponse
+	}
+	resp, err := client.Do(req)
+	if err != nil {
+		t.Fatalf("Failed while performing a request: %s", err)
+	}
+
+	if resp.StatusCode != http.StatusSeeOther {
+		t.Fatalf("%s: returned status code is wrong %d, expected %d",
+			"/api/v1/auth/signup", resp.StatusCode, http.StatusSeeOther)
+	}
+
+	testCookie := &http.Cookie{}
+	if len(resp.Cookies()) != 0 {
+		testCookie = resp.Cookies()[0]
+	}
+
+	// Create a new user
+	person = models.UserData{
+		User: models2.User{
+			Name:     "test8",
+			Surname:  "test8",
+			Nickname: "test8",
+			Password: "test8",
+		},
+	}
+	body, _ = json.Marshal(person)
+
+	req, err = http.NewRequest("POST", host+"/api/v1/user/new",
+		bytes.NewBuffer(body))
+	if err != nil {
+		t.Fatalf("Failed to prepare a request: %s", err)
+	}
+
+	resp, err = client.Do(req)
+	if err != nil {
+		t.Fatalf("Failed while performing a request: %s", err)
+	}
+
+	var createdPerson models.UserData
+	err = json.NewDecoder(resp.Body).Decode(&createdPerson)
+	if err != nil {
+		t.Fatalf(err.Error())
+	}
+
+	// Get
+	req, err = http.NewRequest("GET", host+"/api/v1/user?id="+createdPerson.UserID.String(),
+		nil)
+	if err != nil {
+		t.Fatalf("Failed to prepare a request: %s", err)
+	}
+	req.AddCookie(testCookie)
+
+	resp, err = client.Do(req)
+	if err != nil {
+		t.Fatalf("Failed while performing a request: %s", err)
+	}
+
+	var foundPerson models.UserData
+	err = json.NewDecoder(resp.Body).Decode(&foundPerson)
+	if err != nil {
+		t.Fatalf(err.Error())
+	}
+
+	if foundPerson.UserID != createdPerson.UserID {
+		t.Fatalf("the id of found user is not the same as returned"+
+			" after its creation: %s %s", foundPerson.UserID.String(), createdPerson.UserID.String())
+	}
+}
+
 /* --------------------------------------------------------------------- */
 /* --------------------------- BENCH TESTS ----------------------------- */
 /* --------------------------------------------------------------------- */
