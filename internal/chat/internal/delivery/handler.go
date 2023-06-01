@@ -40,14 +40,22 @@ func (c *ChatHandler) GetChatMessages(w http.ResponseWriter, r *http.Request) {
 		w.Write(body)
 		return
 	}
-	idStr := r.Header.Get("CHAT_ID")
-	offset, err := strconv.ParseInt(r.Header.Get("OFFSET"), 10, 64)
+	idStr := r.URL.Query().Get("chat_id")
+	if idStr == "" {
+		w.WriteHeader(http.StatusBadRequest)
+		errObj := models.Error{Msg: "passed empty parameter"}
+		body, _ := json.Marshal(errObj)
+		w.Write(body)
+		return
+	}
+
+	offset, err := strconv.ParseInt(r.URL.Query().Get("offset"), 10, 64)
 	if err != nil {
 		fmt.Println(err)
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
-	limit, err := strconv.ParseInt(r.Header.Get("LIMIT"), 10, 64)
+	limit, err := strconv.ParseInt(r.URL.Query().Get("limit"), 10, 64)
 	if err != nil {
 		fmt.Println(err)
 		w.WriteHeader(http.StatusBadRequest)
