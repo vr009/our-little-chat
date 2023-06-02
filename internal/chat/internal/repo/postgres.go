@@ -14,7 +14,7 @@ import (
 
 const (
 	InsertChatParticipantsQuery = "INSERT INTO chat_participants VALUES ($1, $2)"
-	GetMessagesQuery            = "SELECT msg_id, sender_id, payload, created_at  FROM messages WHERE chat_id=$1 OFFSET $2 LIMIT $3 ORDER BY created_at ASC"
+	GetMessagesQuery            = "SELECT msg_id, sender_id, payload, created_at  FROM messages WHERE chat_id=$1 ORDER BY created_at ASC OFFSET $2 LIMIT $3"
 	FetchChatListQuery          = "SELECT chat_id FROM chat_participants WHERE participant_id=$1" //TODO complete it
 )
 
