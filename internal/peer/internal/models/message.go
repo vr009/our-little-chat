@@ -2,17 +2,18 @@ package models
 
 import (
 	"fmt"
+
 	"github.com/google/uuid"
 	"gopkg.in/vmihailenco/msgpack.v2"
 )
 
 type Message struct {
-	ChatID       uuid.UUID `json:"chatID"`
-	SenderID     uuid.UUID `json:"senderID"`
+	ChatID       uuid.UUID `json:"chat_id"`
+	SenderID     uuid.UUID `json:"sender_id"`
 	MsgID        uuid.UUID `json:"-"`
 	Payload      string    `json:"payload"`
 	CreatedAt    float64   `json:"-"`
-	SessionStart bool      `json:"sessionStart,omitempty"`
+	SessionStart bool      `json:"session_start,omitempty"`
 }
 
 func (m *Message) EncodeMsgpack(e *msgpack.Encoder) error {

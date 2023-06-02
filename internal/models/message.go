@@ -2,6 +2,7 @@ package models
 
 import (
 	"fmt"
+
 	"github.com/google/uuid"
 	"gopkg.in/vmihailenco/msgpack.v2"
 )
@@ -26,7 +27,7 @@ func (m *Message) DecodeMsgpack(d *msgpack.Decoder) error {
 		return err
 	}
 	if l != 5 {
-		return fmt.Errorf("array len doesn't match: %d", l)
+		return fmt.Errorf("messages array len doesn't match: %d", l)
 	}
 	//chat id
 	if uuidStr, err = d.DecodeString(); err != nil {
