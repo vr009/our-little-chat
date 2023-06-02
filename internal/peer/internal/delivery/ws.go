@@ -123,7 +123,6 @@ func (ws *WebSocketClient) read() {
 		log.Println("closed connection")
 		ws.conn.Close()
 		err := ws.currentChat.UnsubscribePeer(ws.currentPeer)
-		fmt.Println("unsubscribing peer: ", ws.currentPeer.PeerID)
 		log.Println(err)
 		ws.disconnected <- struct{}{}
 	}()

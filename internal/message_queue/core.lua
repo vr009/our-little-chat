@@ -74,11 +74,12 @@ function queue.create_chat(users, chat_id)
     end
 
     local chat = box.space.chat_participants.index.chat_id_index:select({ uuid.fromstr(chat_id) })
-    if chat[1] ~= nil then
-        print('chat exists', chat[1])
+    if chat[1] ~= null then
+        print('chat exists', chat[1][1])
         return
     end
 
+    print('before insert')
     for _, user_id in pairs(users) do
         uuid.fromstr(user_id)
         box.space.chat_participants:insert({
@@ -86,8 +87,8 @@ function queue.create_chat(users, chat_id)
             uuid.fromstr(chat_id),
             '',
         })
+        print('insert')
     end
-    print('here')
     return {chat_id}
 end
 
