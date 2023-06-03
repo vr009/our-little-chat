@@ -1,7 +1,7 @@
 local fiber = require('fiber')
 local uuid = require('uuid')
 local log = require('log')
-log.cfg{ level='debug', log='tarantool.log'}
+log.cfg{ level='debug'}
 
 box.cfg{
     listen = 3301,
@@ -74,20 +74,20 @@ function queue.create_chat(users, chat_id)
     end
 
     local chat = box.space.chat_participants.index.chat_id_index:select({ uuid.fromstr(chat_id) })
-    if chat[1] ~= null then
-        print('chat exists', chat[1][1])
+    log.info({ 'before insert 1', chat[1]['chat_id'] })
+    if chat[1] ~= nil then
+        log.info({ 'chat exists', chat[1]['chat_id'] })
         return
     end
 
-    print('before insert')
     for _, user_id in pairs(users) do
-        uuid.fromstr(user_id)
+        log.info(user_id)
         box.space.chat_participants:insert({
             uuid.fromstr(user_id),
             uuid.fromstr(chat_id),
             '',
         })
-        print('insert')
+        log.info('inserted')
     end
     return {chat_id}
 end
@@ -108,12 +108,17 @@ end
 --chat_id, sender_id, receiver_id, payload
 --c5f0ae14-d06b-4ffd-9bcd-6df01243a9c5, 62391bd9-157c-4513-8e7c-c082e00d2b7e, 61f98c94-de3c-491a-b9c7-1ea214b3ec13
 function queue.put(chat_id, sender_id, payload)
-    print('start')
 
     local msg_id = uuid.new()
     local created_at = fiber.time()
 
-    print('put before 0')
+    log.info({ 'put to chat last messages', {
+        uuid.fromstr(chat_id),
+        uuid.fromstr(sender_id),
+        msg_id,
+        payload,
+        created_at,
+    }})
     -- we put the id of the last message for chat list update
     box.space.chat_last_msgs:put{
         uuid.fromstr(chat_id),
@@ -123,16 +128,20 @@ function queue.put(chat_id, sender_id, payload)
         created_at,
     }
 
-    print('put before')
-    print('put before', uuid.fromstr(chat_id), msg_id, uuid.fromstr(sender_id))
+    log.info({ 'put to unread messages', uuid.fromstr(chat_id), msg_id, uuid.fromstr(sender_id) })
     -- replace an unread message in the chat
     box.space.unread_msgs:put{
         uuid.fromstr(chat_id),
         msg_id,
         uuid.fromstr(sender_id)
     }
-    print('put ok')
+    log.info('put ok')
 
+    log.info({ 'put to messages', {
+        uuid.fromstr(chat_id),
+        msg_id,
+        uuid.fromstr(sender_id),
+        payload, created_at}})
     local res = box.space.messages:insert{
         uuid.fromstr(chat_id),
         msg_id,
@@ -152,13 +161,18 @@ function queue.take_new_messages_from_space(chat_id, receiver_id)
     -- to know the last update of the chat
     local user_info = box.space.chat_participants.index.participant_index:get({uuid.fromstr(receiver_id), uuid.fromstr(chat_id)})
     if user_info == nil then
-        print('got null')
+        log.info('got null')
         return {}
     else
+        log.info({'user_info', user_info})
         if user_info['last_read_msg_id'] == '' then
             since_not_read = 0
         else
-            since_not_read = box.space.messages.index.msg_index:get(uuid.fromstr(user_info['last_read_msg_id']))['created_at']
+            local since_not_read_msg = box.space.messages.index.msg_index:get(uuid.fromstr(user_info['last_read_msg_id']))
+            log.info({ 'since message', since_not_read_msg })
+            if since_not_read_msg ~= nil then
+                since_not_read = since_not_read_msg['created_at']
+            end
         end
     end
     local last_message_id
@@ -173,7 +187,7 @@ function queue.take_new_messages_from_space(chat_id, receiver_id)
                 message['payload'],
                 message['created_at'],
             })
-            print('found! : ', message[1]:str(), message[2]:str(), message[3]:str(), message[4], message[5])
+            log.info({ 'found! : ', message[1]:str(), message[2]:str(), message[3]:str(), message[4], message[5] })
             last_message_id = message['msg_id']
         end
     end
@@ -189,7 +203,6 @@ function queue.take_new_messages_from_space(chat_id, receiver_id)
             box.space.unread_msgs:delete{
                 uuid.fromstr(chat_id),
             }
-            print('deleted')
         end
     end
 
@@ -265,11 +278,11 @@ function queue.fetch_unread_messages(user_id)
         uuid.fromstr(user_id)})
     local batch = {}
     for _, chat in pairs(chats) do
-        print('0', chat['chat_id'])
+        log.info('0', chat['chat_id'])
         local msg_id = box.space.unread_msgs.index.chat_id_index:get{chat['chat_id']}
-        print('1', msg_id[2])
+        log.info('1', msg_id[2])
         local message = box.space.messages.index.msg_index:get(msg_id[2])
-        print(message)
+        log.info(message)
         if message['sender_id']:str() ~= user_id then
             table.insert(batch, {
                 message['chat_id']:str(),
@@ -281,7 +294,7 @@ function queue.fetch_unread_messages(user_id)
             box.space.unread_msgs:delete{
                 chat['chat_id'],
             }
-            print('deleted')
+            log.info('deleted')
         end
     end
     return batch
