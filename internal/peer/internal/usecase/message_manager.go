@@ -6,6 +6,8 @@ import (
 
 	"our-little-chatik/internal/peer/internal"
 	"our-little-chatik/internal/peer/internal/models"
+
+	"golang.org/x/exp/slog"
 )
 
 type MessageManagerImpl struct {
@@ -49,7 +51,10 @@ func (m *MessageManagerImpl) Work() {
 					select {
 					case msg := <-peer.MsgToSend:
 						fmt.Println("Sending", msg)
-						m.repo.SendPayload(msg)
+						err := m.repo.SendPayload(msg)
+						if err != nil {
+							slog.Error("Failed to send a message: " + err.Error())
+						}
 					default:
 					}
 				}

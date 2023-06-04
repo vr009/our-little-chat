@@ -13,6 +13,7 @@ import (
 
 	"github.com/golang/glog"
 	"github.com/gorilla/websocket"
+	"golang.org/x/exp/slog"
 )
 
 var upgrader = websocket.Upgrader{
@@ -97,7 +98,7 @@ func (ws *WebSocketClient) write() {
 				w.Write(newline)
 			}
 
-			//log.Println("sent.")
+			slog.Debug("Messages sent to peer")
 
 			if err := w.Close(); err != nil {
 				return
@@ -108,6 +109,7 @@ func (ws *WebSocketClient) write() {
 				return
 			}
 		case <-ws.disconnected:
+			ws.manager.DequeueChat(ws.currentChat)
 			return
 		}
 	}
@@ -155,7 +157,7 @@ func (ws *WebSocketClient) read() {
 		}
 
 		if msg.SessionStart {
-			newChat := models.GetChatFromMessage(msg)
+			newChat := models.GetChatFromInitialMessage(msg)
 			chat := ws.manager.EnqueueChatIfNotExists(newChat)
 			peer := models.GetPeerFromMessage(msg)
 			err = chat.SubscribePeer(peer)
@@ -186,8 +188,8 @@ func (server *PeerServer) WSServe(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	client := newWebSocketClient(conn, server.manager)
-	//glog.Infof("Created new connection:\nID: %s", user.UserID)
 	client.disconnected = make(chan struct{})
+
 	go client.write()
 	go client.read()
 }
