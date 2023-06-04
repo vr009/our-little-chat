@@ -1,7 +1,6 @@
 package main
 
 import (
-	"log"
 	"net/http"
 	"os"
 	"strconv"
@@ -10,9 +9,9 @@ import (
 	repo2 "our-little-chatik/internal/peer/internal/repo"
 	usecase2 "our-little-chatik/internal/peer/internal/usecase"
 
-	"github.com/golang/glog"
 	"github.com/spf13/viper"
 	"github.com/tarantool/go-tarantool"
+	"golang.org/x/exp/slog"
 )
 
 type DBConfig struct {
@@ -33,15 +32,13 @@ func main() {
 	viper.SetConfigName("peer-config.yaml")
 	viper.SetConfigType("yaml")
 	if err := viper.ReadInConfig(); err != nil {
-		log.Fatal("Failed to read a config file")
+		panic("Failed to read a config file")
 	}
-
-	glog.V(2)
 
 	appConfig := AppConfig{}
 	err := viper.Unmarshal(&appConfig)
 	if err != nil {
-		log.Fatal(err)
+		panic(err)
 	}
 
 	ttAddr := appConfig.DB.Host + ":" + strconv.Itoa(appConfig.DB.Port)
@@ -49,7 +46,7 @@ func main() {
 
 	conn, err := tarantool.Connect(ttAddr, ttOpts)
 	if err != nil {
-		log.Fatal("failed to connect to tarantool")
+		panic("failed to connect to tarantool")
 	}
 	defer conn.Close()
 	repo := repo2.NewTarantoolRepo(conn)
@@ -62,10 +59,10 @@ func main() {
 		peerServer.WSServe(w, r)
 	})
 
-	glog.Infof("service started at :%d", appConfig.Port)
+	slog.Info("service started", "port", appConfig.Port)
 
 	err = http.ListenAndServe(":"+strconv.Itoa(appConfig.Port), nil)
 	if err != nil {
-		log.Fatal("ListenAndServe: ", err)
+		slog.Info("ListenAndServe: ", err)
 	}
 }

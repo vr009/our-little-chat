@@ -2,12 +2,11 @@ package repo
 
 import (
 	"errors"
-	"fmt"
-	"log"
 
 	"our-little-chatik/internal/peer/internal/models"
 
 	"github.com/tarantool/go-tarantool"
+	"golang.org/x/exp/slog"
 )
 
 // TODO rewrite it to websockets
@@ -28,18 +27,18 @@ func (tt *TarantoolRepo) SendPayload(msg *models.Message) error {
 		msg.SenderID.String(),
 		msg.Payload})
 	if err != nil {
-		fmt.Println(err)
+		slog.Error(err.Error())
 		return err
 	}
 	if resp == nil {
-		fmt.Println("Response is nil after Call")
+		slog.Error("Response is nil after Call")
 		return errors.New("Response is nil after Call")
 	}
 	if len(resp.Data) < 1 {
-		fmt.Println("Response.Data is empty after Eval")
-		return errors.New("Response.Data is empty after Eval")
+		slog.Error("Response.Data is empty")
+		return errors.New("Response.Data is empty")
 	}
-	fmt.Println("SUCCEED")
+	slog.Info("SUCCEED")
 	return nil
 }
 func (tt *TarantoolRepo) FetchUpdates(chat *models.Chat, peer *models.Peer) ([]models.Message, error) {
@@ -49,14 +48,14 @@ func (tt *TarantoolRepo) FetchUpdates(chat *models.Chat, peer *models.Peer) ([]m
 		[]interface{}{chat.ChatID.String(),
 			peer.PeerID.String()}, &msgs)
 	if err != nil && len(msgs) < 1 {
-		log.Println("error from tt: ", err)
+		slog.Error("error from tt: ", err)
 		return nil, err
 	}
 
 	if len(msgs) > 0 && msgs[0].Payload == "" {
 		return nil, nil
 	}
-	fmt.Printf("fetched for %s\n", peer.PeerID.String())
+	slog.Info("fetched for " + peer.PeerID.String())
 
 	return msgs, nil
 }
