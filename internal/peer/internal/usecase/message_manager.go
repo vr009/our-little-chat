@@ -2,7 +2,6 @@ package usecase
 
 import (
 	"container/list"
-	"fmt"
 
 	"our-little-chatik/internal/peer/internal"
 	"our-little-chatik/internal/peer/internal/models"
@@ -50,7 +49,7 @@ func (m *MessageManagerImpl) Work() {
 					}
 					select {
 					case msg := <-peer.MsgToSend:
-						fmt.Println("Sending", msg)
+						slog.Info("Sending", "message", msg)
 						err := m.repo.SendPayload(msg)
 						if err != nil {
 							slog.Error("Failed to send a message: " + err.Error())

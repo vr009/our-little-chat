@@ -5,6 +5,7 @@ import (
 	"our-little-chatik/internal/models"
 
 	"github.com/tarantool/go-tarantool"
+	"golang.org/x/exp/slog"
 )
 
 type TarantoolRepo struct {
@@ -31,6 +32,7 @@ func (tt *TarantoolRepo) InsertChat(chat models2.Chat) (models2.Chat, error) {
 	for _, paricipant := range chat.Participants {
 		participants = append(participants, paricipant.String())
 	}
+	slog.Info("to insert", "list", participants, "list uuids", chat.Participants)
 	_, err := conn.Call("create_chat", []interface{}{participants, chat.ChatID.String()})
 	if err != nil {
 		return models2.Chat{}, err

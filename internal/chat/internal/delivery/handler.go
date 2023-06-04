@@ -157,10 +157,11 @@ func (clh *ChatHandler) PostNewChat(w http.ResponseWriter, r *http.Request) {
 			includeSelf = false
 		}
 	}
-
 	if includeSelf {
+		slog.Info("Adding a participant "+usr.UserID.String()+" in list", "list", chat.Participants)
 		chat.Participants = append(chat.Participants, usr.UserID)
 	}
+
 	createdChat, err := clh.usecase.CreateNewChat(chat)
 	if err != nil {
 		slog.Error(err.Error())
