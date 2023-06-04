@@ -74,12 +74,12 @@ function queue.create_chat(users, chat_id)
     end
 
     local chat = box.space.chat_participants.index.chat_id_index:select({ uuid.fromstr(chat_id) })
-    log.info({ 'before insert 1', chat[1]['chat_id'] })
     if chat[1] ~= nil then
         log.info({ 'chat exists', chat[1]['chat_id'] })
         return
     end
 
+    log.info({ 'passed users', users, 'chat_id', chat_id })
     for _, user_id in pairs(users) do
         log.info(user_id)
         box.space.chat_participants:insert({
@@ -161,17 +161,20 @@ function queue.take_new_messages_from_space(chat_id, receiver_id)
     -- to know the last update of the chat
     local user_info = box.space.chat_participants.index.participant_index:get({uuid.fromstr(receiver_id), uuid.fromstr(chat_id)})
     if user_info == nil then
-        log.info('got null')
+        log.info('no records about the user' .. receiver_id .. ' in chat ' .. chat_id)
         return {}
     else
         log.info({'user_info', user_info})
         if user_info['last_read_msg_id'] == '' then
+            log.info('no read messages for user ' .. receiver_id .. ' in chat ' .. chat_id)
             since_not_read = 0
         else
             local since_not_read_msg = box.space.messages.index.msg_index:get(uuid.fromstr(user_info['last_read_msg_id']))
             log.info({ 'since message', since_not_read_msg })
             if since_not_read_msg ~= nil then
                 since_not_read = since_not_read_msg['created_at']
+            else
+                log.info('the message '.. since_not_read_msg .. ' was not found')
             end
         end
     end

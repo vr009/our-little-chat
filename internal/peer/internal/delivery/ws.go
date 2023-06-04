@@ -4,14 +4,12 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"log"
 	"net/http"
 	"time"
 
 	"our-little-chatik/internal/peer/internal"
 	"our-little-chatik/internal/peer/internal/models"
 
-	"github.com/golang/glog"
 	"github.com/gorilla/websocket"
 	"golang.org/x/exp/slog"
 )
@@ -91,7 +89,7 @@ func (ws *WebSocketClient) write() {
 			for _, msg := range messages {
 				buf, err := json.Marshal(msg)
 				if err != nil {
-					log.Fatal(err)
+					slog.Error(err.Error())
 					return
 				}
 				w.Write(buf)
@@ -125,10 +123,10 @@ func (ws *WebSocketClient) read() {
 		ws.conn.Close()
 		if ws.currentPeer != nil {
 			err := ws.currentChat.UnsubscribePeer(ws.currentPeer)
-			log.Println(err)
+			slog.Error(err.Error())
 		}
 		ws.disconnected <- struct{}{}
-		log.Println("closed connection")
+		slog.Info("closed connection")
 	}()
 
 	ws.conn.SetReadLimit(maxMessageSize)
@@ -139,7 +137,7 @@ func (ws *WebSocketClient) read() {
 		_, message, err := ws.conn.ReadMessage()
 		if err != nil {
 			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
-				log.Printf("error: %v", err)
+				slog.Error("error: ", err.Error())
 			}
 			break
 		}
@@ -147,10 +145,10 @@ func (ws *WebSocketClient) read() {
 		message = bytes.TrimSpace(bytes.Replace(message, newline, space, -1))
 		err = json.Unmarshal(message, &msg)
 		if err != nil {
-			log.Println("failed to unmarshal message", err)
+			slog.Error("failed to unmarshal message", err)
 			continue
 		}
-		fmt.Println("Received", msg)
+		slog.Info("Received", "message", msg)
 		if ws.currentPeer != nil && !msg.SessionStart {
 			ws.currentPeer.MsgToSend <- msg
 			continue
@@ -166,7 +164,7 @@ func (ws *WebSocketClient) read() {
 			}
 			ws.currentChat = chat
 			ws.currentPeer = peer
-			fmt.Println("subscribed peer: ", peer.PeerID)
+			slog.Info("subscribed peer: ", "id", peer.PeerID)
 		}
 	}
 }
@@ -184,7 +182,7 @@ func (server *PeerServer) WSServe(w http.ResponseWriter, r *http.Request) {
 	upgrader.CheckOrigin = func(r *http.Request) bool { return true }
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
-		glog.Error(err.Error())
+		slog.Error(err.Error())
 		return
 	}
 	client := newWebSocketClient(conn, server.manager)
