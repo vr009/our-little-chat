@@ -2,6 +2,7 @@ package models
 
 import (
 	"fmt"
+
 	"github.com/google/uuid"
 )
 
@@ -32,7 +33,7 @@ func (c *Chat) UnsubscribePeer(peer *Peer) error {
 	return nil
 }
 
-func GetChatFromMessage(msg *Message) *Chat {
+func GetChatFromInitialMessage(msg *Message) *Chat {
 	return &Chat{
 		ChatID: msg.ChatID,
 		Peers:  make(map[uuid.UUID]*Peer, 10),
