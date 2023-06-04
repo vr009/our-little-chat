@@ -120,11 +120,13 @@ func (ws *WebSocketClient) write() {
 // reads from this goroutine.
 func (ws *WebSocketClient) read() {
 	defer func() {
-		log.Println("closed connection")
 		ws.conn.Close()
-		err := ws.currentChat.UnsubscribePeer(ws.currentPeer)
-		log.Println(err)
+		if ws.currentPeer != nil {
+			err := ws.currentChat.UnsubscribePeer(ws.currentPeer)
+			log.Println(err)
+		}
 		ws.disconnected <- struct{}{}
+		log.Println("closed connection")
 	}()
 
 	ws.conn.SetReadLimit(maxMessageSize)
