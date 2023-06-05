@@ -166,7 +166,7 @@ function queue.take_new_messages_from_space(chat_id, receiver_id)
     else
         log.info({'user_info', user_info})
         if user_info['last_read_msg_id'] == '' then
-            log.info('no read messages for user ' .. receiver_id .. ' in chat ' .. chat_id)
+            log.info({ 'no read messages for user ', receiver_id, ' in chat ', chat_id })
             since_not_read = 0
         else
             local since_not_read_msg = box.space.messages.index.msg_index:get(uuid.fromstr(user_info['last_read_msg_id']))
@@ -174,7 +174,7 @@ function queue.take_new_messages_from_space(chat_id, receiver_id)
             if since_not_read_msg ~= nil then
                 since_not_read = since_not_read_msg['created_at']
             else
-                log.info('the message '.. since_not_read_msg .. ' was not found')
+                log.info({ 'the message ', since_not_read_msg, ' was not found' })
             end
         end
     end
@@ -281,11 +281,9 @@ function queue.fetch_unread_messages(user_id)
         uuid.fromstr(user_id)})
     local batch = {}
     for _, chat in pairs(chats) do
-        log.info('0', chat['chat_id'])
+        log.info({ 'fetching', chat['chat_id'] })
         local msg_id = box.space.unread_msgs.index.chat_id_index:get{chat['chat_id']}
-        log.info('1', msg_id[2])
         local message = box.space.messages.index.msg_index:get(msg_id[2])
-        log.info(message)
         if message['sender_id']:str() ~= user_id then
             table.insert(batch, {
                 message['chat_id']:str(),
