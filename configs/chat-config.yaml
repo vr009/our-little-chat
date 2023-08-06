@@ -1,12 +1,6 @@
 port: 8083
 
-db:
-  uri: mongodb://localhost:27017
-  username: test
-  password: test
-
-tt:
-  host: message-core
-  port: 3301
-  username: test
+redis:
+  host: db-peer
+  port: 6379
   password: test

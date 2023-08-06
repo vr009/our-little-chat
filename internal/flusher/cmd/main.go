@@ -31,7 +31,7 @@ type PeerDBConfig struct {
 type AppConfig struct {
 	Port   int
 	DB     PostgresConfig
-	PeerDB PeerDBConfig
+	Redis  PeerDBConfig
 	Period int
 }
 
@@ -59,8 +59,8 @@ func main() {
 	}
 	glog.V(2)
 	redisClient := redis.NewClient(&redis.Options{
-		Addr:     appConfig.PeerDB.Host + ":" + appConfig.PeerDB.Port,
-		Password: appConfig.PeerDB.Password,
+		Addr:     appConfig.Redis.Host + ":" + appConfig.Redis.Port,
+		Password: appConfig.Redis.Password,
 	})
 
 	ctx := context.Background()

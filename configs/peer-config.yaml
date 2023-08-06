@@ -1,7 +1,6 @@
 port: 8084
 
 db:
-  host: message-core
-  port: 3301
-  username: test
+  host: db-peer
+  port: 6379
   password: test

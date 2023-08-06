@@ -1,21 +1,70 @@
 version: '3.9'
 
 services:
-  test-user-data:
+  flusher:
+    build:
+      context: .
+      dockerfile: deployments/flusher.Dockerfile
+    command: ./flusher-service
+    environment:
+      FLUSHER_CONFIG: configs/.
+      DATABASE_URL: "user=service password=test host=db-chat port=5432 dbname=chats"
+    ports:
+      - 8082:8082
+    depends_on:
+      - db-peer
+      - db-chat
+
+  chat:
+    build:
+      context: .
+      dockerfile: deployments/chat.Dockerfile
+    command: ./chat-service
+    environment:
+      CHAT_CONFIG: configs/.
+      DATABASE_URL: "user=service password=test host=db-chat port=5432 dbname=chats"
+      DATABASE_ALTERNATIVE_URL: "postgresql://db-chat:5432/chats?user=service&password=test"
+      JWT_SIGNED_KEY: "test"
+    ports:
+      - 8083:8083
+    depends_on:
+      - db-peer
+      - db-chat
+
+  peer:
+    build:
+      context: .
+      dockerfile: deployments/peer.Dockerfile
+    command: ./peer-service
+    environment:
+      PEER_CONFIG: configs/.
+    ports:
+      - 8084:8084
+    depends_on:
+      - db-peer
+
+  user-data:
     build:
       context: .
       dockerfile: ./deployments/user_data.Dockerfile
     environment:
       USER_DATA_CONFIG: configs/.
       JWT_SIGNED_KEY: "test"
-      DATABASE_URL: "user=service password=test host=test-db-user-data port=5432 dbname=users"
+      DATABASE_URL: "user=service password=test host=db-user-data port=5432 dbname=users"
     command: ./user-data-service
     ports:
       - 8086:8086
     depends_on:
-      - test-db-user-data
+      - db-user-data
 
-  test-db-user-data:
+  db-peer:
+    image: redis
+    restart: always
+    ports:
+      - 6379:6379
+    command: redis-server --save 20 1 --loglevel warning --requirepass test
+
+  db-user-data:
     image: postgres:13.3
     environment:
       POSTGRES_DB: users
@@ -26,3 +75,26 @@ services:
     restart: unless-stopped
     ports:
       - 5432:5432
+
+  db-chat:
+    image: postgres:13.3
+    environment:
+      POSTGRES_DB: "chats"
+      POSTGRES_USER: "service"
+      POSTGRES_PASSWORD: "test"
+    volumes:
+      - ./internal/chat/db/migrations:/docker-entrypoint-initdb.d
+    restart: unless-stopped
+    ports:
+      - 5433:5432
+
+  nginx:
+    image: nginx:latest
+    ports:
+      - 80:80
+    volumes:
+      - ./configs/:/etc/nginx/conf.d/
+      - ./temp/dist/:/var/www/html/dist/
+    depends_on:
+      - user-data
+      - peer
