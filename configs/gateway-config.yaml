@@ -1,3 +1,0 @@
-port: 8080
-UserDataBaseURL: "http://user-data:8086/api/v1"
-AuthBaseURL: "http://auth:8087/api/v1"

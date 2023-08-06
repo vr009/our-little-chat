@@ -27,7 +27,6 @@ type AppConfig struct {
 type RedisConfig struct {
 	Host     string
 	Port     string
-	Username string
 	Password string
 }
 
@@ -74,8 +73,8 @@ func main() {
 	defer pool.Close()
 
 	repop := repo.NewPostgresRepo(pool)
-	repoTT := repo.NewRedisRepo(redisClient)
-	uc := usecase.NewChatUseCase(repop, repoTT)
+	repoRed := repo.NewRedisRepo(redisClient)
+	uc := usecase.NewChatUseCase(repop, repoRed)
 
 	handler := delivery.NewChatHandler(uc)
 
