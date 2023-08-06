@@ -13,3 +13,7 @@ type PeerRepo interface {
 	StartSubscriber(ctx context.Context, messageChan chan models.Message, chatChannel string)
 	SaveMessage(message models.Message) error
 }
+
+type DiffRepo interface {
+	SubscribeToChats(ctx context.Context, chats []models.Chat) (chan models.Message, error)
+}

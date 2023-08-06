@@ -113,3 +113,34 @@ func (r *PeerRepository) SaveMessage(message models.Message) error {
 	}
 	return nil
 }
+
+func (r *PeerRepository) SubscribeToChats(ctx context.Context,
+	chats []models.Chat) (chan models.Message, error) {
+	chatChannels := make([]string, 0)
+	for _, chat := range chats {
+		chatChannels = append(chatChannels, "users_"+chat.ChatID.String())
+	}
+	sub := r.cl.PSubscribe(chatChannels...)
+
+	userMsgChan := make(chan models.Message)
+
+	msgChan := sub.Channel()
+	go func() {
+		for {
+			select {
+			case redisMsg := <-msgChan:
+				msg := models.Message{}
+				bMsg := redisMsg.Payload
+				err := json.Unmarshal([]byte(bMsg), &msg)
+				if err != nil {
+					glog.Error(err)
+					continue
+				}
+				userMsgChan <- msg
+			case <-ctx.Done():
+				glog.Warning("finish by context")
+			}
+		}
+	}()
+	return userMsgChan, nil
+}

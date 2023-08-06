@@ -32,12 +32,10 @@ func NewPeerHandler(repo internal.PeerRepo) *PeerHandler {
 }
 
 func (h *PeerHandler) ConnectToChat(w http.ResponseWriter, r *http.Request) {
-	//user := strings.TrimPrefix(r.URL.Path, "/chat/")
+	chatID := r.Form.Get("chat_id")
+	userID := r.Form.Get("user_id")
 
-	chat_id := r.Form.Get("chat_id")
-	user_id := r.Form.Get("user_id")
-
-	if chat_id == "" || user_id == "" {
+	if chatID == "" || userID == "" {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
@@ -51,14 +49,14 @@ func (h *PeerHandler) ConnectToChat(w http.ResponseWriter, r *http.Request) {
 	var val interface{}
 	var ok bool
 
-	if val, ok = h.peersMap.Load(chat_id); !ok {
+	if val, ok = h.peersMap.Load(chatID); !ok {
 		peers = make(map[string]*websocket.Conn)
 	} else {
 		peers = val.(map[string]*websocket.Conn)
-		h.peersMap.Store(chat_id, peers)
+		h.peersMap.Store(chatID, peers)
 	}
 
-	chatSession := NewChatSession(user_id, peer, peers, chat_id, h.repo)
+	chatSession := NewChatSession(userID, peer, peers, chatID, h.repo)
 	chatSession.Start()
 }
 
