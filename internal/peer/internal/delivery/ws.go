@@ -85,7 +85,7 @@ const userSet = "%s_%s"
 // Start starts the chat by reading messages sent by the peer and broadcasting the to redis pub-sub channel
 func (s *ChatSession) Start() {
 	usernameTaken, err := s.repo.CheckUserExists(context.Background(),
-		s.user, fmt.Sprintf(userSet, "users", s.chatID))
+		s.user, fmt.Sprintf(userSet, "users", s.user))
 
 	if err != nil {
 		log.Println("unable to determine whether user exists -", s.user)
@@ -102,7 +102,7 @@ func (s *ChatSession) Start() {
 	}
 
 	err = s.repo.CreateUser(context.Background(),
-		s.user, fmt.Sprintf(userSet, "users", s.chatID))
+		s.user, fmt.Sprintf(userSet, "users", s.user))
 	if err != nil {
 		log.Println("failed to add user to list of active chat users", s.user)
 		s.notifyPeer(retryMessage)
