@@ -44,9 +44,12 @@ func main() {
 		Password: appConfig.DB.Password,
 	})
 	peerRepo := repo.NewPeerRepository(redisClient)
-	handler := delivery.NewPeerHandler(peerRepo)
+	peerHandler := delivery.NewPeerHandler(peerRepo)
 
-	http.HandleFunc("/ws", handler.ConnectToChat)
+	diffHandler := delivery.NewDiffHandler(peerRepo, peerRepo)
+
+	http.HandleFunc("/ws/chat", peerHandler.ConnectToChat)
+	http.HandleFunc("/ws/diff", diffHandler.ConnectToDiff)
 
 	slog.Info("service started", "port", appConfig.Port)
 

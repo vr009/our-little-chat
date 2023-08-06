@@ -1,4 +1,0 @@
-## Chat diff service
-
-## Idea
-
