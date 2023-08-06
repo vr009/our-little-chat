@@ -1,27 +1,15 @@
 package internal
 
 import (
-	"our-little-chatik/internal/peer/internal/models"
+	"context"
+	"our-little-chatik/internal/models"
 )
 
-type WebSocketWorker interface {
-	Read()
-	Write()
-	Close()
-}
-
 type PeerRepo interface {
-	SendPayload(msg *models.Message) error
-	FetchUpdates(chat *models.Chat, peer *models.Peer) ([]models.Message, error)
-}
-
-type MessageManager interface {
-	Work()
-	// EnqueueChatIfNotExists enqueues a passed Chat to an internal queue of chats.
-	// If the chat already exists it finds it and return.
-	EnqueueChatIfNotExists(chat *models.Chat) *models.Chat
-	// DequeueChat dequeues chat from internal pkg queue
-	DequeueChat(chat *models.Chat)
-	// EnqueueChat enqueues chat in internal pkg queue
-	EnqueueChat(chat *models.Chat)
+	SendToChannel(ctx context.Context, msg models.Message, chatChannel string)
+	CheckUserExists(ctx context.Context, user string, userSet string) (bool, error)
+	CreateUser(ctx context.Context, user string, userSet string) error
+	RemoveUser(ctx context.Context, user string, userSet string)
+	StartSubscriber(ctx context.Context, messageChan chan models.Message, chatChannel string)
+	SaveMessage(message models.Message) error
 }

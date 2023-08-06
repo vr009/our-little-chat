@@ -4,17 +4,15 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/go-redis/redis"
 	"log"
 	"os"
-	"strconv"
-
 	"our-little-chatik/internal/flusher/internal/delivery"
 	"our-little-chatik/internal/flusher/internal/repo"
 
 	"github.com/golang/glog"
 	"github.com/jackc/pgx/v5"
 	"github.com/spf13/viper"
-	"github.com/tarantool/go-tarantool"
 )
 
 type PostgresConfig struct {
@@ -23,9 +21,9 @@ type PostgresConfig struct {
 	Password string
 }
 
-type TTConfig struct {
+type PeerDBConfig struct {
 	Host     string
-	Port     int
+	Port     string
 	Username string
 	Password string
 }
@@ -33,7 +31,7 @@ type TTConfig struct {
 type AppConfig struct {
 	Port   int
 	DB     PostgresConfig
-	TT     TTConfig
+	PeerDB PeerDBConfig
 	Period int
 }
 
@@ -60,14 +58,10 @@ func main() {
 		log.Fatal(err)
 	}
 	glog.V(2)
-	ttAddr := appConfig.TT.Host + ":" + strconv.Itoa(appConfig.TT.Port)
-	ttOpts := tarantool.Opts{User: appConfig.DB.Username, Pass: appConfig.DB.Password}
-
-	ttClient, err := tarantool.Connect(ttAddr, ttOpts)
-	if err != nil {
-		log.Fatal("failed to connect to tarantool")
-	}
-	defer ttClient.Close()
+	redisClient := redis.NewClient(&redis.Options{
+		Addr:     appConfig.PeerDB.Host + ":" + appConfig.PeerDB.Port,
+		Password: appConfig.PeerDB.Password,
+	})
 
 	ctx := context.Background()
 	connStr, err := GetConnectionString()
@@ -79,10 +73,10 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	m := repo.NewPostgresRepo(conn)
-	t := repo.NewTarantoolRepo(ttClient)
+	peristRepo := repo.NewPostgresRepo(conn)
+	queueRepo := repo.NewRedisRepo(redisClient)
 
-	daemon := delivery.NewFlusherD(t, m)
+	daemon := delivery.NewFlusherD(queueRepo, peristRepo)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()

@@ -34,28 +34,6 @@ func (d *FlusherD) Work(ctx context.Context, period int) {
 			if err != nil {
 				log.Println(err)
 			}
-
-			chats, err := d.queueRepo.FetchChatListUpdate()
-			if err != nil {
-				log.Println(err)
-				continue
-			}
-			err = d.persistantRepo.PersistChatListUpdate(chats)
-			glog.Infoln("persisted", chats)
-			log.Println("persisted chats", chats)
-			if err != nil {
-				glog.Error(err)
-			}
-
-			chatParticipants, err := d.queueRepo.FetchChatParticipants()
-			if err != nil {
-				log.Println(err)
-				continue
-			}
-			err = d.persistantRepo.PersistChatParticipants(chatParticipants)
-			if err != nil {
-				glog.Error(err)
-			}
 		case <-ctx.Done():
 			log.Println("work loop ended")
 			return

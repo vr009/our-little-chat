@@ -1,17 +1,18 @@
 package delivery
 
 import (
-	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
-	"net/http"
-	"time"
-
-	"our-little-chatik/internal/peer/internal"
-	"our-little-chatik/internal/peer/internal/models"
-
+	"github.com/golang/glog"
+	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
-	"golang.org/x/exp/slog"
+	"log"
+	"net/http"
+	"our-little-chatik/internal/models"
+	"our-little-chatik/internal/peer/internal"
+	"sync"
+	"time"
 )
 
 var upgrader = websocket.Upgrader{
@@ -19,177 +20,185 @@ var upgrader = websocket.Upgrader{
 	WriteBufferSize: 1024,
 }
 
-var (
-	newline = []byte{'\n'}
-	space   = []byte{' '}
-)
-
-const (
-	// Time allowed to write a message to the peer.
-	writeWait = 10 * time.Second
-
-	// Time allowed to read the next pong message from the peer.
-	pongWait = 60 * time.Second
-
-	// Send pings to peer with this period. Must be less than pongWait.
-	pingPeriod = (pongWait * 9) / 10
-
-	// Maximum message size allowed from peer.
-	maxMessageSize = 512
-)
-
-type PeerServer struct {
-	manager internal.MessageManager
+type PeerHandler struct {
+	peersMap sync.Map
+	repo     internal.PeerRepo
 }
 
-func NewPeerServer(manager internal.MessageManager) *PeerServer {
-	return &PeerServer{
-		manager: manager,
+func NewPeerHandler(repo internal.PeerRepo) *PeerHandler {
+	return &PeerHandler{
+		repo: repo,
 	}
 }
 
-type WebSocketClient struct {
-	conn        *websocket.Conn
-	currentPeer *models.Peer
-	currentChat *models.Chat
-	manager     internal.MessageManager
+func (h *PeerHandler) ConnectToChat(w http.ResponseWriter, r *http.Request) {
+	//user := strings.TrimPrefix(r.URL.Path, "/chat/")
 
-	// Buffered channel of outbound messages.
-	send chan []byte
+	chat_id := r.Form.Get("chat_id")
+	user_id := r.Form.Get("user_id")
 
-	disconnected chan struct{}
-}
-
-func newWebSocketClient(conn *websocket.Conn, manager internal.MessageManager) *WebSocketClient {
-	client := &WebSocketClient{conn: conn, manager: manager}
-	return client
-}
-
-func (ws *WebSocketClient) write() {
-	ticker := time.NewTicker(pingPeriod)
-	defer func() {
-		ticker.Stop()
-		ws.conn.Close()
-		fmt.Println("Write closed")
-	}()
-	for {
-		if ws.currentPeer == nil {
-			time.Sleep(1)
-			continue
-		}
-		select {
-		case messages := <-ws.currentPeer.MsgsToRecv:
-			ws.conn.SetWriteDeadline(time.Now().Add(writeWait))
-
-			w, err := ws.conn.NextWriter(websocket.TextMessage)
-			if err != nil {
-				return
-			}
-
-			for _, msg := range messages {
-				buf, err := json.Marshal(msg)
-				if err != nil {
-					slog.Error(err.Error())
-					return
-				}
-				w.Write(buf)
-				w.Write(newline)
-			}
-
-			slog.Debug("Messages sent to peer")
-
-			if err := w.Close(); err != nil {
-				return
-			}
-		case <-ticker.C:
-			ws.conn.SetWriteDeadline(time.Now().Add(writeWait))
-			if err := ws.conn.WriteMessage(websocket.PingMessage, nil); err != nil {
-				return
-			}
-		case <-ws.disconnected:
-			ws.manager.DequeueChat(ws.currentChat)
-			return
-		}
-	}
-}
-
-// read pumps messages from the websocket connection.
-//
-// The application runs read in a per-connection goroutine. The application
-// ensures that there is at most one reader on a connection by executing all
-// reads from this goroutine.
-func (ws *WebSocketClient) read() {
-	defer func() {
-		ws.conn.Close()
-		if ws.currentPeer != nil {
-			err := ws.currentChat.UnsubscribePeer(ws.currentPeer)
-			if err != nil {
-				slog.Error(err.Error())
-			}
-		}
-		ws.disconnected <- struct{}{}
-		slog.Info("closed connection")
-	}()
-
-	ws.conn.SetReadLimit(maxMessageSize)
-	ws.conn.SetReadDeadline(time.Now().Add(pongWait))
-	ws.conn.SetPongHandler(func(string) error { ws.conn.SetReadDeadline(time.Now().Add(pongWait)); return nil })
-
-	for {
-		_, message, err := ws.conn.ReadMessage()
-		if err != nil {
-			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
-				slog.Error("error: ", err.Error())
-			}
-			break
-		}
-		msg := &models.Message{}
-		message = bytes.TrimSpace(bytes.Replace(message, newline, space, -1))
-		err = json.Unmarshal(message, &msg)
-		if err != nil {
-			slog.Error("failed to unmarshal message", err)
-			continue
-		}
-		slog.Info("Received", "message", msg)
-		if ws.currentPeer != nil && !msg.SessionStart {
-			ws.currentPeer.MsgToSend <- msg
-			continue
-		}
-
-		if msg.SessionStart {
-			newChat := models.GetChatFromInitialMessage(msg)
-			chat := ws.manager.EnqueueChatIfNotExists(newChat)
-			peer := models.GetPeerFromMessage(msg)
-			err = chat.SubscribePeer(peer)
-			if err != nil {
-				return
-			}
-			ws.currentChat = chat
-			ws.currentPeer = peer
-			slog.Info("subscribed peer: ", "id", peer.PeerID)
-		}
-	}
-}
-
-func (server *PeerServer) WSServe(w http.ResponseWriter, r *http.Request) {
-	//user, err := pkg.AuthHook(r)
-	//if err != nil {
-	//	w.WriteHeader(http.StatusForbidden)
-	//	errObj := models2.Error{Msg: "Invalid token"}
-	//	body, _ := json.Marshal(errObj)
-	//	w.Write(body)
-	//	glog.Error(errObj.Msg)
-	//	return
-	//}
-	upgrader.CheckOrigin = func(r *http.Request) bool { return true }
-	conn, err := upgrader.Upgrade(w, r, nil)
-	if err != nil {
-		slog.Error(err.Error())
+	if chat_id == "" || user_id == "" {
+		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
-	client := newWebSocketClient(conn, server.manager)
-	client.disconnected = make(chan struct{})
 
-	go client.write()
-	go client.read()
+	peer, err := upgrader.Upgrade(w, r, nil)
+	if err != nil {
+		log.Fatal("websocket conn failed", err)
+	}
+
+	var peers map[string]*websocket.Conn
+	var val interface{}
+	var ok bool
+
+	if val, ok = h.peersMap.Load(chat_id); !ok {
+		peers = make(map[string]*websocket.Conn)
+	} else {
+		peers = val.(map[string]*websocket.Conn)
+		h.peersMap.Store(chat_id, peers)
+	}
+
+	chatSession := NewChatSession(user_id, peer, peers, chat_id, h.repo)
+	chatSession.Start()
+}
+
+// ChatSession represents a connected/active chat user
+type ChatSession struct {
+	user   string
+	peer   *websocket.Conn
+	Peers  map[string]*websocket.Conn
+	repo   internal.PeerRepo
+	chatID string
+}
+
+// NewChatSession returns a new ChatSession
+func NewChatSession(user string, peer *websocket.Conn,
+	peers map[string]*websocket.Conn, chatID string,
+	repo internal.PeerRepo) *ChatSession {
+	return &ChatSession{user: user, peer: peer, Peers: peers, repo: repo}
+}
+
+const usernameHasBeenTaken = "username %s is already taken. please retry with a different name"
+const retryMessage = "failed to connect. please try again"
+const welcome = "Welcome %s!"
+
+const userSet = "%s_%s"
+
+// Start starts the chat by reading messages sent by the peer and broadcasting the to redis pub-sub channel
+func (s *ChatSession) Start() {
+	usernameTaken, err := s.repo.CheckUserExists(context.Background(),
+		s.user, fmt.Sprintf(userSet, "users", s.chatID))
+
+	if err != nil {
+		log.Println("unable to determine whether user exists -", s.user)
+		s.notifyPeer(retryMessage)
+		s.peer.Close()
+		return
+	}
+
+	if usernameTaken {
+		msg := fmt.Sprintf(usernameHasBeenTaken, s.user)
+		s.peer.WriteMessage(websocket.TextMessage, []byte(msg))
+		s.peer.Close()
+		return
+	}
+
+	err = s.repo.CreateUser(context.Background(),
+		s.user, fmt.Sprintf(userSet, "users", s.chatID))
+	if err != nil {
+		log.Println("failed to add user to list of active chat users", s.user)
+		s.notifyPeer(retryMessage)
+		s.peer.Close()
+		return
+	}
+	s.Peers[s.user] = s.peer
+
+	s.notifyPeer(fmt.Sprintf(welcome, s.user))
+
+	/*
+		this go-routine will exit when:
+		(1) the user disconnects from chat manually
+		(2) the app is closed
+	*/
+	go func() {
+		log.Println("user joined", s.user)
+		for {
+			_, bMsg, err := s.peer.ReadMessage()
+			if err != nil {
+				_, ok := err.(*websocket.CloseError)
+				if ok {
+					log.Println("connection closed by user")
+					s.disconnect()
+				}
+				return
+			}
+
+			chatID, err := uuid.Parse(s.chatID)
+			if err != nil {
+				glog.Error(err)
+				return
+			}
+			senderID, err := uuid.Parse(s.user)
+			if err != nil {
+				glog.Error(err)
+				return
+			}
+
+			msg := models.Message{
+				MsgID:     uuid.New(),
+				Payload:   string(bMsg),
+				ChatID:    chatID,
+				SenderID:  senderID,
+				CreatedAt: time.Now().Unix(),
+			}
+			s.repo.SendToChannel(context.Background(),
+				msg, fmt.Sprintf(userSet, "users", s.chatID))
+			// persist message
+			err = s.repo.SaveMessage(msg)
+			if err != nil {
+				glog.Error(err)
+			}
+		}
+	}()
+	go func() {
+		msgChan := make(chan models.Message)
+		s.repo.StartSubscriber(context.Background(),
+			msgChan, s.chatID)
+		for {
+			select {
+			case msg := <-msgChan:
+				fmt.Printf("got your message: %s from %s\n", msg.Payload, msg.SenderID.String())
+				for user, peer := range s.Peers {
+					if msg.SenderID.String() != user { //don't recieve your own messages
+						bMsg, err := json.Marshal(msg)
+						if err != nil {
+							glog.Error(err)
+							break
+						}
+						peer.WriteMessage(websocket.TextMessage, bMsg)
+					}
+				}
+			}
+		}
+	}()
+}
+
+func (s *ChatSession) notifyPeer(msg string) {
+	err := s.peer.WriteMessage(websocket.TextMessage, []byte(msg))
+	if err != nil {
+		log.Println("failed to write message", err)
+	}
+}
+
+// Invoked when the user disconnects (websocket connection is closed). It performs cleanup activities
+func (s *ChatSession) disconnect() {
+	//remove user from SET
+	s.repo.RemoveUser(context.Background(),
+		s.user, fmt.Sprintf(userSet, "users", s.chatID))
+
+	//close websocket
+	s.peer.Close()
+
+	//remove from Peers
+	delete(s.Peers, s.user)
 }

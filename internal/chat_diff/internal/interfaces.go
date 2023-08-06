@@ -1,16 +1,10 @@
 package internal
 
 import (
-	models2 "our-little-chatik/internal/chat_diff/internal/models"
+	"context"
 	"our-little-chatik/internal/models"
 )
 
-type ChatDiffRepo interface {
-	FetchUpdates(user models2.User) []models.ChatItem
-}
-
-type Manager interface {
-	Work()
-	AddChatUser(user *models2.ChatDiffUser) *models2.ChatDiffUser
-	DequeueChatUser(chat *models2.ChatDiffUser)
+type DiffRepo interface {
+	SubscribeToChats(ctx context.Context, chats []models.Chat) (chan models.Message, error)
 }
