@@ -1,22 +1,20 @@
 package main
 
 import (
+	"github.com/go-redis/redis"
 	"net/http"
 	"os"
+	"our-little-chatik/internal/peer/internal/delivery"
+	"our-little-chatik/internal/peer/internal/repo"
 	"strconv"
 
-	"our-little-chatik/internal/peer/internal/delivery"
-	repo2 "our-little-chatik/internal/peer/internal/repo"
-	usecase2 "our-little-chatik/internal/peer/internal/usecase"
-
 	"github.com/spf13/viper"
-	"github.com/tarantool/go-tarantool"
 	"golang.org/x/exp/slog"
 )
 
 type DBConfig struct {
 	Host     string
-	Port     int
+	Port     string
 	Username string
 	Password string
 }
@@ -41,23 +39,14 @@ func main() {
 		panic(err)
 	}
 
-	ttAddr := appConfig.DB.Host + ":" + strconv.Itoa(appConfig.DB.Port)
-	ttOpts := tarantool.Opts{User: appConfig.DB.Username, Pass: appConfig.DB.Password}
-
-	conn, err := tarantool.Connect(ttAddr, ttOpts)
-	if err != nil {
-		panic("failed to connect to tarantool")
-	}
-	defer conn.Close()
-	repo := repo2.NewTarantoolRepo(conn)
-	messageManager := usecase2.NewMessageManager(repo)
-	peerServer := delivery.NewPeerServer(messageManager)
-
-	go messageManager.Work()
-
-	http.HandleFunc("/ws", func(w http.ResponseWriter, r *http.Request) {
-		peerServer.WSServe(w, r)
+	redisClient := redis.NewClient(&redis.Options{
+		Addr:     appConfig.DB.Host + ":" + appConfig.DB.Port,
+		Password: appConfig.DB.Password,
 	})
+	peerRepo := repo.NewPeerRepository(redisClient)
+	handler := delivery.NewPeerHandler(peerRepo)
+
+	http.HandleFunc("/ws", handler.ConnectToChat)
 
 	slog.Info("service started", "port", appConfig.Port)
 
