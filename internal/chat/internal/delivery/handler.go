@@ -177,36 +177,3 @@ func (clh *ChatHandler) PostNewChat(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusCreated)
 	w.Write(body)
 }
-
-func (clh *ChatHandler) PostChat(w http.ResponseWriter, r *http.Request) {
-	var err error
-	defer func() {
-		if err != nil {
-			slog.Error(err.Error())
-		}
-	}()
-	usr, err := pkg.AuthHook(r)
-	if err != nil {
-		w.WriteHeader(http.StatusForbidden)
-		errObj := models.Error{Msg: "Invalid token"}
-		body, _ := json.Marshal(errObj)
-		w.Write(body)
-		return
-	}
-	chat := models2.Chat{}
-
-	err = json.NewDecoder(r.Body).Decode(&chat)
-	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		return
-	}
-
-	chat.Participants = append(chat.Participants, usr.UserID)
-	err = clh.usecase.ActivateChat(chat)
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
-
-	w.WriteHeader(http.StatusOK)
-}

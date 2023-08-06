@@ -41,17 +41,5 @@ func (ch *ChatUseCase) CreateNewChat(chat models2.Chat) (models2.Chat, error) {
 	if err != nil {
 		slog.Error(err.Error())
 	}
-	newChat, err := ch.queue.InsertChat(chat)
-	if err != nil {
-		slog.Error(err.Error())
-	}
-	return newChat, err
-}
-
-func (ch *ChatUseCase) ActivateChat(chat models2.Chat) error {
-	_, err := ch.queue.InsertChat(chat)
-	if err != nil {
-		slog.Error(err.Error())
-	}
-	return err
+	return chat, err
 }
