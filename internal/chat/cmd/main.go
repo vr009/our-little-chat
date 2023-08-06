@@ -12,7 +12,6 @@ import (
 	"our-little-chatik/internal/chat/internal/delivery"
 	"our-little-chatik/internal/chat/internal/repo"
 	"our-little-chatik/internal/chat/internal/usecase"
-	"our-little-chatik/internal/chat/middleware"
 
 	"github.com/gorilla/mux"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -88,8 +87,12 @@ func main() {
 	r.HandleFunc("/api/v1/list", handler.GetChatList).Methods("GET")
 	// Creating a new chat
 	r.HandleFunc("/api/v1/new", handler.PostNewChat).Methods("POST")
+	// Update photo url of the chat
+	r.HandleFunc("/api/v1/chat/photo", handler.ChangeChatPhoto).Methods("POST")
+	// Add users to chat
+	r.HandleFunc("/api/v1/chat/users", handler.AddUsersToChat).Methods("POST")
 
-	srv := &http.Server{Handler: middleware.Logger(r),
+	srv := &http.Server{Handler: r,
 		Addr: ":" + strconv.Itoa(appConfig.Port)}
 
 	log.Printf("Listening port: %d", appConfig.Port)
