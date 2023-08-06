@@ -2,8 +2,9 @@ package usecase
 
 import (
 	"our-little-chatik/internal/chat/internal"
-	models2 "our-little-chatik/internal/chat/models"
+	models2 "our-little-chatik/internal/chat/internal/models"
 	"our-little-chatik/internal/models"
+	"sort"
 
 	"github.com/google/uuid"
 	"golang.org/x/exp/slog"
@@ -18,7 +19,8 @@ func NewChatUseCase(rep internal.ChatRepo, queue internal.QueueRepo) *ChatUseCas
 	return &ChatUseCase{repo: rep, queue: queue}
 }
 
-func (ch *ChatUseCase) FetchChatMessages(chat models2.Chat, opts models.Opts) ([]models.Message, error) {
+func (ch *ChatUseCase) FetchChatMessages(chat models.Chat,
+	opts models.Opts) (models.Messages, error) {
 	msgs, err := ch.queue.GetFreshMessagesFromChat(chat)
 	if err != nil {
 		slog.Error(err.Error())
@@ -28,6 +30,7 @@ func (ch *ChatUseCase) FetchChatMessages(chat models2.Chat, opts models.Opts) ([
 		slog.Error(err.Error())
 	}
 	msgs = append(msgs, oldMsgs...)
+	sort.Sort(msgs)
 	return msgs, nil
 }
 
@@ -35,11 +38,15 @@ func (ch *ChatUseCase) GetChatList(user models.User) ([]models.ChatItem, error) 
 	return ch.repo.FetchChatList(user)
 }
 
-func (ch *ChatUseCase) CreateNewChat(chat models2.Chat) (models2.Chat, error) {
+func (ch *ChatUseCase) CreateNewChat(chat models.Chat) (models.Chat, error) {
 	chat.ChatID = uuid.New()
 	err := ch.repo.InsertChat(chat)
 	if err != nil {
 		slog.Error(err.Error())
 	}
 	return chat, err
+}
+
+func (ch *ChatUseCase) UpdateChat(chat models.Chat, updateOpts models2.UpdateOptions) error {
+	return ch.repo.UpdateChat(chat, updateOpts)
 }
