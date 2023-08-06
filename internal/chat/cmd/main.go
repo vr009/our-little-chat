@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"errors"
+	"github.com/go-redis/redis"
 	"log"
 	"net/http"
 	"os"
@@ -16,18 +17,17 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/spf13/viper"
-	"github.com/tarantool/go-tarantool"
 	"golang.org/x/exp/slog"
 )
 
 type AppConfig struct {
-	Port int
-	TT   TTConfig
+	Port  int
+	Redis RedisConfig
 }
 
-type TTConfig struct {
+type RedisConfig struct {
 	Host     string
-	Port     int
+	Port     string
 	Username string
 	Password string
 }
@@ -57,14 +57,10 @@ func main() {
 
 	slog.SetDefault(slog.New(slog.NewTextHandler(os.Stderr, nil)))
 
-	ttAddr := appConfig.TT.Host + ":" + strconv.Itoa(appConfig.TT.Port)
-	ttOpts := tarantool.Opts{User: appConfig.TT.Username, Pass: appConfig.TT.Password}
-
-	ttClient, err := tarantool.Connect(ttAddr, ttOpts)
-	if err != nil {
-		log.Fatal(err.Error())
-	}
-	defer ttClient.Close()
+	redisClient := redis.NewClient(&redis.Options{
+		Addr:     appConfig.Redis.Host + ":" + appConfig.Redis.Port,
+		Password: appConfig.Redis.Password,
+	})
 
 	ctx := context.Background()
 	connStr, err := GetConnectionString()
@@ -79,7 +75,7 @@ func main() {
 	defer pool.Close()
 
 	repop := repo.NewPostgresRepo(pool)
-	repoTT := repo.NewTarantoolRepo(ttClient)
+	repoTT := repo.NewRedisRepo(redisClient)
 	uc := usecase.NewChatUseCase(repop, repoTT)
 
 	handler := delivery.NewChatHandler(uc)
@@ -92,8 +88,6 @@ func main() {
 	r.HandleFunc("/api/v1/list", handler.GetChatList).Methods("GET")
 	// Creating a new chat
 	r.HandleFunc("/api/v1/new", handler.PostNewChat).Methods("POST")
-	// Activating a chat
-	r.HandleFunc("/api/v1/active", handler.PostChat).Methods("POST")
 
 	srv := &http.Server{Handler: middleware.Logger(r),
 		Addr: ":" + strconv.Itoa(appConfig.Port)}

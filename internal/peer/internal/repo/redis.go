@@ -3,6 +3,7 @@ package repo
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"github.com/go-redis/redis"
 	"github.com/golang/glog"
 	"log"
@@ -107,7 +108,8 @@ func (r *PeerRepository) SaveMessage(message models.Message) error {
 	if err != nil {
 		return err
 	}
-	err = r.cl.Set(message.MsgID.String(), string(bMsg), 0).Err()
+	key := fmt.Sprintf("%s_%s", message.ChatID, message.MsgID)
+	err = r.cl.Set(key, string(bMsg), 0).Err()
 	if err != nil {
 		return err
 	}
