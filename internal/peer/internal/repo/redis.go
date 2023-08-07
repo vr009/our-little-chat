@@ -22,7 +22,7 @@ func NewPeerRepository(cl *redis.Client) *PeerRepository {
 
 func parseMessage(msgStr string) (*models.Message, error) {
 	msg := models.Message{}
-	err := json.Unmarshal([]byte(msgStr), msg)
+	err := json.Unmarshal([]byte(msgStr), &msg)
 	if err != nil {
 		return nil, err
 	}
@@ -36,10 +36,11 @@ func (r *PeerRepository) StartSubscriber(ctx context.Context,
 		the channel range loop terminates, hence terminating the goroutine
 	*/
 	go func() {
-		log.Println("starting subscriber...")
+		log.Println("starting subscriber...", chatChannel)
 		sub := r.cl.Subscribe(chatChannel)
 		messages := sub.Channel()
 		for message := range messages {
+			log.Println("got one", message.Payload)
 			msg, err := parseMessage(message.Payload)
 			if err != nil {
 				glog.Error(err)

@@ -2,6 +2,8 @@ package main
 
 import (
 	"github.com/go-redis/redis"
+	"github.com/gorilla/mux"
+	"log"
 	"net/http"
 	"os"
 	"our-little-chatik/internal/peer/internal/delivery"
@@ -48,13 +50,15 @@ func main() {
 
 	diffHandler := delivery.NewDiffHandler(peerRepo, peerRepo)
 
-	http.HandleFunc("/ws/chat", peerHandler.ConnectToChat)
-	http.HandleFunc("/ws/diff", diffHandler.ConnectToDiff)
+	r := mux.NewRouter()
+
+	r.HandleFunc("/ws/chat", peerHandler.ConnectToChat)
+	r.HandleFunc("/ws/diff", diffHandler.ConnectToDiff)
 
 	slog.Info("service started", "port", appConfig.Port)
 
-	err = http.ListenAndServe(":"+strconv.Itoa(appConfig.Port), nil)
-	if err != nil {
-		slog.Info("ListenAndServe: ", err)
-	}
+	srv := &http.Server{Handler: r,
+		Addr: ":" + strconv.Itoa(appConfig.Port)}
+
+	log.Fatal(srv.ListenAndServe())
 }
