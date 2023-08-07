@@ -32,8 +32,10 @@ func NewPeerHandler(repo internal.PeerRepo) *PeerHandler {
 }
 
 func (h *PeerHandler) ConnectToChat(w http.ResponseWriter, r *http.Request) {
-	chatID := r.Form.Get("chat_id")
-	userID := r.Form.Get("user_id")
+	chatID := r.URL.Query().Get("chat_id")
+	userID := r.URL.Query().Get("user_id")
+
+	upgrader.CheckOrigin = func(r *http.Request) bool { return true }
 
 	if chatID == "" || userID == "" {
 		w.WriteHeader(http.StatusBadRequest)
@@ -73,7 +75,7 @@ type ChatSession struct {
 func NewChatSession(user string, peer *websocket.Conn,
 	peers map[string]*websocket.Conn, chatID string,
 	repo internal.PeerRepo) *ChatSession {
-	return &ChatSession{user: user, peer: peer, Peers: peers, repo: repo}
+	return &ChatSession{user: user, peer: peer, Peers: peers, repo: repo, chatID: chatID}
 }
 
 const usernameHasBeenTaken = "username %s is already taken. please retry with a different name"
@@ -123,6 +125,7 @@ func (s *ChatSession) Start() {
 		for {
 			_, bMsg, err := s.peer.ReadMessage()
 			if err != nil {
+				log.Println("=========== disconnecting ===========")
 				_, ok := err.(*websocket.CloseError)
 				if ok {
 					log.Println("connection closed by user")
@@ -151,6 +154,7 @@ func (s *ChatSession) Start() {
 			}
 			s.repo.SendToChannel(context.Background(),
 				msg, fmt.Sprintf(userSet, "users", s.chatID))
+			log.Println("msg sent to chanel", fmt.Sprintf(userSet, "users", s.chatID))
 			// persist message
 			err = s.repo.SaveMessage(msg)
 			if err != nil {
@@ -161,7 +165,7 @@ func (s *ChatSession) Start() {
 	go func() {
 		msgChan := make(chan models.Message)
 		s.repo.StartSubscriber(context.Background(),
-			msgChan, s.chatID)
+			msgChan, fmt.Sprintf(userSet, "users", s.chatID))
 		for {
 			select {
 			case msg := <-msgChan:
@@ -192,7 +196,7 @@ func (s *ChatSession) notifyPeer(msg string) {
 func (s *ChatSession) disconnect() {
 	//remove user from SET
 	s.repo.RemoveUser(context.Background(),
-		s.user, fmt.Sprintf(userSet, "users", s.chatID))
+		s.user, fmt.Sprintf(userSet, "users", s.user))
 
 	//close websocket
 	s.peer.Close()

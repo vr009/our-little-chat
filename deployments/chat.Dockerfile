@@ -10,8 +10,6 @@ COPY . .
 
 EXPOSE 8083
 
-RUN apt-get update && apt-get install libssl-dev -y
-
 RUN go mod tidy
 
 RUN go build -o chat-service ./internal/chat/cmd/main.go
