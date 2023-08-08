@@ -27,14 +27,13 @@ func NewDiffHandler(repo internal.PeerRepo, diffRepo internal.DiffRepo) *DiffHan
 }
 
 func (h *DiffHandler) ConnectToDiff(w http.ResponseWriter, r *http.Request) {
-	//user := strings.TrimPrefix(r.URL.Path, "/chat/")
-	userID := r.Form.Get("user_id")
-
+	userID := r.URL.Query().Get("user_id")
 	if userID == "" {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
 
+	upgrader.CheckOrigin = func(r *http.Request) bool { return true }
 	peer, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		log.Fatal("websocket conn failed", err)
