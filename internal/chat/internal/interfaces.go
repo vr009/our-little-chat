@@ -10,6 +10,7 @@ type ChatRepo interface {
 	FetchChatList(user models.User) ([]models.ChatItem, error)
 	InsertChat(models.Chat) error
 	UpdateChat(chat models.Chat, updateOpts models2.UpdateOptions) error
+	GetChat(chat models.Chat) (models.Chat, error)
 }
 
 type QueueRepo interface {
@@ -21,4 +22,5 @@ type ChatUseCase interface {
 	FetchChatMessages(chat models.Chat, opts models.Opts) (models.Messages, error)
 	GetChatList(user models.User) ([]models.ChatItem, error)
 	UpdateChat(chat models.Chat, updateOpts models2.UpdateOptions) error
+	GetChat(chat models.Chat) (models.Chat, error)
 }

@@ -7,6 +7,7 @@ import (
 type Chat struct {
 	ChatID       uuid.UUID   `json:"chat_id,omitempty"`
 	Participants []uuid.UUID `json:"participants,omitempty"`
+	Name         string      `json:"name,omitempty"`
 	PhotoURL     string      `json:"photo_url,omitempty"`
 	CreatedAt    int64       `json:"created_at,omitempty"`
 	LastMessage  Message     `json:"last_message,omitempty"`
