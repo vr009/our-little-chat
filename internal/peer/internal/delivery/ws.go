@@ -154,7 +154,7 @@ func (s *ChatSession) Start() {
 			}
 			s.repo.SendToChannel(context.Background(),
 				msg, fmt.Sprintf(userSet, "users", s.chatID))
-			log.Println("msg sent to chanel", fmt.Sprintf(userSet, "users", s.chatID))
+			//log.Println("msg sent to chanel", fmt.Sprintf(userSet, "users", s.chatID))
 			// persist message
 			err = s.repo.SaveMessage(msg)
 			if err != nil {
@@ -169,7 +169,7 @@ func (s *ChatSession) Start() {
 		for {
 			select {
 			case msg := <-msgChan:
-				fmt.Printf("got your message: %s from %s\n", msg.Payload, msg.SenderID.String())
+				//fmt.Printf("got your message: %s from %s\n", msg.Payload, msg.SenderID.String())
 				for user, peer := range s.Peers {
 					if msg.SenderID.String() != user { //don't recieve your own messages
 						bMsg, err := json.Marshal(msg)
