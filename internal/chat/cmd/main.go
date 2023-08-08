@@ -80,6 +80,8 @@ func main() {
 
 	r := mux.NewRouter()
 
+	// Getting chat info
+	r.HandleFunc("/api/v1/chat", handler.GetChat).Methods("GET")
 	// Getting chat messages
 	r.HandleFunc("/api/v1/conv", handler.GetChatMessages).Methods("GET")
 	// Getting the list of users chats

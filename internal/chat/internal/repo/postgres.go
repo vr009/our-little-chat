@@ -17,7 +17,8 @@ const (
 	InsertChatParticipantsQuery = `INSERT INTO chat_participants VALUES ($1, $2)`
 	InsertChatQuery             = `INSERT INTO chats VALUES($1, $2, $3, $4)`
 	GetMessagesQuery            = `SELECT msg_id, sender_id, payload, created_at FROM messages WHERE chat_id=$1 ORDER BY created_at ASC OFFSET $2 LIMIT $3`
-	FetchChatListQuery          = `SELECT cp.chat_id, c.photo_url, m.sender_id, m.msg_id, m.payload, m.created_at FROM chat_participants AS cp 
+	GetChatInfoQuery            = `SELECT chat_id, name, photo_url, created_at FROM chats WHERE chat_id=$1`
+	FetchChatListQuery          = `SELECT cp.chat_id, c.name, c.photo_url, m.sender_id, m.msg_id, m.payload, m.created_at FROM chat_participants AS cp 
     LEFT JOIN chats AS c ON cp.chat_id = c.chat_id 
     LEFT JOIN messages AS m ON c.last_msg_id = m.msg_id                      
                           WHERE cp.participant_id=$1`
@@ -31,6 +32,16 @@ type PostgresRepo struct {
 
 func NewPostgresRepo(pool *pgxpool.Pool) *PostgresRepo {
 	return &PostgresRepo{pool: pool}
+}
+
+func (pr PostgresRepo) GetChat(chat models.Chat) (models.Chat, error) {
+	ctx := context.Background()
+	row := pr.pool.QueryRow(ctx, GetChatInfoQuery, chat.ChatID)
+	err := row.Scan(&chat.ChatID, &chat.Name, &chat.PhotoURL, &chat.CreatedAt)
+	if err != nil {
+		return models.Chat{}, err
+	}
+	return chat, nil
 }
 
 func (pr PostgresRepo) GetChatMessages(chat models.Chat, opts models.Opts) (models.Messages, error) {
@@ -62,7 +73,8 @@ func (pr PostgresRepo) FetchChatList(user models.User) ([]models.ChatItem, error
 	chatList := make([]models.ChatItem, 0)
 	for rows.Next() {
 		chat := models.ChatItem{}
-		err := rows.Scan(&chat.ChatID)
+		err := rows.Scan(&chat.ChatID, &chat.Name, &chat.PhotoURL,
+			&chat.LastSender, &chat.MsgID, &chat.LastMsg, &chat.LastMessageTime)
 		if err != nil {
 			return nil, err
 		}
@@ -87,7 +99,7 @@ func (pr PostgresRepo) InsertChat(chat models.Chat) error {
 		})
 	}
 
-	batch.Queue(InsertChatQuery, chat.ChatID, chat.PhotoURL, chat.CreatedAt)
+	batch.Queue(InsertChatQuery, chat.ChatID, chat.Name, chat.PhotoURL, chat.CreatedAt)
 
 	results := pr.pool.SendBatch(ctx, batch)
 	defer results.Close()

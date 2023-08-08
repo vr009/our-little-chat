@@ -25,6 +25,58 @@ func NewChatHandler(usecase internal.ChatUseCase) *ChatHandler {
 	}
 }
 
+func (c *ChatHandler) GetChat(w http.ResponseWriter, r *http.Request) {
+	var err error
+	defer func() {
+		if err != nil {
+			slog.Error(err.Error())
+		}
+	}()
+	_, err = pkg.AuthHook(r)
+	if err != nil {
+		w.WriteHeader(http.StatusForbidden)
+		errObj := models.Error{Msg: "Invalid token"}
+		body, _ := json.Marshal(errObj)
+		w.Write(body)
+		return
+	}
+	idStr := r.URL.Query().Get("chat_id")
+	if idStr == "" {
+		w.WriteHeader(http.StatusBadRequest)
+		errObj := models.Error{Msg: "passed empty parameter"}
+		body, _ := json.Marshal(errObj)
+		w.Write(body)
+		return
+	}
+
+	chatID, err := uuid.Parse(idStr)
+	if err != nil {
+		fmt.Println(err)
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+	chat := models.Chat{ChatID: chatID}
+
+	chat, err = c.usecase.GetChat(chat)
+	if err != nil {
+		fmt.Println(err)
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	b, err := json.Marshal(chat)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	_, err = w.Write(b)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+}
+
 func (c *ChatHandler) GetChatMessages(w http.ResponseWriter, r *http.Request) {
 	var err error
 	defer func() {
