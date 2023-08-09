@@ -76,7 +76,7 @@ func TestAPI(t *testing.T) {
 					},
 				},
 				{
-					path:   "/api/v1/user_data/all",
+					path:   "/api/v1/user/all",
 					method: "GET",
 					prepareBody: func() []byte {
 						return nil
@@ -253,7 +253,7 @@ func TestAPI(t *testing.T) {
 					},
 				},
 				{
-					path:   "/api/v1/user_data/me",
+					path:   "/api/v1/user/me",
 					method: "GET",
 					prepareBody: func() []byte {
 						return nil
@@ -289,7 +289,7 @@ func TestAPI(t *testing.T) {
 					},
 				},
 				{
-					path:   "/api/v1/user_data/search?name=test1",
+					path:   "/api/v1/user/search?name=test1",
 					method: "GET",
 					prepareBody: func() []byte {
 						return nil
@@ -334,8 +334,8 @@ func TestAPI(t *testing.T) {
 				}
 
 				if resp.StatusCode != task.expectedCode {
-					t.Fatalf("%s: returned status code is wrong %d, expected %d",
-						task.path, resp.StatusCode, task.expectedCode)
+					t.Fatalf("%s: returned status code is wrong %d, expected %d test: %s",
+						task.path, resp.StatusCode, task.expectedCode, tt.name)
 				}
 
 				if len(resp.Cookies()) != 0 {
@@ -397,7 +397,7 @@ func TestCRUDAPI(t *testing.T) {
 	}
 	body, _ = json.Marshal(person)
 
-	req, err = http.NewRequest("POST", host+"/api/v1/user_data/new",
+	req, err = http.NewRequest("POST", host+"/api/v1/user/new",
 		bytes.NewBuffer(body))
 	if err != nil {
 		t.Fatalf("Failed to prepare a request: %s", err)
@@ -415,7 +415,7 @@ func TestCRUDAPI(t *testing.T) {
 	}
 
 	// Get
-	req, err = http.NewRequest("GET", host+"/api/v1/user_data?id="+createdPerson.UserID.String(),
+	req, err = http.NewRequest("GET", host+"/api/v1/user?id="+createdPerson.UserID.String(),
 		nil)
 	if err != nil {
 		t.Fatalf("Failed to prepare a request: %s", err)

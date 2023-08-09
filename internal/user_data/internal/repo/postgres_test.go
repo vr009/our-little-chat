@@ -400,7 +400,7 @@ func TestPersonRepo_GetUserForItsName(t *testing.T) {
 	}
 
 	columns := []string{
-		"user_id", "nickname", "name", "surname", "last_auth", "registered",
+		"user_id", "nickname", "name", "surname", "password", "last_auth", "registered",
 		"avatar",
 	}
 
@@ -418,7 +418,7 @@ func TestPersonRepo_GetUserForItsName(t *testing.T) {
 				mock.ExpectQuery(regexp.QuoteMeta(GetNameQuery)).
 					WithArgs(testPerson.Name).WillReturnRows(pgxmock.NewRows(columns).
 					AddRow(testPerson.UserID.String(), testPerson.Nickname, testPerson.Name,
-						testPerson.Surname, testPerson.LastAuth, testPerson.Registered, testPerson.Avatar))
+						testPerson.Surname, testPerson.Password, testPerson.LastAuth, testPerson.Registered, testPerson.Avatar))
 			},
 			fields: fields{pool: mock},
 			args: args{

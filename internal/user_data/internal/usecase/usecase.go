@@ -1,6 +1,7 @@
 package usecase
 
 import (
+	"golang.org/x/exp/slog"
 	"time"
 
 	"our-little-chatik/internal/user_data/internal"
@@ -32,6 +33,7 @@ func (uc *UserdataUseCase) CreateUser(userData models.UserData) (models.UserData
 	userData.Password = string(pswd)
 	userData.UserID = uuid.New()
 	userData.Registered = time.Now()
+	slog.Info("CREATE", "pswd", userData.Password, "id", userData.UserID)
 	return uc.repo.CreateUser(userData)
 }
 
@@ -66,8 +68,11 @@ func (uc *UserdataUseCase) CheckUser(userData models.UserData) (models.UserData,
 	if code == models.NotFound {
 		return models.UserData{}, code
 	}
+	slog.Info("CHECK", "pswd", userData.Password, "id", userFromRepo.UserID)
+	slog.Info("CHECK", "pswd", userFromRepo.Password, "id", userFromRepo.UserID)
 	err := bcrypt.CompareHashAndPassword([]byte(userFromRepo.Password), []byte(userData.Password))
 	if err != nil {
+		slog.Error(err.Error())
 		return models.UserData{}, models.Forbidden
 	}
 	return userFromRepo, models.OK
