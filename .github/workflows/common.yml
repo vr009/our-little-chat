@@ -7,7 +7,7 @@ on:
     branches:
       - master
 jobs:
-  build:
+  tests:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
@@ -22,5 +22,5 @@ jobs:
       - name: Setup Docker
         uses: docker-practice/actions-setup-docker@master
 
-      - name: Integration tests
-        run: go mod download && go mod tidy && make integration-test
+      - name: Unit tests
+        run: go mod download && go mod tidy && make unit
