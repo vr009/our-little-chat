@@ -16,7 +16,7 @@ const (
 	DeleteQuery    = "DELETE FROM users WHERE user_id=$1;"
 	UpdateQuery    = "UPDATE users SET nickname=$1, name=$2, surname=$3, avatar=$4 WHERE user_id=$5;"
 	GetQuery       = "SELECT user_id, nickname, name, surname, last_auth, registered, avatar  FROM users WHERE user_id=$1;"
-	GetNameQuery   = "SELECT user_id, nickname, name, surname, last_auth, registered, avatar  FROM users WHERE nickname=$1;"
+	GetNameQuery   = "SELECT user_id, nickname, name, surname, password, last_auth, registered, avatar  FROM users WHERE nickname=$1;"
 	ListQuery      = "SELECT user_id, nickname, avatar FROM users;"
 	FindUsersQuery = "SELECT user_id, nickname, name, surname, avatar FROM users WHERE nickname LIKE LOWER($1 || '%') LIMIT 10"
 )
@@ -86,7 +86,7 @@ func (pr *PersonRepo) GetUser(person models.UserData) (models.UserData, models.S
 func (pr *PersonRepo) GetUserForItsName(person models.UserData) (models.UserData, models.StatusCode) {
 	rows := pr.pool.QueryRow(context.Background(), GetNameQuery, person.Nickname)
 	err := rows.Scan(&person.UserID, &person.Nickname,
-		&person.Name, &person.Surname, &person.LastAuth,
+		&person.Name, &person.Surname, &person.Password, &person.LastAuth,
 		&person.Registered, &person.Avatar)
 	if err != nil {
 		slog.Error("user_data not found: " + err.Error())

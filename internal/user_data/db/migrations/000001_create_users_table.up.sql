@@ -1,5 +1,3 @@
-CREATE SCHEMA IF NOT EXISTS person;
-
 CREATE TABLE IF NOT EXISTS users
 (
     user_id      uuid         NOT NULL PRIMARY KEY,
@@ -9,5 +7,5 @@ CREATE TABLE IF NOT EXISTS users
     password     varchar(200),
     last_auth    DATE,
     registered   DATE         NOT NULL,
-    avatar       varchar,
+    avatar       varchar
 );
