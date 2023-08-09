@@ -29,4 +29,27 @@ integration-user-data-test:
 	TEST_HOST=http://localhost:8086 go test -bench=. -run=^Benchmark -benchmem -benchtime=100x ./internal/user_data/cmd/... &&\
 	docker-compose -f docker-compose-test.yml down
 
-integration-test: integration-user-data-test
+## test: run all integration tests
+.PHONY: unit
+integration: integration-user-data-test
+
+## test: run all unit tests
+.PHONY: unit
+unit:
+	go test -v -race ./...
+
+## test/cover: run all tests and display coverage
+.PHONY: test/cover
+test/cover:
+	go test -v -race -buildvcs -coverprofile=/tmp/coverage.out ./...
+	go tool cover -html=/tmp/coverage.out
+
+## dep: download dependencies
+.PHONY: dep
+dep:
+	go mod download
+
+## lint: run linter
+.PHONY: lint
+lint:
+	golangci-lint run -v -c golangci-lint.yml
