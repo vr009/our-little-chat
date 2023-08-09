@@ -16,4 +16,4 @@ type Messages []Message
 
 func (m Messages) Len() int           { return len(m) }
 func (m Messages) Swap(i, j int)      { m[i], m[j] = m[j], m[i] }
-func (m Messages) Less(i, j int) bool { return m[i].CreatedAt < m[j].CreatedAt }
+func (m Messages) Less(i, j int) bool { return m[i].CreatedAt > m[j].CreatedAt }
