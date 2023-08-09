@@ -36,7 +36,7 @@ integration: integration-user-data-test
 ## test: run all unit tests
 .PHONY: unit
 unit:
-	go test -v -race -short ./...
+	go test -v -race -short ./... -coverprofile coverage.out -covermode atomic && go tool cover -func coverage.out
 
 ## test/cover: run all tests and display coverage
 .PHONY: test/cover
