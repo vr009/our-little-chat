@@ -3,9 +3,9 @@ package repo
 import (
 	"context"
 	"database/sql"
-	"our-little-chatik/internal/user/internal"
+	"our-little-chatik/internal/user_data/internal"
 
-	"our-little-chatik/internal/user/internal/models"
+	"our-little-chatik/internal/user_data/internal/models"
 
 	"golang.org/x/exp/slog"
 )
@@ -32,7 +32,7 @@ func NewPersonRepo(pool internal.DB) *PersonRepo {
 }
 
 func (pr *PersonRepo) CreateUser(person models.UserData) (models.UserData, models.StatusCode) {
-	slog.Info("Creating user", "user data", slog.AnyValue(person))
+	slog.Info("Creating user", "user_data data", slog.AnyValue(person))
 	_, err := pr.pool.Exec(context.Background(),
 		InsertQuery,
 		person.UserID,
@@ -77,7 +77,7 @@ func (pr *PersonRepo) GetUser(person models.UserData) (models.UserData, models.S
 		&person.Name, &person.Surname, &person.LastAuth,
 		&person.Registered, &person.Avatar)
 	if err != nil {
-		slog.Error("user not found: " + err.Error())
+		slog.Error("user_data not found: " + err.Error())
 		return models.UserData{}, models.NotFound
 	}
 	return person, models.OK
@@ -89,7 +89,7 @@ func (pr *PersonRepo) GetUserForItsName(person models.UserData) (models.UserData
 		&person.Name, &person.Surname, &person.LastAuth,
 		&person.Registered, &person.Avatar)
 	if err != nil {
-		slog.Error("user not found: " + err.Error())
+		slog.Error("user_data not found: " + err.Error())
 		return models.UserData{}, models.NotFound
 	}
 	return person, models.OK

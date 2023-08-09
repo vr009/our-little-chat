@@ -4,7 +4,7 @@ import (
 	"context"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
-	"our-little-chatik/internal/user/internal/models"
+	"our-little-chatik/internal/user_data/internal/models"
 )
 
 type UserdataRepo interface {

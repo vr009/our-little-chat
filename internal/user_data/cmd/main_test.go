@@ -9,7 +9,7 @@ import (
 	"testing"
 
 	models2 "our-little-chatik/internal/models"
-	"our-little-chatik/internal/user/internal/models"
+	"our-little-chatik/internal/user_data/internal/models"
 
 	"github.com/google/uuid"
 )
@@ -76,7 +76,7 @@ func TestAPI(t *testing.T) {
 					},
 				},
 				{
-					path:   "/api/v1/user/all",
+					path:   "/api/v1/user_data/all",
 					method: "GET",
 					prepareBody: func() []byte {
 						return nil
@@ -253,7 +253,7 @@ func TestAPI(t *testing.T) {
 					},
 				},
 				{
-					path:   "/api/v1/user/me",
+					path:   "/api/v1/user_data/me",
 					method: "GET",
 					prepareBody: func() []byte {
 						return nil
@@ -289,7 +289,7 @@ func TestAPI(t *testing.T) {
 					},
 				},
 				{
-					path:   "/api/v1/user/search?name=test1",
+					path:   "/api/v1/user_data/search?name=test1",
 					method: "GET",
 					prepareBody: func() []byte {
 						return nil
@@ -386,7 +386,7 @@ func TestCRUDAPI(t *testing.T) {
 		testCookie = resp.Cookies()[0]
 	}
 
-	// Create a new user
+	// Create a new user_data
 	person = models.UserData{
 		User: models2.User{
 			Name:     "test8",
@@ -397,7 +397,7 @@ func TestCRUDAPI(t *testing.T) {
 	}
 	body, _ = json.Marshal(person)
 
-	req, err = http.NewRequest("POST", host+"/api/v1/user/new",
+	req, err = http.NewRequest("POST", host+"/api/v1/user_data/new",
 		bytes.NewBuffer(body))
 	if err != nil {
 		t.Fatalf("Failed to prepare a request: %s", err)
@@ -415,7 +415,7 @@ func TestCRUDAPI(t *testing.T) {
 	}
 
 	// Get
-	req, err = http.NewRequest("GET", host+"/api/v1/user?id="+createdPerson.UserID.String(),
+	req, err = http.NewRequest("GET", host+"/api/v1/user_data?id="+createdPerson.UserID.String(),
 		nil)
 	if err != nil {
 		t.Fatalf("Failed to prepare a request: %s", err)
@@ -434,7 +434,7 @@ func TestCRUDAPI(t *testing.T) {
 	}
 
 	if foundPerson.UserID != createdPerson.UserID {
-		t.Fatalf("the id of found user is not the same as returned"+
+		t.Fatalf("the id of found user_data is not the same as returned"+
 			" after its creation: %s %s", foundPerson.UserID.String(), createdPerson.UserID.String())
 	}
 }
