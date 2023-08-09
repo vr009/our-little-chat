@@ -3,6 +3,7 @@ package repo
 import (
 	"github.com/go-redis/redis"
 	"github.com/golang/glog"
+	"github.com/prometheus/common/log"
 	"our-little-chatik/internal/models"
 )
 
@@ -26,6 +27,13 @@ func (r RedisRepo) FetchAllMessages() ([]models.Message, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	num, err := r.cl.Del(keys...).Result()
+	if err != nil {
+		log.Errorf("failed to delete keys in db: %v", err)
+	}
+
+	log.Infof("removed %d records", num)
 
 	// We merge result of both requests in one slice. The same order of keys and values
 	// in both slices is ensured.

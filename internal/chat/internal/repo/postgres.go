@@ -18,7 +18,7 @@ const (
 	InsertChatQuery             = `INSERT INTO chats VALUES($1, $2, $3, $4)`
 	GetMessagesQuery            = `SELECT msg_id, sender_id, payload, created_at FROM messages WHERE chat_id=$1 ORDER BY created_at ASC OFFSET $2 LIMIT $3`
 	GetChatInfoQuery            = `SELECT chat_id, name, photo_url, created_at FROM chats WHERE chat_id=$1`
-	FetchChatListQuery          = `SELECT cp.chat_id, c.name, c.photo_url, m.sender_id, m.msg_id, m.payload, m.created_at FROM chat_participants AS cp 
+	FetchChatListQuery          = `SELECT cp.chat_id, c.name, c.photo_url, m.payload, m.created_at FROM chat_participants AS cp 
     LEFT JOIN chats AS c ON cp.chat_id = c.chat_id 
     LEFT JOIN messages AS m ON c.last_msg_id = m.msg_id                      
                           WHERE cp.participant_id=$1`
@@ -34,6 +34,7 @@ func NewPostgresRepo(pool *pgxpool.Pool) *PostgresRepo {
 	return &PostgresRepo{pool: pool}
 }
 
+// GetChat
 func (pr PostgresRepo) GetChat(chat models.Chat) (models.Chat, error) {
 	ctx := context.Background()
 	row := pr.pool.QueryRow(ctx, GetChatInfoQuery, chat.ChatID)
@@ -44,6 +45,7 @@ func (pr PostgresRepo) GetChat(chat models.Chat) (models.Chat, error) {
 	return chat, nil
 }
 
+// GetChatMessages
 func (pr PostgresRepo) GetChatMessages(chat models.Chat, opts models.Opts) (models.Messages, error) {
 	ctx := context.Background()
 	rows, err := pr.pool.Query(ctx, GetMessagesQuery, chat.ChatID, opts.Page, opts.Limit)
@@ -63,6 +65,7 @@ func (pr PostgresRepo) GetChatMessages(chat models.Chat, opts models.Opts) (mode
 	return msgs, nil
 }
 
+// FetchChatList
 func (pr PostgresRepo) FetchChatList(user models.User) ([]models.ChatItem, error) {
 	ctx := context.Background()
 	rows, err := pr.pool.Query(ctx, FetchChatListQuery, user.UserID)
@@ -74,7 +77,7 @@ func (pr PostgresRepo) FetchChatList(user models.User) ([]models.ChatItem, error
 	for rows.Next() {
 		chat := models.ChatItem{}
 		err := rows.Scan(&chat.ChatID, &chat.Name, &chat.PhotoURL,
-			&chat.LastSender, &chat.MsgID, &chat.LastMsg, &chat.LastMessageTime)
+			&chat.LastMsg, &chat.LastMessageTime)
 		if err != nil {
 			return nil, err
 		}
@@ -85,6 +88,7 @@ func (pr PostgresRepo) FetchChatList(user models.User) ([]models.ChatItem, error
 	return chatList, nil
 }
 
+// InsertChat
 func (pr PostgresRepo) InsertChat(chat models.Chat) error {
 	ctx := context.Background()
 	tx, err := pr.pool.Begin(ctx)
@@ -131,6 +135,7 @@ func (pr PostgresRepo) InsertChat(chat models.Chat) error {
 	return nil
 }
 
+// UpdateChat
 func (pr PostgresRepo) UpdateChat(chat models.Chat, updateOpts models2.UpdateOptions) error {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
 	defer cancel()
