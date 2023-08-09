@@ -43,7 +43,7 @@ services:
     depends_on:
       - db-peer
 
-  user-data:
+  user:
     build:
       context: .
       dockerfile: ./deployments/user_data.Dockerfile
@@ -55,7 +55,7 @@ services:
     ports:
       - 8086:8086
     depends_on:
-      - db-user-data
+      - db-user
 
   db-peer:
     image: redis
@@ -64,7 +64,7 @@ services:
       - 6379:6379
     command: redis-server --save 20 1 --loglevel warning --requirepass test
 
-  db-user-data:
+  db-user:
     image: postgres:13.3
     environment:
       POSTGRES_DB: users
@@ -96,5 +96,6 @@ services:
       - ./configs/:/etc/nginx/conf.d/
       - ./temp/dist/:/var/www/html/dist/
     depends_on:
-      - user-data
+      - user
       - peer
+      - chat
