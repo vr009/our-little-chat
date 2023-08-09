@@ -23,6 +23,9 @@ type testItem struct {
 }
 
 func TestAPI(t *testing.T) {
+	if testing.Short() {
+		t.Skip()
+	}
 	tests := []struct {
 		name       string
 		tasks      []testItem
@@ -344,6 +347,9 @@ func TestAPI(t *testing.T) {
 }
 
 func TestCRUDAPI(t *testing.T) {
+	if testing.Short() {
+		t.Skip()
+	}
 	person := models.UserData{
 		User: models2.User{
 			Name:     "test7",
@@ -438,6 +444,9 @@ func TestCRUDAPI(t *testing.T) {
 /* --------------------------------------------------------------------- */
 
 func BenchmarkAPISignUpSeq(b *testing.B) {
+	if testing.Short() {
+		b.Skip()
+	}
 	prepareBody := func() []byte {
 		person := models.UserData{
 			User: models2.User{
@@ -477,6 +486,9 @@ func BenchmarkAPISignUpSeq(b *testing.B) {
 }
 
 func BenchmarkAPILoginSeq(b *testing.B) {
+	if testing.Short() {
+		b.Skip()
+	}
 	prepareBody := func() []byte {
 		person := models.UserData{
 			User: models2.User{
@@ -516,6 +528,9 @@ func BenchmarkAPILoginSeq(b *testing.B) {
 }
 
 func BenchmarkTestAPIParallel(b *testing.B) {
+	if testing.Short() {
+		b.Skip()
+	}
 	prepareBody := func() []byte {
 		person := models.UserData{
 			User: models2.User{
