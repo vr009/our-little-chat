@@ -3,8 +3,8 @@ package usecase
 import (
 	"time"
 
-	"our-little-chatik/internal/user/internal"
-	"our-little-chatik/internal/user/internal/models"
+	"our-little-chatik/internal/user_data/internal"
+	"our-little-chatik/internal/user_data/internal/models"
 
 	"github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"

@@ -43,7 +43,7 @@ services:
     depends_on:
       - db-peer
 
-  user:
+  user-data:
     build:
       context: .
       dockerfile: ./deployments/user_data.Dockerfile
@@ -55,7 +55,7 @@ services:
     ports:
       - 8086:8086
     depends_on:
-      - db-user
+      - db-user-data
 
   db-peer:
     image: redis
@@ -64,14 +64,14 @@ services:
       - 6379:6379
     command: redis-server --save 20 1 --loglevel warning --requirepass test
 
-  db-user:
+  db-user-data:
     image: postgres:13.3
     environment:
       POSTGRES_DB: users
       POSTGRES_USER: service
       POSTGRES_PASSWORD: test
     volumes:
-      - ./internal/user/db/migrations:/docker-entrypoint-initdb.d
+      - ./internal/user_data/db/migrations:/docker-entrypoint-initdb.d
     restart: unless-stopped
     ports:
       - 5432:5432
@@ -96,6 +96,6 @@ services:
       - ./configs/:/etc/nginx/conf.d/
       - ./temp/dist/:/var/www/html/dist/
     depends_on:
-      - user
+      - user-data
       - peer
       - chat
