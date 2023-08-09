@@ -9,9 +9,9 @@ import (
 	"os"
 	"strconv"
 
-	"our-little-chatik/internal/user_data/internal/delivery"
-	"our-little-chatik/internal/user_data/internal/repo"
-	"our-little-chatik/internal/user_data/internal/usecase"
+	"our-little-chatik/internal/user/internal/delivery"
+	"our-little-chatik/internal/user/internal/repo"
+	"our-little-chatik/internal/user/internal/usecase"
 
 	"github.com/gorilla/mux"
 	"github.com/jackc/pgx/v5/pgxpool"

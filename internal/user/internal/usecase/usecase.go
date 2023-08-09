@@ -3,8 +3,8 @@ package usecase
 import (
 	"time"
 
-	"our-little-chatik/internal/user_data/internal"
-	"our-little-chatik/internal/user_data/internal/models"
+	"our-little-chatik/internal/user/internal"
+	"our-little-chatik/internal/user/internal/models"
 
 	"github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"
@@ -44,6 +44,20 @@ func (uc *UserdataUseCase) DeleteUser(userData models.UserData) models.StatusCod
 }
 
 func (uc *UserdataUseCase) UpdateUser(personNew models.UserData) (models.UserData, models.StatusCode) {
+	personOld, status := uc.GetUser(personNew)
+	if status != models.OK {
+		return models.UserData{}, status
+	}
+
+	if personNew.Name == "" {
+		personNew.Name = personOld.Name
+	}
+	if personNew.Surname == "" {
+		personNew.Surname = personOld.Surname
+	}
+	if personNew.Nickname == "" {
+		personNew.Nickname = personOld.Nickname
+	}
 	return uc.repo.UpdateUser(personNew)
 }
 

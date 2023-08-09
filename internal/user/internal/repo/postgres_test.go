@@ -4,8 +4,8 @@ import (
 	"github.com/google/uuid"
 	"github.com/pashagolub/pgxmock/v2"
 	models2 "our-little-chatik/internal/models"
-	"our-little-chatik/internal/user_data/internal"
-	"our-little-chatik/internal/user_data/internal/models"
+	"our-little-chatik/internal/user/internal"
+	"our-little-chatik/internal/user/internal/models"
 	"reflect"
 	"regexp"
 	"testing"
@@ -495,8 +495,7 @@ func TestPersonRepo_UpdateUser(t *testing.T) {
 			pre: func() {
 				mock.ExpectExec(regexp.QuoteMeta(UpdateQuery)).
 					WithArgs(testPerson.Nickname, testPerson.Name,
-						testPerson.Surname, testPerson.Password, testPerson.LastAuth,
-						testPerson.Registered, testPerson.Avatar, testPerson.UserID).
+						testPerson.Surname, testPerson.Avatar, testPerson.UserID).
 					WillReturnResult(pgxmock.NewResult("UPDATE", 1))
 			},
 		},
