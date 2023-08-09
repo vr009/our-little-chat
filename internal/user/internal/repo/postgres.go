@@ -3,9 +3,9 @@ package repo
 import (
 	"context"
 	"database/sql"
-	"our-little-chatik/internal/user_data/internal"
+	"our-little-chatik/internal/user/internal"
 
-	"our-little-chatik/internal/user_data/internal/models"
+	"our-little-chatik/internal/user/internal/models"
 
 	"golang.org/x/exp/slog"
 )
@@ -14,7 +14,7 @@ const (
 	InsertQuery = "INSERT INTO users(user_id, nickname, name, surname, password, last_auth, registered, avatar) " +
 		"VALUES($1, $2, $3, $4, $5, $6, $7, $8);"
 	DeleteQuery    = "DELETE FROM users WHERE user_id=$1;"
-	UpdateQuery    = "UPDATE users SET nickname=$1, name=$2, surname=$3, password=$4, last_auth=$5, registered=$6, avatar=$7 WHERE user_id=$8;"
+	UpdateQuery    = "UPDATE users SET nickname=$1, name=$2, surname=$3, avatar=$4 WHERE user_id=$5;"
 	GetQuery       = "SELECT user_id, nickname, name, surname, last_auth, registered, avatar  FROM users WHERE user_id=$1;"
 	GetNameQuery   = "SELECT user_id, nickname, name, surname, last_auth, registered, avatar  FROM users WHERE nickname=$1;"
 	ListQuery      = "SELECT user_id, nickname, avatar FROM users;"
@@ -62,8 +62,7 @@ func (pr *PersonRepo) DeleteUser(person models.UserData) models.StatusCode {
 
 func (pr *PersonRepo) UpdateUser(personNew models.UserData) (models.UserData, models.StatusCode) {
 	_, err := pr.pool.Exec(context.Background(), UpdateQuery,
-		personNew.Nickname, personNew.Name, personNew.Surname, personNew.Password,
-		personNew.LastAuth, personNew.Registered, personNew.Avatar,
+		personNew.Nickname, personNew.Name, personNew.Surname, personNew.Avatar,
 		personNew.UserID)
 	if err != nil {
 		return models.UserData{}, models.BadRequest

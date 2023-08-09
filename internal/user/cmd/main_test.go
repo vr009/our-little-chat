@@ -9,7 +9,7 @@ import (
 	"testing"
 
 	models2 "our-little-chatik/internal/models"
-	"our-little-chatik/internal/user_data/internal/models"
+	"our-little-chatik/internal/user/internal/models"
 
 	"github.com/google/uuid"
 )

@@ -5,8 +5,8 @@ import (
 	"net/http"
 
 	"our-little-chatik/internal/pkg"
-	"our-little-chatik/internal/user_data/internal"
-	"our-little-chatik/internal/user_data/internal/models"
+	"our-little-chatik/internal/user/internal"
+	"our-little-chatik/internal/user/internal/models"
 
 	"github.com/google/uuid"
 	"golang.org/x/exp/slog"
