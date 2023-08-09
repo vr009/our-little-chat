@@ -3,7 +3,7 @@ package main
 import (
 	"context"
 	"errors"
-	"github.com/go-redis/redis"
+	"github.com/redis/go-redis/v9"
 	"log"
 	"net/http"
 	"os"
