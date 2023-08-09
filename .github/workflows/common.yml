@@ -9,6 +9,8 @@ on:
 jobs:
   tests:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v2
         with:
@@ -43,3 +45,14 @@ jobs:
               echo "Failed"
               exit 1
           fi
+      - name: Coverage evaluation
+        run: |
+          go test ./... -short -coverprofile coverage.out
+          echo "COVERAGE=`go tool cover -func=coverage.out | grep total: | grep -Eo '[0-9]{2}'`" >> $GITHUB_ENV
+          echo $COVERAGE
+      - uses: kevinfjiang/coverage-badge@v1
+        with:
+          coverage: ${{ env.COVERAGE }}
+          change_file: ./README.md
+          style: flat
+          color: yellow

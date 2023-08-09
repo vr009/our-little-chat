@@ -1,3 +1,5 @@
+![Coverage][coverage_badge]
+
 # Our little chat
 ## Personal project for training hard skills
 
@@ -11,3 +13,5 @@
 
 - Golang 
 - JS React
+<!-- Coverage Comment:Begin -->
+<!-- Coverage Comment:End -->
