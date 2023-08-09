@@ -1,9 +1,10 @@
 package repo
 
 import (
+	"context"
 	"encoding/json"
-	"github.com/go-redis/redis"
 	"github.com/golang/glog"
+	"github.com/redis/go-redis/v9"
 	"our-little-chatik/internal/models"
 )
 
@@ -18,12 +19,12 @@ func NewRedisRepo(cl *redis.Client) *RedisRepo {
 }
 
 func (r RedisRepo) GetFreshMessagesFromChat(chat models.Chat) (models.Messages, error) {
-	keys, err := r.cl.Keys(chat.ChatID.String() + "*").Result()
+	keys, err := r.cl.Keys(context.Background(), chat.ChatID.String()+"*").Result()
 	if err != nil {
 		return nil, err
 	}
 	msgList := make(models.Messages, 0)
-	values, err := r.cl.MGet(keys...).Result()
+	values, err := r.cl.MGet(context.Background(), keys...).Result()
 	if err != nil {
 		return nil, err
 	}

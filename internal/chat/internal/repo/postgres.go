@@ -8,8 +8,6 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgconn"
-	"github.com/jackc/pgx/v5/pgxpool"
 	"golang.org/x/exp/slog"
 )
 
@@ -27,10 +25,10 @@ const (
 )
 
 type PostgresRepo struct {
-	pool *pgxpool.Pool
+	pool pgx.Tx
 }
 
-func NewPostgresRepo(pool *pgxpool.Pool) *PostgresRepo {
+func NewPostgresRepo(pool pgx.Tx) *PostgresRepo {
 	return &PostgresRepo{pool: pool}
 }
 
@@ -56,10 +54,11 @@ func (pr PostgresRepo) GetChatMessages(chat models.Chat, opts models.Opts) (mode
 	msgs := make([]models.Message, 0)
 	for rows.Next() {
 		msg := models.Message{}
-		err := rows.Scan(&msg.ChatID, &msg.SenderID, &msg.Payload, &msg.CreatedAt)
+		err := rows.Scan(&msg.MsgID, &msg.SenderID, &msg.Payload, &msg.CreatedAt)
 		if err != nil {
 			return nil, err
 		}
+		msg.ChatID = chat.ChatID
 		msgs = append(msgs, msg)
 	}
 	return msgs, nil
@@ -98,9 +97,7 @@ func (pr PostgresRepo) InsertChat(chat models.Chat) error {
 
 	batch := &pgx.Batch{}
 	for _, participant := range chat.Participants {
-		batch.Queue(InsertChatParticipantsQuery, chat.ChatID, participant).Exec(func(ct pgconn.CommandTag) error {
-			return nil
-		})
+		batch.Queue(InsertChatParticipantsQuery, chat.ChatID, participant)
 	}
 
 	batch.Queue(InsertChatQuery, chat.ChatID, chat.Name, chat.PhotoURL, chat.CreatedAt)
@@ -149,9 +146,7 @@ func (pr PostgresRepo) UpdateChat(chat models.Chat, updateOpts models2.UpdateOpt
 		if len(chat.Participants) > 0 {
 			batch := &pgx.Batch{}
 			for _, participant := range chat.Participants {
-				batch.Queue(InsertChatParticipantsQuery, chat.ChatID, participant).Exec(func(ct pgconn.CommandTag) error {
-					return nil
-				})
+				batch.Queue(InsertChatParticipantsQuery, chat.ChatID, participant)
 			}
 			results := pr.pool.SendBatch(ctx, batch)
 			defer results.Close()
@@ -167,9 +162,7 @@ func (pr PostgresRepo) UpdateChat(chat models.Chat, updateOpts models2.UpdateOpt
 		if len(chat.Participants) > 0 {
 			batch := &pgx.Batch{}
 			for _, participant := range chat.Participants {
-				batch.Queue(RemoveUserFromChatQuery, chat.ChatID, participant).Exec(func(ct pgconn.CommandTag) error {
-					return nil
-				})
+				batch.Queue(RemoveUserFromChatQuery, chat.ChatID, participant)
 			}
 			results := pr.pool.SendBatch(ctx, batch)
 			defer results.Close()
