@@ -43,8 +43,8 @@ func (uc *UserdataUseCase) DeleteUser(userData models.UserData) models.StatusCod
 	return uc.repo.DeleteUser(userData)
 }
 
-func (uc *UserdataUseCase) UpdateUser(userData models.UserData) (models.UserData, models.StatusCode) {
-	return uc.repo.UpdateUser(userData)
+func (uc *UserdataUseCase) UpdateUser(personNew models.UserData) (models.UserData, models.StatusCode) {
+	return uc.repo.UpdateUser(personNew)
 }
 
 func (uc *UserdataUseCase) CheckUser(userData models.UserData) (models.UserData, models.StatusCode) {

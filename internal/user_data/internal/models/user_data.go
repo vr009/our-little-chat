@@ -8,8 +8,7 @@ import (
 
 type UserData struct {
 	models.User
-	LastAuth    time.Time `json:"last_auth,omitempty"`
-	Registered  time.Time `json:"registered,omitempty"`
-	Avatar      []string  `json:"avatar"`
-	ContactList []string  `json:"contact_list"`
+	LastAuth   time.Time `json:"last_auth,omitempty"`
+	Registered time.Time `json:"registered,omitempty"`
+	Avatar     string    `json:"avatar,omitempty"`
 }

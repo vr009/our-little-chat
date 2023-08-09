@@ -3,6 +3,7 @@ package repo
 import (
 	"context"
 	"github.com/golang/glog"
+	"our-little-chatik/internal/chat/internal"
 	models2 "our-little-chatik/internal/chat/internal/models"
 	"our-little-chatik/internal/models"
 	"time"
@@ -25,10 +26,10 @@ const (
 )
 
 type PostgresRepo struct {
-	pool pgx.Tx
+	pool internal.DB
 }
 
-func NewPostgresRepo(pool pgx.Tx) *PostgresRepo {
+func NewPostgresRepo(pool internal.DB) *PostgresRepo {
 	return &PostgresRepo{pool: pool}
 }
 

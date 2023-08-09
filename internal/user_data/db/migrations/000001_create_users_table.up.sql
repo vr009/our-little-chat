@@ -9,6 +9,5 @@ CREATE TABLE IF NOT EXISTS users
     password     varchar(200),
     last_auth    DATE,
     registered   DATE         NOT NULL,
-    avatar       TEXT[],
-    contact_list TEXT[]
+    avatar       varchar,
 );
