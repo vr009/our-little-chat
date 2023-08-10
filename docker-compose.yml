@@ -25,6 +25,10 @@ services:
       DATABASE_URL: "user=service password=test host=db-chat port=5432 dbname=chats"
       DATABASE_ALTERNATIVE_URL: "postgresql://db-chat:5432/chats?user=service&password=test"
       JWT_SIGNED_KEY: "test"
+      CHAT_PORT: "8083"
+      REDIS_PORT: "6379"
+      REDIS_HOST: "db-peer"
+      REDIS_PASSWORD: "test"
     ports:
       - 8083:8083
     depends_on:

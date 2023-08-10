@@ -6,12 +6,11 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"our-little-chatik/internal/user_data/internal/models"
 	"testing"
 
-	models2 "our-little-chatik/internal/models"
-	"our-little-chatik/internal/user_data/internal/models"
-
 	"github.com/google/uuid"
+	models2 "our-little-chatik/internal/models"
 )
 
 type testItem struct {

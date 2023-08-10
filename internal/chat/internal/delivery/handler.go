@@ -3,6 +3,7 @@ package delivery
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 	models2 "our-little-chatik/internal/chat/internal/models"
 	"strconv"
@@ -63,6 +64,8 @@ func (c *ChatHandler) GetChat(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
+
+	log.Println("FETCHED CHAT!!!!", chat)
 
 	w.WriteHeader(http.StatusOK)
 	b, err := json.Marshal(chat)
@@ -220,6 +223,8 @@ func (h *ChatHandler) PostNewChat(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
+
+	fmt.Println("CREATED CHAT !!!!!!!!!!! ", createdChat)
 
 	body, err := json.Marshal(createdChat)
 	if err != nil {
