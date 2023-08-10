@@ -114,15 +114,18 @@ func TestPostgresRepo_GetChat(t *testing.T) {
 	testURL := "test_url"
 	testName := "test"
 	testTimestamp := time.Now().Unix()
+	participant1 := uuid.New()
+	participant2 := uuid.New()
 
 	passingTestChat := models.Chat{
 		ChatID: testChatID,
 	}
 	expectedTestChat := models.Chat{
-		ChatID:    testChatID,
-		Name:      testName,
-		PhotoURL:  testURL,
-		CreatedAt: testTimestamp,
+		ChatID:       testChatID,
+		Name:         testName,
+		PhotoURL:     testURL,
+		CreatedAt:    testTimestamp,
+		Participants: []uuid.UUID{participant1, participant2},
 	}
 
 	columns := []string{
@@ -130,6 +133,10 @@ func TestPostgresRepo_GetChat(t *testing.T) {
 		"name",
 		"photo_url",
 		"created_at",
+	}
+
+	pColumns := []string{
+		"participant_id",
 	}
 
 	tests := []struct {
@@ -150,6 +157,9 @@ func TestPostgresRepo_GetChat(t *testing.T) {
 					WithArgs(expectedTestChat.ChatID).
 					WillReturnRows(pgxmock.NewRows(columns).AddRow(testChatID,
 						testName, testURL, testTimestamp))
+				mock.ExpectQuery(regexp.QuoteMeta(GetChatParticipantsQuery)).
+					WithArgs(expectedTestChat.ChatID).
+					WillReturnRows(pgxmock.NewRows(pColumns).AddRow(participant1).AddRow(participant2))
 			},
 			args: args{
 				chat: passingTestChat,

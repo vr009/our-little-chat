@@ -3,6 +3,7 @@ package repo
 import (
 	"context"
 	"github.com/golang/glog"
+	"github.com/google/uuid"
 	"our-little-chatik/internal/chat/internal"
 	models2 "our-little-chatik/internal/chat/internal/models"
 	"our-little-chatik/internal/models"
@@ -17,6 +18,7 @@ const (
 	InsertChatQuery             = `INSERT INTO chats VALUES($1, $2, $3, $4)`
 	GetMessagesQuery            = `SELECT msg_id, sender_id, payload, created_at FROM messages WHERE chat_id=$1 ORDER BY created_at ASC OFFSET $2 LIMIT $3`
 	GetChatInfoQuery            = `SELECT chat_id, name, photo_url, created_at FROM chats WHERE chat_id=$1`
+	GetChatParticipantsQuery    = `SELECT participant_id FROM chat_participants WHERE chat_id=$1`
 	FetchChatListQuery          = `SELECT cp.chat_id, c.name, c.photo_url, m.payload, m.created_at FROM chat_participants AS cp 
     LEFT JOIN chats AS c ON cp.chat_id = c.chat_id 
     LEFT JOIN messages AS m ON c.last_msg_id = m.msg_id                      
@@ -40,6 +42,18 @@ func (pr PostgresRepo) GetChat(chat models.Chat) (models.Chat, error) {
 	err := row.Scan(&chat.ChatID, &chat.Name, &chat.PhotoURL, &chat.CreatedAt)
 	if err != nil {
 		return models.Chat{}, err
+	}
+	rows, err := pr.pool.Query(ctx, GetChatParticipantsQuery, chat.ChatID)
+	if err != nil {
+		return models.Chat{}, err
+	}
+	for rows.Next() {
+		var participantID uuid.UUID
+		err = rows.Scan(&participantID)
+		if err != nil {
+			slog.Error(err.Error())
+		}
+		chat.Participants = append(chat.Participants, participantID)
 	}
 	return chat, nil
 }
