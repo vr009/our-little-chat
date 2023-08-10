@@ -97,6 +97,9 @@ func TestAPI(t *testing.T) {
 						if chat.PhotoURL != testChat.PhotoURL {
 							return fmt.Errorf("wrong photo url")
 						}
+						if len(chat.Participants) != 2 {
+							return fmt.Errorf("wrong photo url")
+						}
 						return nil
 					},
 				},
