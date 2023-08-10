@@ -15,7 +15,6 @@ import (
 
 	"github.com/gorilla/mux"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/spf13/viper"
 	"golang.org/x/exp/slog"
 )
 
@@ -39,19 +38,28 @@ func GetConnectionString() (string, error) {
 }
 
 func main() {
-	configPath := os.Getenv("CHAT_CONFIG")
-	viper.AddConfigPath(configPath)
-	viper.SetConfigName("chat-config.yaml")
-	viper.SetConfigType("yaml")
-	if err := viper.ReadInConfig(); err != nil {
-		log.Fatal("Failed to read a config file ", err)
+	var err error
+	appConfig := AppConfig{}
+	appConfig.Port, err = strconv.Atoi(os.Getenv("CHAT_PORT"))
+	if err != nil {
+		panic(err.Error())
+	}
+	redisHost := os.Getenv("REDIS_HOST")
+	if redisHost == "" {
+		panic("empty redis host")
+	}
+	redisPort := os.Getenv("REDIS_PORT")
+	if redisPort == "" {
+		panic("empty redis port")
+	}
+	redisPassword := os.Getenv("REDIS_PASSWORD")
+	if redisPassword == "" {
+		panic("empty redis password")
 	}
 
-	appConfig := AppConfig{}
-	err := viper.Unmarshal(&appConfig)
-	if err != nil {
-		log.Fatal(err)
-	}
+	appConfig.Redis.Port = redisPort
+	appConfig.Redis.Host = redisHost
+	appConfig.Redis.Password = redisPassword
 
 	slog.SetDefault(slog.New(slog.NewTextHandler(os.Stderr, nil)))
 

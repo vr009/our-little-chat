@@ -26,3 +26,42 @@ services:
     restart: unless-stopped
     ports:
       - 5432:5432
+
+  test-chat:
+    build:
+      context: .
+      dockerfile: deployments/chat.Dockerfile
+    command: ./chat-service
+    environment:
+      CHAT_CONFIG: configs/.
+      DATABASE_URL: "user=service password=test host=test-db-chat port=5432 dbname=chats"
+      DATABASE_ALTERNATIVE_URL: "postgresql://test-db-chat:5432/chats?user=service&password=test"
+      JWT_SIGNED_KEY: "test"
+      CHAT_PORT: "8083"
+      REDIS_PORT: "6379"
+      REDIS_HOST: "test-db-peer"
+      REDIS_PASSWORD: "test"
+    ports:
+      - 8083:8083
+    depends_on:
+      - test-db-peer
+      - test-db-chat
+
+  test-db-chat:
+    image: postgres:13.3
+    environment:
+      POSTGRES_DB: "chats"
+      POSTGRES_USER: "service"
+      POSTGRES_PASSWORD: "test"
+    volumes:
+      - ./internal/chat/db/migrations:/docker-entrypoint-initdb.d
+    restart: unless-stopped
+    ports:
+      - 5433:5432
+
+  test-db-peer:
+    image: redis
+    restart: always
+    ports:
+      - 6379:6379
+    command: redis-server --save 20 1 --loglevel warning --requirepass test

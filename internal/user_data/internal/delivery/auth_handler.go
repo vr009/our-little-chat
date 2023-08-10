@@ -3,7 +3,6 @@ package delivery
 import (
 	"encoding/json"
 	"net/http"
-
 	"our-little-chatik/internal/pkg"
 	"our-little-chatik/internal/user_data/internal"
 	"our-little-chatik/internal/user_data/internal/models"

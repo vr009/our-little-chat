@@ -29,9 +29,17 @@ integration-user-data-test:
 	TEST_HOST=http://localhost:8086 go test -bench=. -run=^Benchmark -benchmem -benchtime=100x ./internal/user_data/cmd/... &&\
 	docker-compose -f docker-compose-test.yml down
 
+.PHONY: integration-chat-test
+integration-chat-test:
+	docker-compose -f docker-compose-test.yml down &&\
+	docker-compose -f docker-compose-test.yml up -d test-db-peer test-db-chat && sleep 1 &&\
+	docker-compose -f docker-compose-test.yml up -d --build test-chat &&\
+	go clean -testcache && TEST_HOST=http://localhost:8083 JWT_SIGNED_KEY=test go test ./internal/chat/cmd/... &&\
+	docker-compose -f docker-compose-test.yml down
+
 ## test: run all integration tests
 .PHONY: integration
-integration: integration-user-data-test
+integration: integration-user-data-test integration-chat-test
 
 ## test: run all unit tests
 .PHONY: unit
