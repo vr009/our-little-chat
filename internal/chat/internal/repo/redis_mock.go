@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/google/uuid"
 	"our-little-chatik/internal/models"
+	"sort"
 )
 
 type RedisMock struct {
@@ -11,9 +12,11 @@ type RedisMock struct {
 	ID   uuid.UUID
 }
 
-func (m RedisMock) GetFreshMessagesFromChat(chat models.Chat) (models.Messages, error) {
+func (m RedisMock) GetFreshMessagesFromChat(chat models.Chat,
+	opts models.Opts) (models.Messages, error) {
 	if chat.ChatID != m.ID {
 		return nil, fmt.Errorf("not found")
 	}
+	sort.Sort(m.Msgs)
 	return m.Msgs, nil
 }

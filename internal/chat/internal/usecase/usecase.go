@@ -4,7 +4,6 @@ import (
 	"our-little-chatik/internal/chat/internal"
 	models2 "our-little-chatik/internal/chat/internal/models"
 	"our-little-chatik/internal/models"
-	"sort"
 	"time"
 
 	"github.com/google/uuid"
@@ -22,16 +21,18 @@ func NewChatUseCase(rep internal.ChatRepo, queue internal.QueueRepo) *ChatUseCas
 
 func (ch *ChatUseCase) FetchChatMessages(chat models.Chat,
 	opts models.Opts) (models.Messages, error) {
-	msgs, err := ch.queue.GetFreshMessagesFromChat(chat)
+	msgs, err := ch.queue.GetFreshMessagesFromChat(chat, opts)
 	if err != nil {
 		slog.Error(err.Error())
 	}
-	oldMsgs, err := ch.repo.GetChatMessages(chat, opts)
-	if err != nil {
-		slog.Error(err.Error())
+	if len(msgs) < int(opts.Limit) {
+		opts.Limit = opts.Limit - int64(len(msgs))
+		oldMsgs, err := ch.repo.GetChatMessages(chat, opts)
+		if err != nil {
+			slog.Error(err.Error())
+		}
+		msgs = append(msgs, oldMsgs...)
 	}
-	msgs = append(msgs, oldMsgs...)
-	sort.Sort(msgs)
 	return msgs, nil
 }
 

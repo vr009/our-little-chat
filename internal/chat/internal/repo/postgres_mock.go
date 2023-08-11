@@ -3,6 +3,7 @@ package repo
 import (
 	models2 "our-little-chatik/internal/chat/internal/models"
 	"our-little-chatik/internal/models"
+	"sort"
 )
 
 type PostgresMock struct {
@@ -12,6 +13,7 @@ type PostgresMock struct {
 }
 
 func (m PostgresMock) GetChatMessages(Chat models.Chat, opts models.Opts) (models.Messages, error) {
+	sort.Sort(m.Msgs)
 	return m.Msgs, nil
 }
 

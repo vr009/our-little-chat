@@ -9,11 +9,11 @@ ${INDEX_PATH} frontend:
 	mkdir temp && cd temp && git clone https://github.com/vr009/our_little_chatik_frontend.git --recursive &&\
 	cd our_little_chatik_frontend && git checkout ${BRANCH} && yarn install && yarn build && cp -r dist ..
 
-start: frontend
-	docker-compose build && docker-compose up -d && docker ps
-
 run:
-	docker-compose up --remove-orphans --build
+	docker-compose -f docker-compose-test.yml up --remove-orphans --build
+
+start: frontend run
+	echo "Starting project..."
 
 migrate-users:
 	migrate -path ${USERS_MIGRATIONS_PATH} -database ${USERS_DB_URL} up
