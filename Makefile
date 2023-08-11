@@ -34,7 +34,9 @@ integration-chat-test:
 	docker-compose -f docker-compose-test.yml down &&\
 	docker-compose -f docker-compose-test.yml up -d test-db-peer test-db-chat && sleep 1 &&\
 	docker-compose -f docker-compose-test.yml up -d --build test-chat &&\
-	go clean -testcache && TEST_HOST=http://localhost:8083 JWT_SIGNED_KEY=test go test ./internal/chat/cmd/... &&\
+	go clean -testcache && TEST_HOST=http://localhost:8083 JWT_SIGNED_KEY=test \
+	DATABASE_URL="user=test password=test host=localhost port=5433 dbname=chats" \
+	REDIS_HOST="localhost" REDIS_PORT="6379" REDIS_PASSWORD="test" go test ./internal/chat/cmd/... &&\
 	docker-compose -f docker-compose-test.yml down
 
 ## test: run all integration tests
