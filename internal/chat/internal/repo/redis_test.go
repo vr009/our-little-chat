@@ -70,7 +70,7 @@ func TestRedisRepo_GetFreshMessagesFromChat(t *testing.T) {
 			r := RedisRepo{
 				cl: tt.fields.cl,
 			}
-			got, err := r.GetFreshMessagesFromChat(tt.args.chat)
+			got, err := r.GetFreshMessagesFromChat(tt.args.chat, models.Opts{Limit: 10, Page: 0})
 			if (err != nil) != tt.wantErr {
 				t.Errorf("GetFreshMessagesFromChat() error = %v, wantErr %v", err, tt.wantErr)
 				return

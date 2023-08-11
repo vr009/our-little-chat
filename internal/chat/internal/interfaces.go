@@ -17,7 +17,7 @@ type ChatRepo interface {
 }
 
 type QueueRepo interface {
-	GetFreshMessagesFromChat(chat models.Chat) (models.Messages, error)
+	GetFreshMessagesFromChat(chat models.Chat, opts models.Opts) (models.Messages, error)
 }
 
 type ChatUseCase interface {

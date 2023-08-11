@@ -6,6 +6,7 @@ import (
 	"github.com/golang/glog"
 	"github.com/redis/go-redis/v9"
 	"our-little-chatik/internal/models"
+	"sort"
 )
 
 type RedisRepo struct {
@@ -18,7 +19,8 @@ func NewRedisRepo(cl *redis.Client) *RedisRepo {
 	}
 }
 
-func (r RedisRepo) GetFreshMessagesFromChat(chat models.Chat) (models.Messages, error) {
+func (r RedisRepo) GetFreshMessagesFromChat(chat models.Chat,
+	opts models.Opts) (models.Messages, error) {
 	keys, err := r.cl.Keys(context.Background(), chat.ChatID.String()+"*").Result()
 	if err != nil {
 		return nil, err
@@ -38,5 +40,18 @@ func (r RedisRepo) GetFreshMessagesFromChat(chat models.Chat) (models.Messages, 
 		}
 		msgList = append(msgList, msg)
 	}
-	return msgList, nil
+	sort.Sort(msgList)
+
+	limit := int(opts.Limit)
+	page := int(opts.Page)
+	firstElemIdx := limit * page
+	lastElemIdx := limit*page + limit
+	if lastElemIdx > cap(msgList) {
+		lastElemIdx = cap(msgList)
+	}
+	if len(msgList) <= firstElemIdx {
+		return models.Messages{}, nil
+	} else {
+		return msgList[firstElemIdx:lastElemIdx], nil
+	}
 }

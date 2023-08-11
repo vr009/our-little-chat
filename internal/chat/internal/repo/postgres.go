@@ -7,6 +7,7 @@ import (
 	"our-little-chatik/internal/chat/internal"
 	models2 "our-little-chatik/internal/chat/internal/models"
 	"our-little-chatik/internal/models"
+	"sort"
 	"time"
 
 	"github.com/jackc/pgx/v5"
@@ -66,7 +67,7 @@ func (pr PostgresRepo) GetChatMessages(chat models.Chat, opts models.Opts) (mode
 		return nil, err
 	}
 
-	msgs := make([]models.Message, 0)
+	msgs := make(models.Messages, 0)
 	for rows.Next() {
 		msg := models.Message{}
 		err := rows.Scan(&msg.MsgID, &msg.SenderID, &msg.Payload, &msg.CreatedAt)
@@ -76,6 +77,7 @@ func (pr PostgresRepo) GetChatMessages(chat models.Chat, opts models.Opts) (mode
 		msg.ChatID = chat.ChatID
 		msgs = append(msgs, msg)
 	}
+	sort.Sort(msgs)
 	return msgs, nil
 }
 
