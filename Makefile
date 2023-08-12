@@ -26,7 +26,7 @@ integration-peer-test:
 	docker-compose -f docker-compose-test.yml down &&\
 	docker ps && \
 	docker-compose -f docker-compose-test.yml up -d test-db-peer && sleep 1 &&\
-	docker-compose -f docker-compose-test.yml up -d test-peer &&\
+	docker-compose -f docker-compose-test.yml up -d --build test-peer &&\
 	go clean -testcache && JWT_SIGNED_KEY=test PEER_HOST=localhost PEER_PORT=8089 \
 	go test ./internal/peer/cmd/... &&\
 	docker-compose -f docker-compose-test.yml down
@@ -51,7 +51,7 @@ integration-chat-test:
 
 ## test: run all integration tests
 .PHONY: integration
-integration: integration-peer-test integration-user-data-test integration-chat-test
+integration: integration-user-data-test integration-chat-test integration-peer-test
 
 ## test: run all unit tests
 .PHONY: unit

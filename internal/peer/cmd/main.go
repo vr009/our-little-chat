@@ -3,15 +3,13 @@ package main
 import (
 	"github.com/go-redis/redis"
 	"github.com/gorilla/mux"
+	"github.com/spf13/viper"
+	"golang.org/x/exp/slog"
 	"log"
 	"net/http"
 	"os"
 	"our-little-chatik/internal/peer/internal/delivery"
 	"our-little-chatik/internal/peer/internal/repo"
-	"strconv"
-
-	"github.com/spf13/viper"
-	"golang.org/x/exp/slog"
 )
 
 type DBConfig struct {
@@ -22,19 +20,11 @@ type DBConfig struct {
 }
 
 type AppConfig struct {
-	Port  int
+	Port  string
 	Redis DBConfig
 }
 
 func main() {
-	configPath := os.Getenv("PEER_CONFIG")
-	viper.AddConfigPath(configPath)
-	viper.SetConfigName("peer-config.yaml")
-	viper.SetConfigType("yaml")
-	if err := viper.ReadInConfig(); err != nil {
-		panic("Failed to read a config file")
-	}
-
 	appConfig := AppConfig{}
 	err := viper.Unmarshal(&appConfig)
 	if err != nil {
@@ -53,7 +43,12 @@ func main() {
 	if redisPassword == "" {
 		panic("empty redis password")
 	}
+	peerPort := os.Getenv("PEER_PORT")
+	if peerPort == "" {
+		panic("empty peer port")
+	}
 
+	appConfig.Port = peerPort
 	appConfig.Redis.Port = redisPort
 	appConfig.Redis.Host = redisHost
 	appConfig.Redis.Password = redisPassword
@@ -80,8 +75,10 @@ func main() {
 
 	slog.Info("service started", "port", appConfig.Port)
 
-	srv := &http.Server{Handler: r,
-		Addr: ":" + strconv.Itoa(appConfig.Port)}
+	srv := &http.Server{
+		Handler: r,
+		Addr:    ":" + appConfig.Port,
+	}
 
 	log.Fatal(srv.ListenAndServe())
 }

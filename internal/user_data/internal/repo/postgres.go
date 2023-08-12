@@ -3,9 +3,9 @@ package repo
 import (
 	"context"
 	"database/sql"
+	"log"
+	models2 "our-little-chatik/internal/models"
 	"our-little-chatik/internal/user_data/internal"
-
-	"our-little-chatik/internal/user_data/internal/models"
 
 	"golang.org/x/exp/slog"
 )
@@ -31,7 +31,7 @@ func NewPersonRepo(pool internal.DB) *PersonRepo {
 	}
 }
 
-func (pr *PersonRepo) CreateUser(person models.UserData) (models.UserData, models.StatusCode) {
+func (pr *PersonRepo) CreateUser(person models2.UserData) (models2.UserData, models2.StatusCode) {
 	slog.Info("Creating user", "user_data data", slog.AnyValue(person))
 	_, err := pr.pool.Exec(context.Background(),
 		InsertQuery,
@@ -46,83 +46,84 @@ func (pr *PersonRepo) CreateUser(person models.UserData) (models.UserData, model
 	)
 	if err != nil {
 		slog.Error(err.Error())
-		return models.UserData{}, models.BadRequest
+		return models2.UserData{}, models2.BadRequest
 	}
 	person.Password = ""
-	return person, models.OK
+	return person, models2.OK
 }
 
-func (pr *PersonRepo) DeleteUser(person models.UserData) models.StatusCode {
+func (pr *PersonRepo) DeleteUser(person models2.UserData) models2.StatusCode {
 	_, err := pr.pool.Exec(context.Background(), DeleteQuery, person.UserID)
 	if err != nil {
-		return models.InternalError
+		return models2.InternalError
 	}
-	return models.Deleted
+	return models2.Deleted
 }
 
-func (pr *PersonRepo) UpdateUser(personNew models.UserData) (models.UserData, models.StatusCode) {
+func (pr *PersonRepo) UpdateUser(personNew models2.UserData) (models2.UserData, models2.StatusCode) {
 	_, err := pr.pool.Exec(context.Background(), UpdateQuery,
 		personNew.Nickname, personNew.Name, personNew.Surname, personNew.Avatar,
 		personNew.UserID)
 	if err != nil {
-		return models.UserData{}, models.BadRequest
+		return models2.UserData{}, models2.BadRequest
 	}
-	return personNew, models.OK
+	return personNew, models2.OK
 }
 
-func (pr *PersonRepo) GetUser(person models.UserData) (models.UserData, models.StatusCode) {
+func (pr *PersonRepo) GetUser(person models2.UserData) (models2.UserData, models2.StatusCode) {
+	log.Println("SEARCHING USER ID !!!!!!!!!!!!", person.UserID)
 	rows := pr.pool.QueryRow(context.Background(), GetQuery, person.UserID)
-	slog.Info("SEARCHING FOR " + person.UserID.String())
 	err := rows.Scan(&person.UserID, &person.Nickname,
 		&person.Name, &person.Surname, &person.LastAuth,
 		&person.Registered, &person.Avatar)
 	if err != nil {
 		slog.Error("user_data not found: " + err.Error())
-		return models.UserData{}, models.NotFound
+		return models2.UserData{}, models2.NotFound
 	}
-	return person, models.OK
+	log.Println("FOUND USER ID !!!!!!!!!!!!", person.UserID)
+	return person, models2.OK
 }
 
-func (pr *PersonRepo) GetUserForItsName(person models.UserData) (models.UserData, models.StatusCode) {
+func (pr *PersonRepo) GetUserForItsName(person models2.UserData) (models2.UserData, models2.StatusCode) {
 	rows := pr.pool.QueryRow(context.Background(), GetNameQuery, person.Nickname)
 	err := rows.Scan(&person.UserID, &person.Nickname,
 		&person.Name, &person.Surname, &person.Password, &person.LastAuth,
 		&person.Registered, &person.Avatar)
 	if err != nil {
 		slog.Error("user_data not found: " + err.Error())
-		return models.UserData{}, models.NotFound
+		return models2.UserData{}, models2.NotFound
 	}
-	return person, models.OK
+	return person, models2.OK
 }
 
-func (pr *PersonRepo) GetAllUsers() ([]models.UserData, models.StatusCode) {
+func (pr *PersonRepo) GetAllUsers() ([]models2.UserData, models2.StatusCode) {
 	rows, err := pr.pool.Query(context.Background(), ListQuery)
 	if err != nil && err != sql.ErrNoRows {
-		return nil, models.InternalError
+		return nil, models2.InternalError
 	}
 	defer rows.Close()
-	list := make([]models.UserData, 0)
+	list := make([]models2.UserData, 0)
 	for rows.Next() {
-		person := models.UserData{}
+		person := models2.UserData{}
 		rows.Scan(&person.UserID, &person.Nickname, &person.Avatar)
 		list = append(list, person)
 	}
-	return list, models.OK
+	return list, models2.OK
 }
 
-func (pr *PersonRepo) FindUser(name string) ([]models.UserData, models.StatusCode) {
+func (pr *PersonRepo) FindUser(name string) ([]models2.UserData, models2.StatusCode) {
 	rows, err := pr.pool.Query(context.Background(), FindUsersQuery, name)
 	if err != nil && err != sql.ErrNoRows {
 		slog.Error(err.Error())
-		return nil, models.InternalError
+		return nil, models2.InternalError
 	}
 	defer rows.Close()
-	list := make([]models.UserData, 0)
+	list := make([]models2.UserData, 0)
 	for rows.Next() {
-		person := models.UserData{}
+		person := models2.UserData{}
 		rows.Scan(&person.UserID, &person.Nickname, &person.Name, &person.Surname, &person.Avatar)
 		list = append(list, person)
 	}
 	slog.Info("List:", "users", slog.AnyValue(list))
-	return list, models.OK
+	return list, models2.OK
 }

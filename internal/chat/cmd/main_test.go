@@ -32,7 +32,7 @@ func TestChatAPI(t *testing.T) {
 	}
 
 	var testChat models2.Chat
-	token, _ := pkg.GenerateJWTToken(models2.User{
+	token, _ := pkg.GenerateJWTTokenV2(models2.User{
 		UserID: uuid.New(),
 	}, false)
 
@@ -123,6 +123,7 @@ func TestChatAPI(t *testing.T) {
 				}
 
 				req.AddCookie(tt.testCookie)
+				req.Header.Set("Content-Type", "application/json")
 
 				client.CheckRedirect = func(req *http.Request, via []*http.Request) error {
 					return http.ErrUseLastResponse
@@ -241,7 +242,7 @@ func TestMsgAPI(t *testing.T) {
 		t.Fatalf(err.Error())
 	}
 
-	token, _ := pkg.GenerateJWTToken(models2.User{
+	token, _ := pkg.GenerateJWTTokenV2(models2.User{
 		UserID: userID,
 	}, false)
 

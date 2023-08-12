@@ -1,337 +1,243 @@
 package delivery
 
 import (
-	"encoding/json"
 	"fmt"
-	"log"
+	"github.com/labstack/echo/v4"
 	"net/http"
 	models2 "our-little-chatik/internal/chat/internal/models"
 	"strconv"
 
-	"our-little-chatik/internal/chat/internal"
-	"our-little-chatik/internal/models"
-	"our-little-chatik/internal/pkg"
-
 	"github.com/google/uuid"
 	"golang.org/x/exp/slog"
+	"our-little-chatik/internal/chat/internal"
+	"our-little-chatik/internal/models"
 )
 
-type ChatHandler struct {
+type ChatEchoHandler struct {
 	usecase internal.ChatUseCase
 }
 
-func NewChatHandler(usecase internal.ChatUseCase) *ChatHandler {
-	return &ChatHandler{
+func NewChatEchoHandler(usecase internal.ChatUseCase) *ChatEchoHandler {
+	return &ChatEchoHandler{
 		usecase: usecase,
 	}
 }
 
-func (c *ChatHandler) GetChat(w http.ResponseWriter, r *http.Request) {
+func (ch *ChatEchoHandler) GetChat(c echo.Context) error {
 	var err error
 	defer func() {
 		if err != nil {
 			slog.Error(err.Error())
 		}
 	}()
-	_, err = pkg.AuthHook(r)
-	if err != nil {
-		w.WriteHeader(http.StatusForbidden)
-		errObj := models.Error{Msg: "Invalid token"}
-		body, _ := json.Marshal(errObj)
-		w.Write(body)
-		return
-	}
-	idStr := r.URL.Query().Get("chat_id")
+
+	idStr := c.QueryParam("chat_id")
 	if idStr == "" {
-		w.WriteHeader(http.StatusBadRequest)
-		errObj := models.Error{Msg: "passed empty parameter"}
-		body, _ := json.Marshal(errObj)
-		w.Write(body)
-		return
+		return c.JSON(http.StatusBadRequest, &models.Error{Msg: "passed empty parameter"})
 	}
 
 	chatID, err := uuid.Parse(idStr)
 	if err != nil {
 		fmt.Println(err)
-		w.WriteHeader(http.StatusBadRequest)
-		return
+		return c.JSON(http.StatusBadRequest, &models.Error{Msg: "bad id format"})
 	}
 	chat := models.Chat{ChatID: chatID}
 
-	chat, err = c.usecase.GetChat(chat)
+	chat, err = ch.usecase.GetChat(chat)
 	if err != nil {
 		fmt.Println(err)
-		w.WriteHeader(http.StatusBadRequest)
-		return
+		return c.JSON(http.StatusBadRequest, &models.Error{Msg: err.Error()})
 	}
 
-	log.Println("FETCHED CHAT!!!!", chat)
-
-	w.WriteHeader(http.StatusOK)
-	b, err := json.Marshal(chat)
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
-	_, err = w.Write(b)
-	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		return
-	}
+	return c.JSON(http.StatusOK, &chat)
 }
 
-func (c *ChatHandler) GetChatMessages(w http.ResponseWriter, r *http.Request) {
+func (ch *ChatEchoHandler) GetChatMessages(c echo.Context) error {
 	var err error
 	defer func() {
 		if err != nil {
 			slog.Error(err.Error())
 		}
 	}()
-	_, err = pkg.AuthHook(r)
-	if err != nil {
-		w.WriteHeader(http.StatusForbidden)
-		errObj := models.Error{Msg: "Invalid token"}
-		body, _ := json.Marshal(errObj)
-		w.Write(body)
-		return
-	}
-	idStr := r.URL.Query().Get("chat_id")
+
+	idStr := c.QueryParam("chat_id")
 	if idStr == "" {
-		w.WriteHeader(http.StatusBadRequest)
-		errObj := models.Error{Msg: "passed empty parameter"}
-		body, _ := json.Marshal(errObj)
-		w.Write(body)
-		return
+		return c.JSON(http.StatusBadRequest, &models.Error{
+			Msg: "passed empty parameter for chat_id",
+		})
+	}
+	offsetStr := c.QueryParam("offset")
+	if offsetStr == "" {
+		return c.JSON(http.StatusBadRequest, &models.Error{
+			Msg: "passed empty parameter offset",
+		})
+	}
+	limitStr := c.QueryParam("limit")
+	if limitStr == "" {
+		return c.JSON(http.StatusBadRequest, &models.Error{
+			Msg: "passed empty parameter limit",
+		})
 	}
 
-	offset, err := strconv.ParseInt(r.URL.Query().Get("offset"), 10, 64)
+	offset, err := strconv.ParseInt(offsetStr, 10, 64)
 	if err != nil {
 		fmt.Println(err)
-		w.WriteHeader(http.StatusBadRequest)
-		return
+		return c.JSON(http.StatusBadRequest, &models.Error{
+			Msg: "passed empty parameter offset",
+		})
 	}
-	limit, err := strconv.ParseInt(r.URL.Query().Get("limit"), 10, 64)
+	limit, err := strconv.ParseInt(limitStr, 10, 64)
 	if err != nil {
 		fmt.Println(err)
-		w.WriteHeader(http.StatusBadRequest)
-		return
+		return c.JSON(http.StatusBadRequest, &models.Error{
+			Msg: "passed empty parameter limit",
+		})
 	}
+
 	opts := models.Opts{Limit: limit, Page: offset}
 	chatID, err := uuid.Parse(idStr)
 	if err != nil {
-		fmt.Println(err)
-		w.WriteHeader(http.StatusBadRequest)
-		return
+		return c.JSON(http.StatusBadRequest, &models.Error{
+			Msg: "bad id format",
+		})
 	}
+
 	chat := models.Chat{ChatID: chatID}
-	msgs, err := c.usecase.GetChatMessages(chat, opts)
+	msgs, err := ch.usecase.GetChatMessages(chat, opts)
 	if err != nil {
 		fmt.Println(err)
-		w.WriteHeader(http.StatusBadRequest)
-		return
+		return c.JSON(http.StatusInternalServerError, &models.Error{
+			Msg: "internal issue",
+		})
 	}
-	w.WriteHeader(http.StatusOK)
-	b, err := json.Marshal(msgs)
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
-	_, err = w.Write(b)
-	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		return
-	}
+
+	return c.JSON(http.StatusOK, &msgs)
 }
 
-func (h *ChatHandler) GetChatList(w http.ResponseWriter, r *http.Request) {
+func (ch *ChatEchoHandler) GetChatList(c echo.Context) error {
 	var err error
 	defer func() {
 		if err != nil {
 			slog.Error(err.Error())
 		}
 	}()
-	user, err := pkg.AuthHook(r)
-	if err != nil {
-		w.WriteHeader(http.StatusForbidden)
-		errObj := models.Error{Msg: "Invalid token"}
-		body, _ := json.Marshal(errObj)
-		w.Write(body)
-		return
-	}
 
-	chats, err := h.usecase.GetChatList(*user)
+	userID := c.Get("user_id").(uuid.UUID)
+	user := models.User{UserID: userID}
+
+	chats, err := ch.usecase.GetChatList(user)
 	if err != nil {
 		slog.Error(err.Error())
-		w.WriteHeader(http.StatusInternalServerError)
-		return
+		return c.JSON(http.StatusInternalServerError, models.Error{Msg: err.Error()})
 	}
 
-	w.WriteHeader(http.StatusOK)
-	body, err := json.Marshal(&chats)
-	if err != nil {
-		slog.Error(err.Error())
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
-	w.Write(body)
+	return c.JSON(http.StatusOK, &chats)
 }
 
-func (h *ChatHandler) PostNewChat(w http.ResponseWriter, r *http.Request) {
+func (ch *ChatEchoHandler) PostNewChat(c echo.Context) error {
 	var err error
 	defer func() {
 		if err != nil {
 			slog.Error(err.Error())
 		}
 	}()
-	usr, err := pkg.AuthHook(r)
-	if err != nil {
-		w.WriteHeader(http.StatusForbidden)
-		errObj := models.Error{Msg: "Invalid token"}
-		body, _ := json.Marshal(errObj)
-		w.Write(body)
-		return
-	}
+	userID := c.Get("user_id").(uuid.UUID)
+	user := models.User{UserID: userID}
+
 	chat := models.Chat{}
-
-	err = json.NewDecoder(r.Body).Decode(&chat)
+	err = c.Bind(&chat)
 	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		return
+		return c.JSON(http.StatusBadRequest, models.Error{Msg: "bad body"})
 	}
 
 	includeSelf := true
 	for _, participant := range chat.Participants {
 		if participant == uuid.Nil {
-			w.WriteHeader(http.StatusBadRequest)
 			errObj := models.Error{Msg: "Added unexisting participant"}
-			body, _ := json.Marshal(errObj)
-			w.Write(body)
-			return
+			if err != nil {
+				return c.JSON(http.StatusBadRequest, errObj)
+			}
 		}
-		if participant == usr.UserID {
+		if participant == user.UserID {
 			includeSelf = false
 		}
 	}
 	if includeSelf {
-		slog.Info("Adding a participant "+usr.UserID.String()+" in list", "list", chat.Participants)
-		chat.Participants = append(chat.Participants, usr.UserID)
+		slog.Info("Adding a participant "+user.UserID.String()+" in list", "list", chat.Participants)
+		chat.Participants = append(chat.Participants, user.UserID)
 	}
 
-	createdChat, err := h.usecase.CreateChat(chat)
+	createdChat, err := ch.usecase.CreateChat(chat)
 	if err != nil {
-		slog.Error(err.Error())
-		w.WriteHeader(http.StatusInternalServerError)
-		return
+		return c.JSON(http.StatusInternalServerError, models.Error{Msg: err.Error()})
 	}
 
-	body, err := json.Marshal(createdChat)
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
-	w.WriteHeader(http.StatusCreated)
-	w.Write(body)
+	return c.JSON(http.StatusCreated, &createdChat)
 }
 
-func (h *ChatHandler) AddUsersToChat(w http.ResponseWriter, r *http.Request) {
+func (ch *ChatEchoHandler) AddUsersToChat(c echo.Context) error {
 	var err error
 	defer func() {
 		if err != nil {
 			slog.Error(err.Error())
 		}
 	}()
-	_, err = pkg.AuthHook(r)
-	if err != nil {
-		w.WriteHeader(http.StatusForbidden)
-		errObj := models.Error{Msg: "Invalid token"}
-		body, _ := json.Marshal(errObj)
-		w.Write(body)
-		return
-	}
+
 	chat := models.Chat{}
-
-	err = json.NewDecoder(r.Body).Decode(&chat)
+	err = c.Bind(&chat)
 	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		return
+		return c.JSON(http.StatusBadRequest, models.Error{Msg: "bad body"})
 	}
 
-	err = h.usecase.UpdateChat(chat, models2.UpdateOptions{Action: models2.AddUsersToParticipants})
+	err = ch.usecase.UpdateChat(chat, models2.UpdateOptions{Action: models2.AddUsersToParticipants})
 	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
 		errObj := models.Error{Msg: "Failed to add users"}
-		body, _ := json.Marshal(errObj)
-		w.Write(body)
-		return
+		return c.JSON(http.StatusBadRequest, errObj)
 	}
-	w.WriteHeader(http.StatusOK)
+
+	return c.JSON(http.StatusOK, models.Error{Msg: "OK"})
 }
 
-func (h *ChatHandler) RemoveUsersFromChat(w http.ResponseWriter, r *http.Request) {
+func (ch *ChatEchoHandler) RemoveUsersFromChat(c echo.Context) error {
 	var err error
 	defer func() {
 		if err != nil {
 			slog.Error(err.Error())
 		}
 	}()
-	_, err = pkg.AuthHook(r)
-	if err != nil {
-		w.WriteHeader(http.StatusForbidden)
-		errObj := models.Error{Msg: "Invalid token"}
-		body, _ := json.Marshal(errObj)
-		w.Write(body)
-		return
-	}
+
 	chat := models.Chat{}
-
-	err = json.NewDecoder(r.Body).Decode(&chat)
+	err = c.Bind(&chat)
 	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		return
+		return c.JSON(http.StatusBadRequest, models.Error{Msg: "bad body"})
 	}
 
-	err = h.usecase.UpdateChat(chat, models2.UpdateOptions{Action: models2.RemoveUsersFromParticipants})
+	err = ch.usecase.UpdateChat(chat, models2.UpdateOptions{Action: models2.RemoveUsersFromParticipants})
 	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
 		errObj := models.Error{Msg: "Failed to add users"}
-		body, _ := json.Marshal(errObj)
-		w.Write(body)
-		return
+		return c.JSON(http.StatusBadRequest, errObj)
 	}
-	w.WriteHeader(http.StatusOK)
+
+	return c.JSON(http.StatusOK, models.Error{Msg: "OK"})
 }
 
-func (h *ChatHandler) ChangeChatPhoto(w http.ResponseWriter, r *http.Request) {
+func (ch *ChatEchoHandler) ChangeChatPhoto(c echo.Context) error {
 	var err error
 	defer func() {
 		if err != nil {
 			slog.Error(err.Error())
 		}
 	}()
-
-	_, err = pkg.AuthHook(r)
-	if err != nil {
-		w.WriteHeader(http.StatusForbidden)
-		errObj := models.Error{Msg: "Invalid token"}
-		body, _ := json.Marshal(errObj)
-		w.Write(body)
-		return
-	}
 	chat := models.Chat{}
-
-	err = json.NewDecoder(r.Body).Decode(&chat)
+	err = c.Bind(&chat)
 	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		return
+		return c.JSON(http.StatusBadRequest, models.Error{Msg: "bad body"})
 	}
 
-	err = h.usecase.UpdateChat(chat, models2.UpdateOptions{Action: models2.UpdatePhotoURL})
+	err = ch.usecase.UpdateChat(chat, models2.UpdateOptions{Action: models2.UpdatePhotoURL})
 	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
 		errObj := models.Error{Msg: "Failed to update photo url"}
-		body, _ := json.Marshal(errObj)
-		w.Write(body)
-		return
+		return c.JSON(http.StatusBadRequest, errObj)
 	}
-	w.WriteHeader(http.StatusOK)
+	return c.JSON(http.StatusOK, models.Error{Msg: "OK"})
 }
