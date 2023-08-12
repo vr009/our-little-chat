@@ -43,7 +43,7 @@ services:
     environment:
       PEER_CONFIG: configs/.
     ports:
-      - 8084:8084
+      - 8089:8089
     depends_on:
       - db-peer
 

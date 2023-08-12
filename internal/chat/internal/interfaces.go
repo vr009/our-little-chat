@@ -17,12 +17,12 @@ type ChatRepo interface {
 }
 
 type QueueRepo interface {
-	GetFreshMessagesFromChat(chat models.Chat, opts models.Opts) (models.Messages, error)
+	GetChatMessages(chat models.Chat, opts models.Opts) (models.Messages, error)
 }
 
 type ChatUseCase interface {
-	CreateNewChat(chat models.Chat) (models.Chat, error)
-	FetchChatMessages(chat models.Chat, opts models.Opts) (models.Messages, error)
+	CreateChat(chat models.Chat) (models.Chat, error)
+	GetChatMessages(chat models.Chat, opts models.Opts) (models.Messages, error)
 	GetChatList(user models.User) ([]models.ChatItem, error)
 	UpdateChat(chat models.Chat, updateOpts models2.UpdateOptions) error
 	GetChat(chat models.Chat) (models.Chat, error)

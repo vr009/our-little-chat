@@ -22,8 +22,8 @@ type DBConfig struct {
 }
 
 type AppConfig struct {
-	Port int
-	DB   DBConfig
+	Port  int
+	Redis DBConfig
 }
 
 func main() {
@@ -41,10 +41,33 @@ func main() {
 		panic(err)
 	}
 
+	redisHost := os.Getenv("REDIS_HOST")
+	if redisHost == "" {
+		panic("empty redis host")
+	}
+	redisPort := os.Getenv("REDIS_PORT")
+	if redisPort == "" {
+		panic("empty redis port")
+	}
+	redisPassword := os.Getenv("REDIS_PASSWORD")
+	if redisPassword == "" {
+		panic("empty redis password")
+	}
+
+	appConfig.Redis.Port = redisPort
+	appConfig.Redis.Host = redisHost
+	appConfig.Redis.Password = redisPassword
+
+	slog.SetDefault(slog.New(slog.NewTextHandler(os.Stderr, nil)))
+
 	redisClient := redis.NewClient(&redis.Options{
-		Addr:     appConfig.DB.Host + ":" + appConfig.DB.Port,
-		Password: appConfig.DB.Password,
+		Addr:     appConfig.Redis.Host + ":" + appConfig.Redis.Port,
+		Password: appConfig.Redis.Password,
 	})
+	err = redisClient.Ping().Err()
+	if err != nil {
+		panic(err)
+	}
 	peerRepo := repo.NewPeerRepository(redisClient)
 	peerHandler := delivery.NewPeerHandler(peerRepo)
 

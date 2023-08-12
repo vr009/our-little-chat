@@ -30,7 +30,7 @@ func parseMessage(msgStr string) (*models.Message, error) {
 }
 
 func (r *PeerRepository) StartSubscriber(ctx context.Context,
-	messageChan chan models.Message, chatChannel string) {
+	messageChan chan models.Message, chatChannel string, readyChan chan struct{}) {
 	/*
 		this goroutine exits when the application shuts down. When the pusub connection is closed,
 		the channel range loop terminates, hence terminating the goroutine
@@ -39,15 +39,19 @@ func (r *PeerRepository) StartSubscriber(ctx context.Context,
 		log.Println("starting subscriber...", chatChannel)
 		sub := r.cl.Subscribe(chatChannel)
 		messages := sub.Channel()
+
+		readyChan <- struct{}{}
+		log.Println("LISTENING")
 		for message := range messages {
-			log.Println("got one", message.Payload)
 			msg, err := parseMessage(message.Payload)
+			log.Println("got one", msg.Payload)
 			if err != nil {
 				glog.Error(err)
 				continue
 			}
 			messageChan <- *msg
 		}
+		log.Println("SUBSCRIBER IS DOWN")
 		select {
 		case <-ctx.Done():
 			err := sub.Unsubscribe(chatChannel)
@@ -63,6 +67,7 @@ func (r *PeerRepository) StartSubscriber(ctx context.Context,
 // SendToChannel pusblishes on a redis pubsub channel
 func (r *PeerRepository) SendToChannel(ctx context.Context,
 	msg models.Message, chatChannel string) {
+	log.Println(msg.Payload, "sent to ", chatChannel)
 	bMsg, err := json.Marshal(&msg)
 	if err != nil {
 		glog.Error(err)
@@ -122,6 +127,7 @@ func (r *PeerRepository) SubscribeToChats(ctx context.Context,
 	chatChannels := make([]string, 0)
 	for _, chat := range chats {
 		chatChannels = append(chatChannels, "users_"+chat.ChatID.String())
+		log.Println("subscribe to " + "users_" + chat.ChatID.String())
 	}
 	sub := r.cl.PSubscribe(chatChannels...)
 
@@ -132,6 +138,7 @@ func (r *PeerRepository) SubscribeToChats(ctx context.Context,
 		for {
 			select {
 			case redisMsg := <-msgChan:
+				log.Println("GOT MESSAGES")
 				msg := models.Message{}
 				bMsg := redisMsg.Payload
 				err := json.Unmarshal([]byte(bMsg), &msg)

@@ -1,6 +1,21 @@
 version: '3.9'
 
 services:
+  test-peer:
+    build:
+      context: .
+      dockerfile: deployments/peer.Dockerfile
+    command: ./peer-service
+    environment:
+      PEER_CONFIG: configs/.
+      REDIS_PORT: "6379"
+      REDIS_HOST: "test-db-peer"
+      REDIS_PASSWORD: "test"
+    ports:
+      - 8089:8089
+    depends_on:
+      - test-db-peer
+
   test-user-data:
     build:
       context: .

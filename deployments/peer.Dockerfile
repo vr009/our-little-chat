@@ -6,7 +6,7 @@ ENV GOPATH=/
 
 COPY ./ ./
 
-EXPOSE 8084
+EXPOSE 8089
 
 #RUN go mod download
 

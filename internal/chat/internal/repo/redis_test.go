@@ -12,7 +12,7 @@ import (
 	"time"
 )
 
-func TestRedisRepo_GetFreshMessagesFromChat(t *testing.T) {
+func TestRedisRepo_GetChatMessages(t *testing.T) {
 	type fields struct {
 		cl *redis.Client
 	}
@@ -70,13 +70,13 @@ func TestRedisRepo_GetFreshMessagesFromChat(t *testing.T) {
 			r := RedisRepo{
 				cl: tt.fields.cl,
 			}
-			got, err := r.GetFreshMessagesFromChat(tt.args.chat, models.Opts{Limit: 10, Page: 0})
+			got, err := r.GetChatMessages(tt.args.chat, models.Opts{Limit: 10, Page: 0})
 			if (err != nil) != tt.wantErr {
-				t.Errorf("GetFreshMessagesFromChat() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("GetChatMessages() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
 			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("GetFreshMessagesFromChat() got = %v, want %v", got, tt.want)
+				t.Errorf("GetChatMessages() got = %v, want %v", got, tt.want)
 			}
 		})
 	}

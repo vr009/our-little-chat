@@ -19,7 +19,7 @@ func NewRedisRepo(cl *redis.Client) *RedisRepo {
 	}
 }
 
-func (r RedisRepo) GetFreshMessagesFromChat(chat models.Chat,
+func (r RedisRepo) GetChatMessages(chat models.Chat,
 	opts models.Opts) (models.Messages, error) {
 	keys, err := r.cl.Keys(context.Background(), chat.ChatID.String()+"*").Result()
 	if err != nil {

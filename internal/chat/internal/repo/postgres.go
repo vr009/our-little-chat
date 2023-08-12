@@ -17,7 +17,7 @@ import (
 const (
 	InsertChatParticipantsQuery = `INSERT INTO chat_participants VALUES ($1, $2)`
 	InsertChatQuery             = `INSERT INTO chats VALUES($1, $2, $3, $4)`
-	GetMessagesQuery            = `SELECT msg_id, sender_id, payload, created_at FROM messages WHERE chat_id=$1 ORDER BY created_at ASC OFFSET $2 LIMIT $3`
+	GetChatMessagesQuery        = `SELECT msg_id, sender_id, payload, created_at FROM messages WHERE chat_id=$1 ORDER BY created_at ASC OFFSET $2 LIMIT $3`
 	GetChatInfoQuery            = `SELECT chat_id, name, photo_url, created_at FROM chats WHERE chat_id=$1`
 	GetChatParticipantsQuery    = `SELECT participant_id FROM chat_participants WHERE chat_id=$1`
 	FetchChatListQuery          = `SELECT cp.chat_id, c.name, c.photo_url, m.payload, m.created_at FROM chat_participants AS cp 
@@ -62,7 +62,7 @@ func (pr PostgresRepo) GetChat(chat models.Chat) (models.Chat, error) {
 // GetChatMessages
 func (pr PostgresRepo) GetChatMessages(chat models.Chat, opts models.Opts) (models.Messages, error) {
 	ctx := context.Background()
-	rows, err := pr.pool.Query(ctx, GetMessagesQuery, chat.ChatID, opts.Page, opts.Limit)
+	rows, err := pr.pool.Query(ctx, GetChatMessagesQuery, chat.ChatID, opts.Page, opts.Limit)
 	if err != nil {
 		return nil, err
 	}

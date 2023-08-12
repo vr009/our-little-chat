@@ -19,9 +19,9 @@ func NewChatUseCase(rep internal.ChatRepo, queue internal.QueueRepo) *ChatUseCas
 	return &ChatUseCase{repo: rep, queue: queue}
 }
 
-func (ch *ChatUseCase) FetchChatMessages(chat models.Chat,
+func (ch *ChatUseCase) GetChatMessages(chat models.Chat,
 	opts models.Opts) (models.Messages, error) {
-	msgs, err := ch.queue.GetFreshMessagesFromChat(chat, opts)
+	msgs, err := ch.queue.GetChatMessages(chat, opts)
 	if err != nil {
 		slog.Error(err.Error())
 	}
@@ -40,7 +40,7 @@ func (ch *ChatUseCase) GetChatList(user models.User) ([]models.ChatItem, error) 
 	return ch.repo.FetchChatList(user)
 }
 
-func (ch *ChatUseCase) CreateNewChat(chat models.Chat) (models.Chat, error) {
+func (ch *ChatUseCase) CreateChat(chat models.Chat) (models.Chat, error) {
 	chat.ChatID = uuid.New()
 	chat.CreatedAt = time.Now().Unix()
 	err := ch.repo.InsertChat(chat)
