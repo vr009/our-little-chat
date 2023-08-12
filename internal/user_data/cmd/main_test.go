@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"net/http"
 	"os"
-	"our-little-chatik/internal/user_data/internal/models"
 	"testing"
 
 	"github.com/google/uuid"
@@ -38,7 +37,7 @@ func TestAPI(t *testing.T) {
 					path:   "/api/v1/auth/signup",
 					method: "POST",
 					prepareBody: func() []byte {
-						person := models.UserData{
+						person := models2.UserData{
 							User: models2.User{
 								Name:     "test5",
 								Surname:  "test5",
@@ -58,7 +57,7 @@ func TestAPI(t *testing.T) {
 					path:   "/api/v1/auth/signup",
 					method: "POST",
 					prepareBody: func() []byte {
-						person := models.UserData{
+						person := models2.UserData{
 							User: models2.User{
 								Name:     "test6",
 								Surname:  "test6",
@@ -83,7 +82,7 @@ func TestAPI(t *testing.T) {
 
 					expectedCode: http.StatusOK,
 					checkResponse: func(resp *http.Response) error {
-						users := []models.UserData{}
+						users := []models2.UserData{}
 						err := json.NewDecoder(resp.Body).Decode(&users)
 						if len(users) != 2 {
 							return fmt.Errorf("not enough users found")
@@ -105,7 +104,7 @@ func TestAPI(t *testing.T) {
 					path:   "/api/v1/auth/signup",
 					method: "POST",
 					prepareBody: func() []byte {
-						person := models.UserData{
+						person := models2.UserData{
 							User: models2.User{
 								Name:     "test",
 								Surname:  "test",
@@ -125,7 +124,7 @@ func TestAPI(t *testing.T) {
 					path:   "/api/v1/auth/login",
 					method: "POST",
 					prepareBody: func() []byte {
-						person := models.UserData{
+						person := models2.UserData{
 							User: models2.User{
 								Nickname: "test",
 								Password: "test",
@@ -156,7 +155,7 @@ func TestAPI(t *testing.T) {
 					prepareBody: func() []byte {
 						return nil
 					},
-					expectedCode: http.StatusBadRequest,
+					expectedCode: http.StatusUnauthorized,
 					checkResponse: func(resp *http.Response) error {
 						return nil
 					},
@@ -170,7 +169,7 @@ func TestAPI(t *testing.T) {
 					path:   "/api/v1/auth/signup",
 					method: "POST",
 					prepareBody: func() []byte {
-						person := models.UserData{
+						person := models2.UserData{
 							User: models2.User{
 								Name:     "test1",
 								Surname:  "test1",
@@ -190,7 +189,7 @@ func TestAPI(t *testing.T) {
 					path:   "/api/v1/auth/signup",
 					method: "POST",
 					prepareBody: func() []byte {
-						person := models.UserData{
+						person := models2.UserData{
 							User: models2.User{
 								Name:     "test1",
 								Surname:  "test1",
@@ -210,7 +209,7 @@ func TestAPI(t *testing.T) {
 					path:   "/api/v1/auth/signup",
 					method: "POST",
 					prepareBody: func() []byte {
-						person := models.UserData{
+						person := models2.UserData{
 							User: models2.User{
 								Name:     "test1",
 								Surname:  "test1",
@@ -235,7 +234,7 @@ func TestAPI(t *testing.T) {
 					path:   "/api/v1/auth/signup",
 					method: "POST",
 					prepareBody: func() []byte {
-						person := models.UserData{
+						person := models2.UserData{
 							User: models2.User{
 								Name:     "test3",
 								Surname:  "test3",
@@ -271,7 +270,7 @@ func TestAPI(t *testing.T) {
 					path:   "/api/v1/auth/signup",
 					method: "POST",
 					prepareBody: func() []byte {
-						person := models.UserData{
+						person := models2.UserData{
 							User: models2.User{
 								Name:     "test4",
 								Surname:  "test4",
@@ -295,7 +294,7 @@ func TestAPI(t *testing.T) {
 					},
 					expectedCode: http.StatusOK,
 					checkResponse: func(resp *http.Response) error {
-						person := models.UserData{}
+						person := models2.UserData{}
 						err := json.NewDecoder(resp.Body).Decode(&person)
 						if err != nil {
 							return err
@@ -319,6 +318,7 @@ func TestAPI(t *testing.T) {
 				if err != nil {
 					t.Fatalf("Failed to prepare a request: %s", err)
 				}
+				req.Header.Set("Content-Type", "application/json")
 
 				if tt.testCookie != nil {
 					req.AddCookie(tt.testCookie)
@@ -349,7 +349,7 @@ func TestCRUDAPI(t *testing.T) {
 	if testing.Short() {
 		t.Skip()
 	}
-	person := models.UserData{
+	person := models2.UserData{
 		User: models2.User{
 			Name:     "test7",
 			Surname:  "test7",
@@ -366,6 +366,7 @@ func TestCRUDAPI(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to prepare a request: %s", err)
 	}
+	req.Header.Set("Content-Type", "application/json")
 
 	client.CheckRedirect = func(req *http.Request, via []*http.Request) error {
 		return http.ErrUseLastResponse
@@ -386,7 +387,7 @@ func TestCRUDAPI(t *testing.T) {
 	}
 
 	// Create a new user_data
-	person = models.UserData{
+	person = models2.UserData{
 		User: models2.User{
 			Name:     "test8",
 			Surname:  "test8",
@@ -396,25 +397,26 @@ func TestCRUDAPI(t *testing.T) {
 	}
 	body, _ = json.Marshal(person)
 
-	req, err = http.NewRequest("POST", host+"/api/v1/user/new",
+	req, err = http.NewRequest("POST", host+"/api/v1/admin/user/new",
 		bytes.NewBuffer(body))
 	if err != nil {
 		t.Fatalf("Failed to prepare a request: %s", err)
 	}
+	req.Header.Set("Content-Type", "application/json")
 
 	resp, err = client.Do(req)
 	if err != nil {
 		t.Fatalf("Failed while performing a request: %s", err)
 	}
 
-	var createdPerson models.UserData
+	var createdPerson models2.UserData
 	err = json.NewDecoder(resp.Body).Decode(&createdPerson)
 	if err != nil {
 		t.Fatalf(err.Error())
 	}
 
 	// Get
-	req, err = http.NewRequest("GET", host+"/api/v1/user?id="+createdPerson.UserID.String(),
+	req, err = http.NewRequest("GET", host+"/api/v1/admin/user?id="+createdPerson.UserID.String(),
 		nil)
 	if err != nil {
 		t.Fatalf("Failed to prepare a request: %s", err)
@@ -426,7 +428,7 @@ func TestCRUDAPI(t *testing.T) {
 		t.Fatalf("Failed while performing a request: %s", err)
 	}
 
-	var foundPerson models.UserData
+	var foundPerson models2.UserData
 	err = json.NewDecoder(resp.Body).Decode(&foundPerson)
 	if err != nil {
 		t.Fatalf(err.Error())
@@ -447,7 +449,7 @@ func BenchmarkAPISignUpSeq(b *testing.B) {
 		b.Skip()
 	}
 	prepareBody := func() []byte {
-		person := models.UserData{
+		person := models2.UserData{
 			User: models2.User{
 				Name:     "test3",
 				Surname:  "test3",
@@ -468,7 +470,7 @@ func BenchmarkAPISignUpSeq(b *testing.B) {
 		if err != nil {
 			b.Fatalf("Failed to prepare a request: %s", err)
 		}
-
+		req.Header.Set("Content-Type", "application/json")
 		client.CheckRedirect = func(req *http.Request, via []*http.Request) error {
 			return http.ErrUseLastResponse
 		}
@@ -489,7 +491,7 @@ func BenchmarkAPILoginSeq(b *testing.B) {
 		b.Skip()
 	}
 	prepareBody := func() []byte {
-		person := models.UserData{
+		person := models2.UserData{
 			User: models2.User{
 				Name:     "test1",
 				Surname:  "test1",
@@ -510,6 +512,7 @@ func BenchmarkAPILoginSeq(b *testing.B) {
 		if err != nil {
 			b.Fatalf("Failed to prepare a request: %s", err)
 		}
+		req.Header.Set("Content-Type", "application/json")
 
 		client.CheckRedirect = func(req *http.Request, via []*http.Request) error {
 			return http.ErrUseLastResponse
@@ -531,7 +534,7 @@ func BenchmarkTestAPIParallel(b *testing.B) {
 		b.Skip()
 	}
 	prepareBody := func() []byte {
-		person := models.UserData{
+		person := models2.UserData{
 			User: models2.User{
 				Name:     "test1",
 				Surname:  "test1",
@@ -552,6 +555,7 @@ func BenchmarkTestAPIParallel(b *testing.B) {
 			if err != nil {
 				b.Fatalf("Failed to prepare a request: %s", err)
 			}
+			req.Header.Set("Content-Type", "application/json")
 
 			client.CheckRedirect = func(req *http.Request, via []*http.Request) error {
 				return http.ErrUseLastResponse

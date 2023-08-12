@@ -3,9 +3,8 @@ package repo
 import (
 	"github.com/google/uuid"
 	"github.com/pashagolub/pgxmock/v2"
-	models2 "our-little-chatik/internal/models"
+	"our-little-chatik/internal/models"
 	"our-little-chatik/internal/user_data/internal"
-	"our-little-chatik/internal/user_data/internal/models"
 	"reflect"
 	"regexp"
 	"testing"
@@ -29,7 +28,7 @@ func TestPersonRepo_CreateUser(t *testing.T) {
 	testTimestamp := time.Now().Unix()
 
 	testPerson := models.UserData{
-		User: models2.User{
+		User: models.User{
 			UserID:   testUserID,
 			Name:     "test",
 			Nickname: "test",
@@ -65,7 +64,7 @@ func TestPersonRepo_CreateUser(t *testing.T) {
 				person: testPerson,
 			},
 			want: models.UserData{
-				User: models2.User{
+				User: models.User{
 					UserID:   testUserID,
 					Name:     "test",
 					Nickname: "test",
@@ -113,7 +112,7 @@ func TestPersonRepo_DeleteUser(t *testing.T) {
 	testTimestamp := time.Now().Unix()
 
 	testPerson := models.UserData{
-		User: models2.User{
+		User: models.User{
 			UserID:   testUserID,
 			Name:     "test",
 			Nickname: "test",
@@ -178,7 +177,7 @@ func TestPersonRepo_FindUser(t *testing.T) {
 	testUserID := uuid.New()
 
 	testPerson := models.UserData{
-		User: models2.User{
+		User: models.User{
 			UserID:   testUserID,
 			Name:     "test",
 			Nickname: "test",
@@ -246,7 +245,7 @@ func TestPersonRepo_GetAllUsers(t *testing.T) {
 	testUserID := uuid.New()
 
 	testPerson := models.UserData{
-		User: models2.User{
+		User: models.User{
 			UserID:   testUserID,
 			Nickname: "test",
 		},
@@ -311,7 +310,7 @@ func TestPersonRepo_GetUser(t *testing.T) {
 	testTimestamp := time.Now().Unix()
 
 	testPerson := models.UserData{
-		User: models2.User{
+		User: models.User{
 			UserID:   testUserID,
 			Name:     "test",
 			Nickname: "test",
@@ -387,7 +386,7 @@ func TestPersonRepo_GetUserForItsName(t *testing.T) {
 	testTimestamp := time.Now().Unix()
 
 	testPerson := models.UserData{
-		User: models2.User{
+		User: models.User{
 			UserID:   testUserID,
 			Name:     "test",
 			Nickname: "test",
@@ -463,7 +462,7 @@ func TestPersonRepo_UpdateUser(t *testing.T) {
 	testTimestamp := time.Now().Unix()
 
 	testPerson := models.UserData{
-		User: models2.User{
+		User: models.User{
 			UserID:   testUserID,
 			Name:     "test",
 			Nickname: "test",

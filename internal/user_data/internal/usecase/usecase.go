@@ -2,13 +2,12 @@ package usecase
 
 import (
 	"golang.org/x/exp/slog"
+	"our-little-chatik/internal/models"
 	"time"
-
-	"our-little-chatik/internal/user_data/internal"
-	"our-little-chatik/internal/user_data/internal/models"
 
 	"github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"
+	"our-little-chatik/internal/user_data/internal"
 )
 
 type UserdataUseCase struct {

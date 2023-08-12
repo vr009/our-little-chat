@@ -7,10 +7,10 @@ services:
       dockerfile: deployments/peer.Dockerfile
     command: ./peer-service
     environment:
-      PEER_CONFIG: configs/.
       REDIS_PORT: "6379"
       REDIS_HOST: "test-db-peer"
       REDIS_PASSWORD: "test"
+      PEER_PORT: "8089"
     ports:
       - 8089:8089
     depends_on:

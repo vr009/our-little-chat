@@ -1,99 +1,87 @@
 package delivery
 
 import (
-	"encoding/json"
+	"github.com/google/uuid"
+	"github.com/labstack/echo/v4"
+	"log"
 	"net/http"
+	"our-little-chatik/internal/models"
 	"our-little-chatik/internal/pkg"
 	"our-little-chatik/internal/user_data/internal"
-	"our-little-chatik/internal/user_data/internal/models"
 
 	"golang.org/x/exp/slog"
 )
 
-type AuthHandler struct {
+type AuthEchoHandler struct {
 	useCase internal.UserdataUseCase
 }
 
-func NewAuthHandler(useCase internal.UserdataUseCase) *AuthHandler {
-	return &AuthHandler{
+func NewAuthEchoHandler(useCase internal.UserdataUseCase) *AuthEchoHandler {
+	return &AuthEchoHandler{
 		useCase: useCase,
 	}
 }
 
-func (h *AuthHandler) SignUp(w http.ResponseWriter, r *http.Request) {
+func (h *AuthEchoHandler) SignUp(c echo.Context) error {
+	log.Println("HERE!!!!!", c.Request().Header.Get("Content-Type"))
 	person := models.UserData{}
-
-	err := json.NewDecoder(r.Body).Decode(&person)
+	err := c.Bind(&person)
 	if err != nil {
 		slog.Error(err.Error())
-		handleErrorCode(models.BadRequest, w, models.Error{Msg: "Bad format"})
-		return
+		return pkg.HandleErrorCode(models.BadRequest, models.Error{Msg: "bad body"}, c)
 	}
 
 	slog.Info("Unmarshalled:", "person", slog.AnyValue(person))
 	newPerson, errCode := h.useCase.CreateUser(person)
 	if errCode != models.OK {
-		handleErrorCode(errCode, w, models.Error{Msg: "Creating user failed"})
-		return
+		return pkg.HandleErrorCode(errCode, models.Error{Msg: "Creating user failed"}, c)
 	}
 
-	token, err := pkg.GenerateJWTToken(newPerson.User, false)
+	token, err := pkg.GenerateJWTTokenV2(newPerson.User, false)
 	if err != nil {
 		slog.Error(err.Error())
-		handleErrorCode(models.InternalError, w, models.Error{Msg: "Fail while token generating"})
-		return
+		return pkg.HandleErrorCode(models.InternalError, models.Error{Msg: "Fail while token generating"}, c)
 	}
-
-	http.SetCookie(w, &http.Cookie{Name: "Token", Value: token, Path: "/"})
-	http.Redirect(w, r, "/", http.StatusSeeOther)
+	c.SetCookie(&http.Cookie{Name: "Token", Value: token, Path: "/"})
+	return c.Redirect(http.StatusSeeOther, "/")
 }
 
-func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
+func (h *AuthEchoHandler) Login(c echo.Context) error {
 	person := models.UserData{}
-
-	err := json.NewDecoder(r.Body).Decode(&person)
+	err := c.Bind(&person)
 	if err != nil {
 		slog.Error(err.Error())
-		handleErrorCode(models.BadRequest, w, models.Error{Msg: "Bad format"})
-		return
+		return pkg.HandleErrorCode(models.BadRequest, models.Error{Msg: "bad body"}, c)
 	}
 
 	slog.Info("Unmarshalled:", "person", slog.AnyValue(person))
 
 	usr, code := h.useCase.CheckUser(person)
 	if code != models.OK {
-		handleErrorCode(code, w, models.Error{Msg: "Inaccessible user data"})
-		return
+		return pkg.HandleErrorCode(code, models.Error{Msg: "Inaccessible user data"}, c)
 	}
 
 	person.User.UserID = usr.UserID
 
-	token, err := pkg.GenerateJWTToken(person.User, false)
+	token, err := pkg.GenerateJWTTokenV2(person.User, false)
 	if err != nil {
-		handleErrorCode(models.InternalError, w, models.Error{Msg: "Fail while token generating"})
-		return
+		return pkg.HandleErrorCode(models.InternalError, models.Error{Msg: "Fail while token generating"}, c)
 	}
-
-	http.SetCookie(w, &http.Cookie{Name: "Token", Value: token, Path: "/"})
-	http.Redirect(w, r, "/", http.StatusSeeOther)
+	c.SetCookie(&http.Cookie{Name: "Token", Value: token, Path: "/"})
+	return c.Redirect(http.StatusSeeOther, "/")
 }
 
-func (h *AuthHandler) Logout(w http.ResponseWriter, r *http.Request) {
-	user, err := pkg.AuthHook(r)
+func (h *AuthEchoHandler) Logout(c echo.Context) error {
+	userID := c.Get("user_id").(uuid.UUID)
+	user := models.User{UserID: userID}
+
+	log.Println("LOGOUT", user.UserID)
+
+	token, err := pkg.GenerateJWTTokenV2(user, true)
 	if err != nil {
-		errObj := &models.Error{Msg: err.Error()}
-		body, _ := json.Marshal(&errObj)
-		w.WriteHeader(http.StatusBadRequest)
-		w.Write(body)
-		return
+		return pkg.HandleErrorCode(models.InternalError, models.Error{Msg: "Fail while token generating"}, c)
 	}
 
-	token, err := pkg.GenerateJWTToken(*user, true)
-	if err != nil {
-		handleErrorCode(models.InternalError, w, models.Error{Msg: "Fail while token generating"})
-		return
-	}
-
-	http.SetCookie(w, &http.Cookie{Name: "Token", Value: token, Path: "/"})
-	http.Redirect(w, r, "/", http.StatusSeeOther)
+	c.SetCookie(&http.Cookie{Name: "Token", Value: token, Path: "/"})
+	return c.Redirect(http.StatusSeeOther, "/")
 }

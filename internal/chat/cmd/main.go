@@ -3,17 +3,21 @@ package main
 import (
 	"context"
 	"errors"
+	"github.com/golang-jwt/jwt/v5"
+	echojwt "github.com/labstack/echo-jwt/v4"
+	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v4/middleware"
 	"github.com/redis/go-redis/v9"
 	"log"
-	"net/http"
 	"os"
+	middleware2 "our-little-chatik/internal/middleware"
+	"our-little-chatik/internal/pkg"
 	"strconv"
 
 	"our-little-chatik/internal/chat/internal/delivery"
 	"our-little-chatik/internal/chat/internal/repo"
 	"our-little-chatik/internal/chat/internal/usecase"
 
-	"github.com/gorilla/mux"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"golang.org/x/exp/slog"
 )
@@ -38,6 +42,10 @@ func GetConnectionString() (string, error) {
 }
 
 func main() {
+	log.Fatal(run())
+}
+
+func run() error {
 	var err error
 	appConfig := AppConfig{}
 	appConfig.Port, err = strconv.Atoi(os.Getenv("CHAT_PORT"))
@@ -84,27 +92,46 @@ func main() {
 	repoRed := repo.NewRedisRepo(redisClient)
 	uc := usecase.NewChatUseCase(repop, repoRed)
 
-	handler := delivery.NewChatHandler(uc)
+	handler := delivery.NewChatEchoHandler(uc)
 
-	r := mux.NewRouter()
+	e := echo.New()
+	// Middleware
+	e.Use(middleware.LoggerWithConfig(middleware.LoggerConfig{
+		Format: "method=${method}, uri=${uri}, status=${status}\n",
+	}))
+	e.Use(middleware.Recover())
+
+	// Restricted group
+	r := e.Group("/api/v1")
+
+	key, err := pkg.GetSignedKey()
+	if err != nil {
+		panic(err.Error())
+	}
+
+	// Configure middleware with the custom claims type
+	config := echojwt.Config{
+		NewClaimsFunc: func(c echo.Context) jwt.Claims {
+			return new(pkg.JwtCustomClaims)
+		},
+		SigningKey:  []byte(key),
+		TokenLookup: "cookie:Token",
+	}
+	r.Use(echojwt.WithConfig(config), middleware2.Auth)
 
 	// Getting chat info
-	r.HandleFunc("/api/v1/chat", handler.GetChat).Methods("GET")
+	r.GET("/chat", handler.GetChat)
 	// Getting chat messages
-	r.HandleFunc("/api/v1/conv", handler.GetChatMessages).Methods("GET")
+	r.GET("/conv", handler.GetChatMessages)
 	// Getting the list of users chats
-	r.HandleFunc("/api/v1/list", handler.GetChatList).Methods("GET")
+	r.GET("/list", handler.GetChatList)
 	// Creating a new chat
-	r.HandleFunc("/api/v1/new", handler.PostNewChat).Methods("POST")
+	r.POST("/new", handler.PostNewChat)
 	// Update photo url of the chat
-	r.HandleFunc("/api/v1/chat/photo", handler.ChangeChatPhoto).Methods("POST")
+	r.POST("/chat/photo", handler.ChangeChatPhoto)
 	// Add users to chat
-	r.HandleFunc("/api/v1/chat/users", handler.AddUsersToChat).Methods("POST")
+	r.POST("/chat/users", handler.AddUsersToChat)
 
-	srv := &http.Server{Handler: r,
-		Addr: ":" + strconv.Itoa(appConfig.Port)}
-
-	log.Printf("Listening port: %d", appConfig.Port)
-	log.Printf("addres to query: %s", "http://localhost:"+strconv.Itoa(appConfig.Port)+"/api/v1/")
-	log.Fatal(srv.ListenAndServe())
+	e.Logger.Fatal(e.Start(":" + strconv.Itoa(appConfig.Port)))
+	return nil
 }
