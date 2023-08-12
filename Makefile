@@ -21,6 +21,16 @@ migrate-users:
 migrate-users-drop:
 	migrate -path ${USERS_MIGRATIONS_PATH} -database ${USERS_DB_URL} drop
 
+.PHONY: integration-peer-test
+integration-peer-test:
+	docker-compose -f docker-compose-test.yml down &&\
+	docker ps && \
+	docker-compose -f docker-compose-test.yml up -d test-db-peer && sleep 1 &&\
+	docker-compose -f docker-compose-test.yml up -d test-peer &&\
+	go clean -testcache && JWT_SIGNED_KEY=test PEER_HOST=localhost PEER_PORT=8089 \
+	go test ./internal/peer/cmd/... &&\
+	docker-compose -f docker-compose-test.yml down
+
 integration-user-data-test:
 	docker-compose -f docker-compose-test.yml down &&\
 	docker-compose -f docker-compose-test.yml up -d test-db-user-data && sleep 1 &&\
@@ -41,7 +51,7 @@ integration-chat-test:
 
 ## test: run all integration tests
 .PHONY: integration
-integration: integration-user-data-test integration-chat-test
+integration: integration-peer-test integration-user-data-test integration-chat-test
 
 ## test: run all unit tests
 .PHONY: unit

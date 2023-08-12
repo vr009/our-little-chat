@@ -10,7 +10,7 @@ type PeerRepo interface {
 	CheckUserExists(ctx context.Context, user string, userSet string) (bool, error)
 	CreateUser(ctx context.Context, user string, userSet string) error
 	RemoveUser(ctx context.Context, user string, userSet string)
-	StartSubscriber(ctx context.Context, messageChan chan models.Message, chatChannel string)
+	StartSubscriber(ctx context.Context, messageChan chan models.Message, chatChannel string, readyChan chan struct{})
 	SaveMessage(message models.Message) error
 }
 

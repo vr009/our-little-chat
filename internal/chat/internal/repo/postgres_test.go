@@ -238,7 +238,7 @@ func TestPostgresRepo_GetChatMessages(t *testing.T) {
 		{
 			name: "Successful",
 			pre: func() {
-				mock.ExpectQuery(regexp.QuoteMeta(GetMessagesQuery)).
+				mock.ExpectQuery(regexp.QuoteMeta(GetChatMessagesQuery)).
 					WithArgs(testChatID, int64(0), int64(1)).
 					WillReturnRows(pgxmock.NewRows(columns).AddRow(testMsgID,
 						testUserID, testPayload, testTimestamp))

@@ -12,7 +12,7 @@ import (
 	"time"
 )
 
-func TestChatUseCase_CreateNewChat(t *testing.T) {
+func TestChatUseCase_CreateChat(t *testing.T) {
 	type fields struct {
 		repo  internal.ChatRepo
 		queue internal.QueueRepo
@@ -52,19 +52,19 @@ func TestChatUseCase_CreateNewChat(t *testing.T) {
 				repo:  tt.fields.repo,
 				queue: tt.fields.queue,
 			}
-			got, err := ch.CreateNewChat(tt.args.chat)
+			got, err := ch.CreateChat(tt.args.chat)
 			if (err != nil) != tt.wantErr {
-				t.Errorf("CreateNewChat() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("CreateChat() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
 			if !reflect.DeepEqual(got.Name, tt.want.Name) {
-				t.Errorf("CreateNewChat() got = %v, want %v", got, tt.want)
+				t.Errorf("CreateChat() got = %v, want %v", got, tt.want)
 			}
 		})
 	}
 }
 
-func TestChatUseCase_FetchChatMessages(t *testing.T) {
+func TestChatUseCase_GetChatMessages(t *testing.T) {
 	type fields struct {
 		repo  internal.ChatRepo
 		queue internal.QueueRepo
@@ -187,13 +187,13 @@ func TestChatUseCase_FetchChatMessages(t *testing.T) {
 				repo:  tt.fields.repo,
 				queue: tt.fields.queue,
 			}
-			got, err := ch.FetchChatMessages(tt.args.chat, tt.args.opts)
+			got, err := ch.GetChatMessages(tt.args.chat, tt.args.opts)
 			if (err != nil) != tt.wantErr {
-				t.Errorf("FetchChatMessages() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("GetChatMessages() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
 			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("FetchChatMessages() got = %v, want %v", got, tt.want)
+				t.Errorf("GetChatMessages() got = %v, want %v", got, tt.want)
 			}
 			if !sort.IsSorted(got) {
 				t.Errorf("result slice of messages is not sorted")

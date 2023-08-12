@@ -113,8 +113,6 @@ func (s *ChatSession) Start() {
 	}
 	s.Peers[s.user] = s.peer
 
-	s.notifyPeer(fmt.Sprintf(welcome, s.user))
-
 	/*
 		this go-routine will exit when:
 		(1) the user disconnects from chat manually
@@ -162,10 +160,16 @@ func (s *ChatSession) Start() {
 			}
 		}
 	}()
+	wg := sync.WaitGroup{}
+	wg.Add(1)
 	go func() {
 		msgChan := make(chan models.Message)
+		readyChan := make(chan struct{})
 		s.repo.StartSubscriber(context.Background(),
-			msgChan, fmt.Sprintf(userSet, "users", s.chatID))
+			msgChan, fmt.Sprintf(userSet, "users", s.chatID), readyChan)
+		<-readyChan
+		wg.Done()
+
 		for {
 			select {
 			case msg := <-msgChan:
@@ -183,6 +187,8 @@ func (s *ChatSession) Start() {
 			}
 		}
 	}()
+	wg.Wait()
+	s.notifyPeer(fmt.Sprintf(welcome, s.user))
 }
 
 func (s *ChatSession) notifyPeer(msg string) {

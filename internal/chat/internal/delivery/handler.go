@@ -124,7 +124,7 @@ func (c *ChatHandler) GetChatMessages(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	chat := models.Chat{ChatID: chatID}
-	msgs, err := c.usecase.FetchChatMessages(chat, opts)
+	msgs, err := c.usecase.GetChatMessages(chat, opts)
 	if err != nil {
 		fmt.Println(err)
 		w.WriteHeader(http.StatusBadRequest)
@@ -217,14 +217,12 @@ func (h *ChatHandler) PostNewChat(w http.ResponseWriter, r *http.Request) {
 		chat.Participants = append(chat.Participants, usr.UserID)
 	}
 
-	createdChat, err := h.usecase.CreateNewChat(chat)
+	createdChat, err := h.usecase.CreateChat(chat)
 	if err != nil {
 		slog.Error(err.Error())
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
-
-	fmt.Println("CREATED CHAT !!!!!!!!!!! ", createdChat)
 
 	body, err := json.Marshal(createdChat)
 	if err != nil {

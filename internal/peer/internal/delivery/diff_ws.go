@@ -61,7 +61,6 @@ func NewDiffSession(user string, peer *websocket.Conn,
 func (s *DiffSession) Start() {
 	usernameTaken, err := s.repo.CheckUserExists(context.Background(),
 		s.user, fmt.Sprintf(userSet, "diff_users", s.user))
-
 	if err != nil {
 		log.Println("unable to determine whether user exists -", s.user)
 		s.notifyPeer(retryMessage)
@@ -84,8 +83,6 @@ func (s *DiffSession) Start() {
 		s.peer.Close()
 		return
 	}
-
-	s.notifyPeer(fmt.Sprintf(welcome, s.user))
 
 	/*
 		this go-routine will exit when:

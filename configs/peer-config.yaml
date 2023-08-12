@@ -1,4 +1,4 @@
-port: 8084
+port: 8089
 
 db:
   host: db-peer
