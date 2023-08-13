@@ -11,9 +11,11 @@ import (
 type ChatRepo interface {
 	GetChatMessages(chat models.Chat, opts models.Opts) (models.Messages, error)
 	FetchChatList(user models.User) ([]models.ChatItem, error)
-	InsertChat(models.Chat) error
+	CreateChat(models.Chat) error
 	UpdateChat(chat models.Chat, updateOpts models2.UpdateOptions) error
 	GetChat(chat models.Chat) (models.Chat, error)
+	DeleteMessage(message models.Message) error
+	DeleteChat(chat models.Chat) error
 }
 
 type QueueRepo interface {
@@ -26,6 +28,8 @@ type ChatUseCase interface {
 	GetChatList(user models.User) ([]models.ChatItem, error)
 	UpdateChat(chat models.Chat, updateOpts models2.UpdateOptions) error
 	GetChat(chat models.Chat) (models.Chat, error)
+	DeleteChat(chat models.Chat) error
+	DeleteMessage(message models.Message) error
 }
 
 type DB interface {

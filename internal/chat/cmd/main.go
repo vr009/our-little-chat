@@ -119,6 +119,13 @@ func run() error {
 	}
 	r.Use(echojwt.WithConfig(config), middleware2.Auth)
 
+	// Admin API
+	adminRouter := e.Group("/api/v1/admin")
+	// Getting chat info
+	adminRouter.GET("/chat", handler.GetChat)
+	adminRouter.DELETE("/chat", handler.DeleteChat)
+	adminRouter.POST("/chat", handler.PostNewChat)
+
 	// Getting chat info
 	r.GET("/chat", handler.GetChat)
 	// Getting chat messages

@@ -21,7 +21,7 @@ func (m PostgresMock) FetchChatList(user models.User) ([]models.ChatItem, error)
 	return m.ChatList, nil
 }
 
-func (m PostgresMock) InsertChat(Chat models.Chat) error {
+func (m PostgresMock) CreateChat(Chat models.Chat) error {
 	return nil
 }
 
@@ -31,4 +31,12 @@ func (m PostgresMock) UpdateChat(Chat models.Chat, updateOpts models2.UpdateOpti
 
 func (m PostgresMock) GetChat(Chat models.Chat) (models.Chat, error) {
 	return m.Chat, nil
+}
+
+func (m PostgresMock) DeleteMessage(message models.Message) error {
+	return nil
+}
+
+func (m PostgresMock) DeleteChat(Chat models.Chat) error {
+	return nil
 }

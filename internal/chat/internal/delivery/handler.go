@@ -241,3 +241,61 @@ func (ch *ChatEchoHandler) ChangeChatPhoto(c echo.Context) error {
 	}
 	return c.JSON(http.StatusOK, models.Error{Msg: "OK"})
 }
+
+func (ch *ChatEchoHandler) DeleteChat(c echo.Context) error {
+	var err error
+	defer func() {
+		if err != nil {
+			slog.Error(err.Error())
+		}
+	}()
+
+	idStr := c.QueryParam("chat_id")
+	if idStr == "" {
+		return c.JSON(http.StatusBadRequest, &models.Error{Msg: "passed empty parameter"})
+	}
+
+	chatID, err := uuid.Parse(idStr)
+	if err != nil {
+		fmt.Println(err)
+		return c.JSON(http.StatusBadRequest, &models.Error{Msg: "bad id format"})
+	}
+	chat := models.Chat{ChatID: chatID}
+
+	err = ch.usecase.DeleteChat(chat)
+	if err != nil {
+		fmt.Println(err)
+		return c.JSON(http.StatusBadRequest, &models.Error{Msg: err.Error()})
+	}
+
+	return c.JSON(http.StatusOK, &chat)
+}
+
+func (ch *ChatEchoHandler) DeleteMessage(c echo.Context) error {
+	var err error
+	defer func() {
+		if err != nil {
+			slog.Error(err.Error())
+		}
+	}()
+
+	idStr := c.QueryParam("msg_id")
+	if idStr == "" {
+		return c.JSON(http.StatusBadRequest, &models.Error{Msg: "passed empty parameter"})
+	}
+
+	msgID, err := uuid.Parse(idStr)
+	if err != nil {
+		fmt.Println(err)
+		return c.JSON(http.StatusBadRequest, &models.Error{Msg: "bad id format"})
+	}
+	msg := models.Message{MsgID: msgID}
+
+	err = ch.usecase.DeleteMessage(msg)
+	if err != nil {
+		fmt.Println(err)
+		return c.JSON(http.StatusBadRequest, &models.Error{Msg: err.Error()})
+	}
+
+	return c.JSON(http.StatusOK, &models.Error{Msg: "OK"})
+}

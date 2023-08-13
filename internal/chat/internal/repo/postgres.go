@@ -15,8 +15,8 @@ import (
 )
 
 const (
-	InsertChatParticipantsQuery = `INSERT INTO chat_participants VALUES ($1, $2)`
-	InsertChatQuery             = `INSERT INTO chats VALUES($1, $2, $3, $4)`
+	CreateChatParticipantsQuery = `INSERT INTO chat_participants VALUES ($1, $2)`
+	CreateChatQuery             = `INSERT INTO chats VALUES($1, $2, $3, $4)`
 	GetChatMessagesQuery        = `SELECT msg_id, sender_id, payload, created_at FROM messages WHERE chat_id=$1 ORDER BY created_at ASC OFFSET $2 LIMIT $3`
 	GetChatInfoQuery            = `SELECT chat_id, name, photo_url, created_at FROM chats WHERE chat_id=$1`
 	GetChatParticipantsQuery    = `SELECT participant_id FROM chat_participants WHERE chat_id=$1`
@@ -26,6 +26,8 @@ const (
                           WHERE cp.participant_id=$1`
 	UpdatePhotoURLQuery     = "UPDATE chats SET photo_url=$1 WHERE chat_id=$2"
 	RemoveUserFromChatQuery = "DELETE FROM chat_participants WHERE participant_id=$1 AND chat_id=$2"
+	DeleteChatQuery         = "DELETE FROM chats WHERE chat_id=$1"
+	DeleteMessageQuery      = "DELETE FROM messages WHERE msg_id=$1"
 )
 
 type PostgresRepo struct {
@@ -104,8 +106,8 @@ func (pr PostgresRepo) FetchChatList(user models.User) ([]models.ChatItem, error
 	return chatList, nil
 }
 
-// InsertChat
-func (pr PostgresRepo) InsertChat(chat models.Chat) error {
+// CreateChat
+func (pr PostgresRepo) CreateChat(chat models.Chat) error {
 	ctx := context.Background()
 	tx, err := pr.pool.Begin(ctx)
 	if err != nil {
@@ -114,10 +116,10 @@ func (pr PostgresRepo) InsertChat(chat models.Chat) error {
 
 	batch := &pgx.Batch{}
 	for _, participant := range chat.Participants {
-		batch.Queue(InsertChatParticipantsQuery, chat.ChatID, participant)
+		batch.Queue(CreateChatParticipantsQuery, chat.ChatID, participant)
 	}
 
-	batch.Queue(InsertChatQuery, chat.ChatID, chat.Name, chat.PhotoURL, chat.CreatedAt)
+	batch.Queue(CreateChatQuery, chat.ChatID, chat.Name, chat.PhotoURL, chat.CreatedAt)
 
 	results := pr.pool.SendBatch(ctx, batch)
 	defer results.Close()
@@ -163,7 +165,7 @@ func (pr PostgresRepo) UpdateChat(chat models.Chat, updateOpts models2.UpdateOpt
 		if len(chat.Participants) > 0 {
 			batch := &pgx.Batch{}
 			for _, participant := range chat.Participants {
-				batch.Queue(InsertChatParticipantsQuery, chat.ChatID, participant)
+				batch.Queue(CreateChatParticipantsQuery, chat.ChatID, participant)
 			}
 			results := pr.pool.SendBatch(ctx, batch)
 			defer results.Close()
@@ -193,4 +195,24 @@ func (pr PostgresRepo) UpdateChat(chat models.Chat, updateOpts models2.UpdateOpt
 		}
 	}
 	return nil
+}
+
+func (pr PostgresRepo) DeleteChat(chat models.Chat) error {
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
+	defer cancel()
+	_, err := pr.pool.Exec(ctx, DeleteChatQuery, chat.ChatID)
+	if err != nil {
+		return err
+	}
+	return err
+}
+
+func (pr PostgresRepo) DeleteMessage(message models.Message) error {
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
+	defer cancel()
+	_, err := pr.pool.Exec(ctx, DeleteMessageQuery, message.MsgID)
+	if err != nil {
+		return err
+	}
+	return err
 }

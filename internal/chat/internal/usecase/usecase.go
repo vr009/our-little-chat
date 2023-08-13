@@ -43,7 +43,7 @@ func (ch *ChatUseCase) GetChatList(user models.User) ([]models.ChatItem, error) 
 func (ch *ChatUseCase) CreateChat(chat models.Chat) (models.Chat, error) {
 	chat.ChatID = uuid.New()
 	chat.CreatedAt = time.Now().Unix()
-	err := ch.repo.InsertChat(chat)
+	err := ch.repo.CreateChat(chat)
 	if err != nil {
 		slog.Error(err.Error())
 	}
@@ -56,4 +56,12 @@ func (ch *ChatUseCase) UpdateChat(chat models.Chat, updateOpts models2.UpdateOpt
 
 func (ch *ChatUseCase) GetChat(chat models.Chat) (models.Chat, error) {
 	return ch.repo.GetChat(chat)
+}
+
+func (ch *ChatUseCase) DeleteChat(chat models.Chat) error {
+	return ch.repo.DeleteChat(chat)
+}
+
+func (ch *ChatUseCase) DeleteMessage(message models.Message) error {
+	return ch.repo.DeleteMessage(message)
 }
