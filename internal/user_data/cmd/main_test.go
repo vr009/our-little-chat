@@ -349,6 +349,14 @@ func TestCRUDAPI(t *testing.T) {
 	if testing.Short() {
 		t.Skip()
 	}
+
+	username := os.Getenv("ADMIN_USER")
+	password := os.Getenv("ADMIN_PASSWORD")
+
+	if username == "" || password == "" {
+		t.Fatalf("ADMIN_USER or ADMIN_PASSWORD are not provided for authentication")
+	}
+
 	person := models2.UserData{
 		User: models2.User{
 			Name:     "test7",
@@ -366,6 +374,7 @@ func TestCRUDAPI(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to prepare a request: %s", err)
 	}
+	req.SetBasicAuth(username, password)
 	req.Header.Set("Content-Type", "application/json")
 
 	client.CheckRedirect = func(req *http.Request, via []*http.Request) error {
@@ -381,11 +390,6 @@ func TestCRUDAPI(t *testing.T) {
 			"/api/v1/auth/signup", resp.StatusCode, http.StatusSeeOther)
 	}
 
-	testCookie := &http.Cookie{}
-	if len(resp.Cookies()) != 0 {
-		testCookie = resp.Cookies()[0]
-	}
-
 	// Create a new user_data
 	person = models2.UserData{
 		User: models2.User{
@@ -397,16 +401,22 @@ func TestCRUDAPI(t *testing.T) {
 	}
 	body, _ = json.Marshal(person)
 
-	req, err = http.NewRequest("POST", host+"/api/v1/admin/user/new",
+	req, err = http.NewRequest("POST", host+"/api/v1/admin/user",
 		bytes.NewBuffer(body))
 	if err != nil {
 		t.Fatalf("Failed to prepare a request: %s", err)
 	}
 	req.Header.Set("Content-Type", "application/json")
+	req.SetBasicAuth(username, password)
 
 	resp, err = client.Do(req)
 	if err != nil {
 		t.Fatalf("Failed while performing a request: %s", err)
+	}
+
+	if resp.StatusCode != http.StatusCreated {
+		t.Fatalf("wrong status code expected %d actual %d",
+			http.StatusCreated, resp.StatusCode)
 	}
 
 	var createdPerson models2.UserData
@@ -421,7 +431,7 @@ func TestCRUDAPI(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to prepare a request: %s", err)
 	}
-	req.AddCookie(testCookie)
+	req.SetBasicAuth(username, password)
 
 	resp, err = client.Do(req)
 	if err != nil {
