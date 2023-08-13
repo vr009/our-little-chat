@@ -86,18 +86,19 @@ func run() error {
 	// Restricted group
 	authRouter := e.Group("/api/v1/auth")
 	commonRouter := e.Group("/api/v1/user", echojwt.WithConfig(config), middleware2.Auth)
-	adminRouter := e.Group("/api/v1/admin", echojwt.WithConfig(config), middleware2.Auth)
+	adminRouter := e.Group("/api/v1/admin")
 
 	// CRUD API
-	adminRouter.POST("/user/new", userDataHandler.CreateUser)
-	adminRouter.POST("/user", userDataHandler.UpdateUser)
-	adminRouter.DELETE("/user", userDataHandler.DeleteUser)
-	adminRouter.GET("/user", userDataHandler.GetUser)
+	adminRouter.POST("/user", userDataHandler.CreateUser, middleware2.AdminAuth)
+	adminRouter.PATCH("/user", userDataHandler.UpdateUser, middleware2.AdminAuth)
+	adminRouter.DELETE("/user", userDataHandler.DeleteUser, middleware2.AdminAuth)
+	adminRouter.GET("/user", userDataHandler.GetUser, middleware2.AdminAuth)
 
 	// Common API
 	commonRouter.GET("/all", userDataHandler.GetAllUsers)
 	commonRouter.GET("/me", userDataHandler.GetMe)
 	commonRouter.GET("/search", userDataHandler.FindUser)
+	commonRouter.GET("/info", userDataHandler.GetUser)
 
 	// Auth API
 	authRouter.POST("/signup", authHandler.SignUp)

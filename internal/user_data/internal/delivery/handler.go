@@ -64,26 +64,19 @@ func (udh *UserdataEchoHandler) GetMe(c echo.Context) error {
 }
 
 func (udh *UserdataEchoHandler) GetUser(c echo.Context) error {
-	userID := c.Get("user_id").(uuid.UUID)
-	user := models2.User{UserID: userID}
-
 	idStr := c.QueryParam("id")
 	id, err := uuid.Parse(idStr)
 	if err != nil {
 		return pkg.HandleErrorCode(models2.BadRequest, models2.Error{Msg: "Bad id format"}, c)
 	}
 
-	slog.Info("requested info", "from user", user.UserID.String(), "about", idStr)
-
 	person := models2.UserData{}
 	person.UserID = id
 
-	log.Println("SEARCHING FOR !!!!!!!!!!!!!!!!", id.String())
 	foundPerson, errCode := udh.useCase.GetUser(person)
 	if errCode != models2.OK {
 		return pkg.HandleErrorCode(errCode, models2.Error{Msg: "Failed to get info about the user"}, c)
 	}
-	log.Println("FOUND !!!!!!!!!!!!!!!!", foundPerson.UserID.String())
 	return c.JSON(http.StatusOK, &foundPerson)
 }
 

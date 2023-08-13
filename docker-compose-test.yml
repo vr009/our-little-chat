@@ -24,6 +24,8 @@ services:
       USER_DATA_PORT: "8086"
       JWT_SIGNED_KEY: "test"
       DATABASE_URL: "user=service password=test host=test-db-user-data port=5432 dbname=users"
+      ADMIN_PASSWORD: "test"
+      ADMIN_USER: "test"
     command: ./user-data-service
     ports:
       - 8086:8086
