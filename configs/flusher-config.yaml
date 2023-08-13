@@ -1,8 +1,0 @@
-port: 8082
-
-redis:
-  host: db-peer
-  port: 6379
-  password: test
-
-period: 1005

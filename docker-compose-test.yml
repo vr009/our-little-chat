@@ -21,7 +21,7 @@ services:
       context: .
       dockerfile: ./deployments/user_data.Dockerfile
     environment:
-      USER_DATA_CONFIG: configs/.
+      USER_DATA_PORT: "8086"
       JWT_SIGNED_KEY: "test"
       DATABASE_URL: "user=service password=test host=test-db-user-data port=5432 dbname=users"
     command: ./user-data-service
@@ -48,7 +48,6 @@ services:
       dockerfile: deployments/chat.Dockerfile
     command: ./chat-service
     environment:
-      CHAT_CONFIG: configs/.
       DATABASE_URL: "user=service password=test host=test-db-chat port=5432 dbname=chats"
       DATABASE_ALTERNATIVE_URL: "postgresql://test-db-chat:5432/chats?user=service&password=test"
       JWT_SIGNED_KEY: "test"
