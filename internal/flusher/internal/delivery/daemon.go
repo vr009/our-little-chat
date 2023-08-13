@@ -20,7 +20,7 @@ func NewFlusherD(queueRepo internal.QueueRepo, persistantRepo internal.Persistan
 }
 
 func (d *FlusherD) Work(ctx context.Context, period int) {
-	ticker := time.NewTicker(time.Second * time.Duration(period))
+	ticker := time.NewTicker(time.Minute * time.Duration(period))
 	for {
 		select {
 		case <-ticker.C:

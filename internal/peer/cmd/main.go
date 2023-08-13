@@ -3,7 +3,6 @@ package main
 import (
 	"github.com/go-redis/redis"
 	"github.com/gorilla/mux"
-	"github.com/spf13/viper"
 	"golang.org/x/exp/slog"
 	"log"
 	"net/http"
@@ -26,11 +25,6 @@ type AppConfig struct {
 
 func main() {
 	appConfig := AppConfig{}
-	err := viper.Unmarshal(&appConfig)
-	if err != nil {
-		panic(err)
-	}
-
 	redisHost := os.Getenv("REDIS_HOST")
 	if redisHost == "" {
 		panic("empty redis host")
@@ -59,7 +53,7 @@ func main() {
 		Addr:     appConfig.Redis.Host + ":" + appConfig.Redis.Port,
 		Password: appConfig.Redis.Password,
 	})
-	err = redisClient.Ping().Err()
+	err := redisClient.Ping().Err()
 	if err != nil {
 		panic(err)
 	}

@@ -9,10 +9,10 @@ import (
 	"os"
 	"our-little-chatik/internal/flusher/internal/delivery"
 	"our-little-chatik/internal/flusher/internal/repo"
+	"strconv"
 
 	"github.com/golang/glog"
 	"github.com/jackc/pgx/v5"
-	"github.com/spf13/viper"
 )
 
 type PostgresConfig struct {
@@ -29,7 +29,7 @@ type PeerDBConfig struct {
 }
 
 type AppConfig struct {
-	Port   int
+	Port   string
 	DB     PostgresConfig
 	Redis  PeerDBConfig
 	Period int
@@ -44,19 +44,39 @@ func GetConnectionString() (string, error) {
 }
 
 func main() {
-	configPath := os.Getenv("FLUSHER_CONFIG")
-	viper.AddConfigPath(configPath)
-	viper.SetConfigName("flusher-config.yaml")
-	viper.SetConfigType("yaml")
-	if err := viper.ReadInConfig(); err != nil {
-		log.Fatal("Failed to read a config file")
+	redisHost := os.Getenv("REDIS_HOST")
+	if redisHost == "" {
+		panic("empty redis host")
+	}
+	redisPort := os.Getenv("REDIS_PORT")
+	if redisPort == "" {
+		panic("empty redis port")
+	}
+	redisPassword := os.Getenv("REDIS_PASSWORD")
+	if redisPassword == "" {
+		panic("empty redis password")
+	}
+	flusherPort := os.Getenv("FLUSHER_PORT")
+	if flusherPort == "" {
+		panic("empty flusher port")
+	}
+	flusherPeriod := os.Getenv("FLUSHER_PERIOD")
+	if flusherPeriod == "" {
+		panic("empty flusher period")
+	}
+
+	period, err := strconv.Atoi(flusherPeriod)
+	if err != nil {
+		panic(err.Error())
 	}
 
 	appConfig := AppConfig{}
-	err := viper.Unmarshal(&appConfig)
-	if err != nil {
-		log.Fatal(err)
-	}
+	appConfig.Port = flusherPort
+	appConfig.Redis.Host = redisHost
+	appConfig.Redis.Port = redisPort
+	appConfig.Redis.Password = redisPassword
+	appConfig.Period = period
+
 	glog.V(2)
 	redisClient := redis.NewClient(&redis.Options{
 		Addr:     appConfig.Redis.Host + ":" + appConfig.Redis.Port,

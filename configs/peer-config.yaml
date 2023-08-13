@@ -1,6 +1,0 @@
-port: 8089
-
-db:
-  host: db-peer
-  port: 6379
-  password: test

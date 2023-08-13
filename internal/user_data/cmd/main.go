@@ -11,19 +11,16 @@ import (
 	"os"
 	middleware2 "our-little-chatik/internal/middleware"
 	"our-little-chatik/internal/pkg"
-	"strconv"
-
 	"our-little-chatik/internal/user_data/internal/delivery"
 	"our-little-chatik/internal/user_data/internal/repo"
 	"our-little-chatik/internal/user_data/internal/usecase"
 
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/spf13/viper"
 	"golang.org/x/exp/slog"
 )
 
 type AppConfig struct {
-	Port int
+	Port string
 }
 
 func GetConnectionString() (string, error) {
@@ -39,19 +36,12 @@ func main() {
 }
 
 func run() error {
-	configPath := os.Getenv("USER_DATA_CONFIG")
-	viper.AddConfigPath(configPath)
-	viper.SetConfigName("user-data-config.yaml")
-	viper.SetConfigType("yaml")
-	if err := viper.ReadInConfig(); err != nil {
-		log.Fatal("Failed to read a config file", configPath)
-	}
-
 	appConfig := &AppConfig{}
-	err := viper.Unmarshal(&appConfig)
-	if err != nil {
-		log.Fatal(err)
+	port := os.Getenv("USER_DATA_PORT")
+	if port == "" {
+		panic("empty USER_DATA_PORT")
 	}
+	appConfig.Port = port
 
 	connString, err := GetConnectionString()
 	if err != nil {
@@ -115,6 +105,6 @@ func run() error {
 	authRouter.DELETE("/logout", authHandler.Logout,
 		echojwt.WithConfig(config), middleware2.Auth)
 
-	e.Logger.Fatal(e.Start(":" + strconv.Itoa(appConfig.Port)))
+	e.Logger.Fatal(e.Start(":" + appConfig.Port))
 	return nil
 }

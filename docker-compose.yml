@@ -7,7 +7,11 @@ services:
       dockerfile: deployments/flusher.Dockerfile
     command: ./flusher-service
     environment:
-      FLUSHER_CONFIG: configs/.
+      FLUSHER_PERIOD: "60"
+      FLUSHER_PORT: "8082"
+      REDIS_PORT: "6379"
+      REDIS_HOST: "db-peer"
+      REDIS_PASSWORD: "test"
       DATABASE_URL: "user=service password=test host=db-chat port=5432 dbname=chats"
     ports:
       - 8082:8082
@@ -21,7 +25,6 @@ services:
       dockerfile: deployments/chat.Dockerfile
     command: ./chat-service
     environment:
-      CHAT_CONFIG: configs/.
       DATABASE_URL: "user=service password=test host=db-chat port=5432 dbname=chats"
       DATABASE_ALTERNATIVE_URL: "postgresql://db-chat:5432/chats?user=service&password=test"
       JWT_SIGNED_KEY: "test"
@@ -55,7 +58,7 @@ services:
       context: .
       dockerfile: ./deployments/user_data.Dockerfile
     environment:
-      USER_DATA_CONFIG: configs/.
+      USER_DATA_PORT: "8086"
       JWT_SIGNED_KEY: "test"
       DATABASE_URL: "user=service password=test host=db-user-data port=5432 dbname=users"
     command: ./user-data-service

@@ -1,6 +1,0 @@
-port: 8083
-
-redis:
-  host: db-peer
-  port: 6379
-  password: test
