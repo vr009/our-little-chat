@@ -150,14 +150,13 @@ func (s *ChatSession) Start() {
 				SenderID:  senderID,
 				CreatedAt: time.Now().Unix(),
 			}
-			s.repo.SendToChannel(context.Background(),
-				msg, fmt.Sprintf(userSet, "users", s.chatID))
-			//log.Println("msg sent to chanel", fmt.Sprintf(userSet, "users", s.chatID))
 			// persist message
 			err = s.repo.SaveMessage(msg)
 			if err != nil {
 				glog.Error(err)
 			}
+			s.repo.SendToChannel(context.Background(),
+				msg, fmt.Sprintf(userSet, "users", s.chatID))
 		}
 	}()
 	wg := sync.WaitGroup{}
