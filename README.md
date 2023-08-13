@@ -14,4 +14,5 @@
 - Golang 
 - JS React
 <!-- Coverage Comment:Begin -->
+[coverage_badge]: https://img.shields.io/badge/Coverage-32%25-yellow.svg?style=flat
 <!-- Coverage Comment:End -->
