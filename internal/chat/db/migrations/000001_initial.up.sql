@@ -3,10 +3,10 @@ CREATE SCHEMA IF NOT EXISTS chats;
 CREATE TABLE IF NOT EXISTS messages
 (
     msg_id     uuid         NOT NULL PRIMARY KEY,
-    chat_id    uuid         NOT NULL,
+    chat_id    uuid         NOT NULL REFERENCES chats(chat_id) ON DELETE CASCADE,
     sender_id  uuid         NOT NULL,
     payload    varchar      NOT NULL,
-    created_at bigint         NOT NULL
+    created_at bigint       NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS chat_participants
