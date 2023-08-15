@@ -20,9 +20,8 @@ const (
 	GetChatMessagesQuery        = `SELECT msg_id, sender_id, payload, created_at FROM messages WHERE chat_id=$1 ORDER BY created_at ASC OFFSET $2 LIMIT $3`
 	GetChatInfoQuery            = `SELECT chat_id, name, photo_url, created_at FROM chats WHERE chat_id=$1`
 	GetChatParticipantsQuery    = `SELECT participant_id FROM chat_participants WHERE chat_id=$1`
-	FetchChatListQuery          = `SELECT cp.chat_id, c.name, c.photo_url, m.payload, m.created_at FROM chat_participants AS cp 
-    LEFT JOIN chats AS c ON cp.chat_id = c.chat_id 
-    LEFT JOIN messages AS m ON c.last_msg_id = m.msg_id                      
+	FetchChatListQuery          = `SELECT cp.chat_id, c.name, c.photo_url FROM chat_participants AS cp 
+    LEFT JOIN chats AS c ON cp.chat_id = c.chat_id                      
                           WHERE cp.participant_id=$1`
 	UpdatePhotoURLQuery     = "UPDATE chats SET photo_url=$1 WHERE chat_id=$2"
 	RemoveUserFromChatQuery = "DELETE FROM chat_participants WHERE participant_id=$1 AND chat_id=$2"
@@ -94,8 +93,7 @@ func (pr PostgresRepo) FetchChatList(user models.User) ([]models.ChatItem, error
 	chatList := make([]models.ChatItem, 0)
 	for rows.Next() {
 		chat := models.ChatItem{}
-		err := rows.Scan(&chat.ChatID, &chat.Name, &chat.PhotoURL,
-			&chat.LastMsg, &chat.LastMessageTime)
+		err := rows.Scan(&chat.ChatID, &chat.Name, &chat.PhotoURL)
 		if err != nil {
 			return nil, err
 		}

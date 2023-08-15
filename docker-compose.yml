@@ -45,7 +45,7 @@ services:
     command: ./peer-service
     environment:
       REDIS_PORT: "6379"
-      REDIS_HOST: "test-db-peer"
+      REDIS_HOST: "db-peer"
       REDIS_PASSWORD: "test"
       PEER_PORT: "8089"
     ports:
