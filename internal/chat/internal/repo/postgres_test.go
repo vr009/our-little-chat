@@ -1,7 +1,6 @@
 package repo
 
 import (
-	"database/sql"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/pashagolub/pgxmock/v2"
@@ -31,23 +30,17 @@ func TestPostgresRepo_FetchChatList(t *testing.T) {
 
 	testURL := "test_url"
 	testName := "test"
-	testPayload := "test_payload"
-	testTimestamp := time.Now().Unix()
 
 	testChatItem := models.ChatItem{
-		ChatID:          testChatID,
-		Name:            testName,
-		PhotoURL:        testURL,
-		LastMsg:         sql.NullString{String: testPayload, Valid: true},
-		LastMessageTime: sql.NullInt64{Int64: testTimestamp, Valid: true},
+		ChatID:   testChatID,
+		Name:     testName,
+		PhotoURL: testURL,
 	}
 
 	columns := []string{
 		"cp.chat_id",
 		"c.name",
 		"c.photo_url",
-		"m.payload",
-		"m.created_at",
 	}
 
 	tests := []struct {
@@ -67,7 +60,7 @@ func TestPostgresRepo_FetchChatList(t *testing.T) {
 				mock.ExpectQuery(regexp.QuoteMeta(FetchChatListQuery)).
 					WithArgs(testUserID).
 					WillReturnRows(pgxmock.NewRows(columns).AddRow(testChatID,
-						testName, testURL, testPayload, testTimestamp))
+						testName, testURL))
 			},
 			args: args{
 				user: models.User{
