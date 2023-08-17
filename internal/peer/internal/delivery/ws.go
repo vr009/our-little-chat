@@ -173,15 +173,15 @@ func (s *ChatSession) Start() {
 			select {
 			case msg := <-msgChan:
 				//fmt.Printf("got your message: %s from %s\n", msg.Payload, msg.SenderID.String())
-				for user, peer := range s.Peers {
-					if msg.SenderID.String() != user { //don't recieve your own messages
-						bMsg, err := json.Marshal(msg)
-						if err != nil {
-							glog.Error(err)
-							break
-						}
-						peer.WriteMessage(websocket.TextMessage, bMsg)
+				for _, peer := range s.Peers {
+					//if msg.SenderID.String() != user { //don't recieve your own messages
+					bMsg, err := json.Marshal(msg)
+					if err != nil {
+						glog.Error(err)
+						break
 					}
+					peer.WriteMessage(websocket.TextMessage, bMsg)
+					//}
 				}
 			}
 		}
