@@ -126,13 +126,13 @@ func run() error {
 	adminRouter.DELETE("/chat", handler.DeleteChat)
 	adminRouter.POST("/chat", handler.PostNewChat)
 
-	// Getting chat info
+	// Get chat info
 	r.GET("/chat", handler.GetChat)
-	// Getting chat messages
+	// Get chat messages
 	r.GET("/conv", handler.GetChatMessages)
-	// Getting the list of users chats
+	// Get the list of users chats
 	r.GET("/list", handler.GetChatList)
-	// Creating a new chat
+	// Create a new chat
 	r.POST("/new", handler.PostNewChat)
 	// Update photo url of the chat
 	r.POST("/chat/photo", handler.ChangeChatPhoto)
