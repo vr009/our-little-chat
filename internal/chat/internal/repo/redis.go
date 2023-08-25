@@ -3,8 +3,8 @@ package repo
 import (
 	"context"
 	"encoding/json"
-	"github.com/golang/glog"
 	"github.com/redis/go-redis/v9"
+	"golang.org/x/exp/slog"
 	"our-little-chatik/internal/models"
 	"sort"
 )
@@ -35,7 +35,7 @@ func (r RedisRepo) GetChatMessages(chat models.Chat,
 		msg := models.Message{}
 		err := json.Unmarshal([]byte(val.(string)), &msg)
 		if err != nil {
-			glog.Error(err)
+			slog.Error(err.Error())
 			continue
 		}
 		msgList = append(msgList, msg)

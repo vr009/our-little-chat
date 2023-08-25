@@ -3,7 +3,7 @@ package repo
 import (
 	"context"
 	"github.com/go-redis/redis"
-	"github.com/golang/glog"
+	"golang.org/x/exp/slog"
 	"log"
 	"our-little-chatik/internal/models"
 )
@@ -31,7 +31,7 @@ func (r *DiffRepository) StartSubscriber(ctx context.Context,
 		for message := range messages {
 			msg, err := parseMessage(message.Payload)
 			if err != nil {
-				glog.Error(err)
+				slog.Error(err.Error())
 				continue
 			}
 			messageChan <- *msg
@@ -40,7 +40,7 @@ func (r *DiffRepository) StartSubscriber(ctx context.Context,
 		case <-ctx.Done():
 			err := sub.Unsubscribe(chatChannels...)
 			if err != nil {
-				glog.Error(err)
+				slog.Error(err.Error())
 			}
 			return
 		default:

@@ -2,7 +2,6 @@ package repo
 
 import (
 	"context"
-	"github.com/golang/glog"
 	"github.com/google/uuid"
 	"our-little-chatik/internal/chat/internal"
 	models2 "our-little-chatik/internal/chat/internal/models"
@@ -127,7 +126,7 @@ func (pr PostgresRepo) CreateChat(chat models.Chat) error {
 			slog.Error("Failed to add a chat user", "user", participant.String())
 			txErr := tx.Rollback(ctx)
 			if err != nil {
-				glog.Error(txErr)
+				slog.Error(txErr.Error())
 			}
 			return err
 		}
@@ -137,14 +136,14 @@ func (pr PostgresRepo) CreateChat(chat models.Chat) error {
 		slog.Error("Failed to add a chat")
 		txErr := tx.Rollback(ctx)
 		if err != nil {
-			glog.Error(txErr)
+			slog.Error(txErr.Error())
 		}
 		return err
 	}
 
 	txErr := tx.Commit(ctx)
 	if err != nil {
-		glog.Error(txErr)
+		slog.Error(txErr.Error())
 	}
 	return nil
 }

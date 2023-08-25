@@ -4,8 +4,8 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/golang/glog"
 	"github.com/gorilla/websocket"
+	"golang.org/x/exp/slog"
 	"log"
 	"net/http"
 	"our-little-chatik/internal/models"
@@ -115,7 +115,7 @@ func (s *DiffSession) Start() {
 
 			msgChan, err := s.diffRepo.SubscribeToChats(ctx, chatList)
 			if err != nil {
-				glog.Error(err)
+				slog.Error(err.Error())
 				continue
 			}
 
