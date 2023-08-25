@@ -88,7 +88,7 @@ func run() error {
 	commonRouter := e.Group("/api/v1/user", echojwt.WithConfig(config), middleware2.Auth)
 	adminRouter := e.Group("/api/v1/admin")
 
-	// CRUD API
+	// Admin CRUD API
 	adminRouter.POST("/user", userDataHandler.CreateUser, middleware2.AdminAuth)
 	adminRouter.PATCH("/user", userDataHandler.UpdateUser, middleware2.AdminAuth)
 	adminRouter.DELETE("/user", userDataHandler.DeleteUser, middleware2.AdminAuth)
