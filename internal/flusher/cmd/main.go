@@ -5,13 +5,13 @@ import (
 	"errors"
 	"fmt"
 	"github.com/go-redis/redis"
+	"golang.org/x/exp/slog"
 	"log"
 	"os"
 	"our-little-chatik/internal/flusher/internal/delivery"
 	"our-little-chatik/internal/flusher/internal/repo"
 	"strconv"
 
-	"github.com/golang/glog"
 	"github.com/jackc/pgx/v5"
 )
 
@@ -77,7 +77,8 @@ func main() {
 	appConfig.Redis.Password = redisPassword
 	appConfig.Period = period
 
-	glog.V(2)
+	slog.SetDefault(slog.New(slog.NewTextHandler(os.Stderr, nil)))
+
 	redisClient := redis.NewClient(&redis.Options{
 		Addr:     appConfig.Redis.Host + ":" + appConfig.Redis.Port,
 		Password: appConfig.Redis.Password,

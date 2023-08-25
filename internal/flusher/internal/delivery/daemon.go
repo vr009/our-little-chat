@@ -2,12 +2,11 @@ package delivery
 
 import (
 	"context"
+	"golang.org/x/exp/slog"
 	"log"
 	"time"
 
 	"our-little-chatik/internal/flusher/internal"
-
-	"github.com/golang/glog"
 )
 
 type FlusherD struct {
@@ -29,8 +28,7 @@ func (d *FlusherD) Work(ctx context.Context, period int) {
 				continue
 			}
 			err = d.persistantRepo.PersistAllMessages(messages)
-			glog.Infoln("persisted", messages)
-			log.Println("persisted", messages)
+			slog.Info("persisted", messages)
 			if err != nil {
 				log.Println(err)
 			}

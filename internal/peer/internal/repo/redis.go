@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/go-redis/redis"
-	"github.com/golang/glog"
+	"golang.org/x/exp/slog"
 	"log"
 	"our-little-chatik/internal/models"
 )
@@ -46,7 +46,7 @@ func (r *PeerRepository) StartSubscriber(ctx context.Context,
 			msg, err := parseMessage(message.Payload)
 			log.Println("got one", msg.Payload)
 			if err != nil {
-				glog.Error(err)
+				slog.Error(err.Error())
 				continue
 			}
 			messageChan <- *msg
@@ -56,7 +56,7 @@ func (r *PeerRepository) StartSubscriber(ctx context.Context,
 		case <-ctx.Done():
 			err := sub.Unsubscribe(chatChannel)
 			if err != nil {
-				glog.Error(err)
+				slog.Error(err.Error())
 			}
 			return
 		default:
@@ -70,7 +70,7 @@ func (r *PeerRepository) SendToChannel(ctx context.Context,
 	log.Println(msg.Payload, "sent to ", chatChannel)
 	bMsg, err := json.Marshal(&msg)
 	if err != nil {
-		glog.Error(err)
+		slog.Error(err.Error())
 		return
 	}
 	err = r.cl.Publish(chatChannel, string(bMsg)).Err()
@@ -143,12 +143,12 @@ func (r *PeerRepository) SubscribeToChats(ctx context.Context,
 				bMsg := redisMsg.Payload
 				err := json.Unmarshal([]byte(bMsg), &msg)
 				if err != nil {
-					glog.Error(err)
+					slog.Error(err.Error())
 					continue
 				}
 				userMsgChan <- msg
 			case <-ctx.Done():
-				glog.Warning("finish by context")
+				slog.Warn("finish by context")
 			}
 		}
 	}()

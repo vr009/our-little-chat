@@ -4,9 +4,9 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/golang/glog"
 	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
+	"golang.org/x/exp/slog"
 	"log"
 	"net/http"
 	"our-little-chatik/internal/models"
@@ -134,12 +134,12 @@ func (s *ChatSession) Start() {
 
 			chatID, err := uuid.Parse(s.chatID)
 			if err != nil {
-				glog.Error(err)
+				slog.Error(err.Error())
 				return
 			}
 			senderID, err := uuid.Parse(s.user)
 			if err != nil {
-				glog.Error(err)
+				slog.Error(err.Error())
 				return
 			}
 
@@ -153,7 +153,7 @@ func (s *ChatSession) Start() {
 			// persist message
 			err = s.repo.SaveMessage(msg)
 			if err != nil {
-				glog.Error(err)
+				slog.Error(err.Error())
 			}
 			s.repo.SendToChannel(context.Background(),
 				msg, fmt.Sprintf(userSet, "users", s.chatID))
@@ -177,7 +177,7 @@ func (s *ChatSession) Start() {
 					//if msg.SenderID.String() != user { //don't recieve your own messages
 					bMsg, err := json.Marshal(msg)
 					if err != nil {
-						glog.Error(err)
+						slog.Error(err.Error())
 						break
 					}
 					peer.WriteMessage(websocket.TextMessage, bMsg)

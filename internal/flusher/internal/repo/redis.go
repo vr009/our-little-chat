@@ -2,8 +2,8 @@ package repo
 
 import (
 	"github.com/go-redis/redis"
-	"github.com/golang/glog"
 	"github.com/prometheus/common/log"
+	"golang.org/x/exp/slog"
 	"our-little-chatik/internal/models"
 )
 
@@ -42,7 +42,7 @@ func (r RedisRepo) FetchAllMessages() ([]models.Message, error) {
 		if msg, ok := values[i].(models.Message); ok {
 			messages = append(messages, msg)
 		} else {
-			glog.Warning("failed to cast a value from redis to models.Message")
+			slog.Warn("failed to cast a value from redis to models.Message")
 		}
 	}
 	return messages, nil
