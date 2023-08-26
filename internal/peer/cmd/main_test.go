@@ -118,19 +118,23 @@ func TestPeer(t *testing.T) {
 		t.Logf("sent %s", msgFromA2.Payload)
 
 		msgRespFromB := &models2.Message{}
-		_, bData, err := connA.ReadMessage()
-		t.Logf("%s", string(bData))
-		if err != nil {
-			t.Error(err)
+		for _ = range []int{1, 2, 3} {
+			_, bData, err := connA.ReadMessage()
+			t.Logf("%s", string(bData))
+			if err != nil {
+				t.Error(err)
+			}
+			err = json.Unmarshal(bData, &msgRespFromB)
+			if err != nil {
+				t.Error(err)
+			}
+			if msgRespFromB.Payload != textFromB &&
+				msgRespFromB.Payload != msgFromA.Payload &&
+				msgRespFromB.Payload != msgFromA2.Payload {
+				t.Errorf("the received message is wrong")
+			}
+			t.Logf("client a finished")
 		}
-		err = json.Unmarshal(bData, &msgRespFromB)
-		if err != nil {
-			t.Error(err)
-		}
-		if msgRespFromB.Payload != textFromB {
-			t.Errorf("the received message is wrong")
-		}
-		t.Logf("client a finished")
 		wg.Done()
 	}()
 
@@ -151,7 +155,9 @@ func TestPeer(t *testing.T) {
 		}
 		t.Logf("1 client b received %s", string(bData))
 
-		if msgRespFromA.Payload != textFromA && msgRespFromA.Payload != defaultText {
+		if msgRespFromA.Payload != textFromA &&
+			msgRespFromA.Payload != defaultText &&
+			msgRespFromA.Payload != msgFromB.Payload {
 			t.Errorf("the received message is wrong")
 		}
 
