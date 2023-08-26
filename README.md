@@ -5,7 +5,7 @@
 
 ## Design of the system
 
-![image](https://github.com/vr009/our-little-chat/assets/55545103/19179c36-9c2a-44f7-af94-890f410d5355)
+![image](https://github.com/vr009/our-little-chat/assets/55545103/f760213a-3b33-42da-a724-c6923ab3e43b)
 
 ## Tech
 
