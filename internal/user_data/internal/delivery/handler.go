@@ -12,10 +12,10 @@ import (
 )
 
 type UserdataEchoHandler struct {
-	useCase internal.UserdataUseCase
+	useCase internal.UserdataUsecase
 }
 
-func NewUserdataEchoHandler(useCase internal.UserdataUseCase) *UserdataEchoHandler {
+func NewUserdataEchoHandler(useCase internal.UserdataUsecase) *UserdataEchoHandler {
 	return &UserdataEchoHandler{
 		useCase: useCase,
 	}
