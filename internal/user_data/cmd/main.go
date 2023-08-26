@@ -59,7 +59,7 @@ func run() error {
 	defer pool.Close()
 
 	personRepo := repo.NewPersonRepo(pool)
-	useCase := usecase.NewUserdataUseCase(personRepo)
+	useCase := usecase.NewUserdataUsecase(personRepo)
 	userDataHandler := delivery.NewUserdataEchoHandler(useCase)
 	authHandler := delivery.NewAuthEchoHandler(useCase)
 

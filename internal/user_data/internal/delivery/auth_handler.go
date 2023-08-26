@@ -13,10 +13,10 @@ import (
 )
 
 type AuthEchoHandler struct {
-	useCase internal.UserdataUseCase
+	useCase internal.UserdataUsecase
 }
 
-func NewAuthEchoHandler(useCase internal.UserdataUseCase) *AuthEchoHandler {
+func NewAuthEchoHandler(useCase internal.UserdataUsecase) *AuthEchoHandler {
 	return &AuthEchoHandler{
 		useCase: useCase,
 	}

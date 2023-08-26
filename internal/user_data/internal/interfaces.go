@@ -17,7 +17,7 @@ type UserdataRepo interface {
 	FindUser(name string) ([]models2.UserData, models2.StatusCode)
 }
 
-type UserdataUseCase interface {
+type UserdataUsecase interface {
 	GetAllUsers() ([]models2.UserData, models2.StatusCode)
 	CreateUser(userData models2.UserData) (models2.UserData, models2.StatusCode)
 	GetUser(userData models2.UserData) (models2.UserData, models2.StatusCode)
