@@ -53,6 +53,16 @@ services:
     depends_on:
       - db-peer
 
+  call:
+    build:
+      context: .
+      dockerfile: deployments/call.Dockerfile
+    command: ./call-service
+    environment:
+      CALL_PORT: "8090"
+    ports:
+      - 8090:8090
+
   user-data:
     build:
       context: .
