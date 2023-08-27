@@ -3,6 +3,7 @@ package repo
 import (
 	"context"
 	"github.com/google/uuid"
+	"log"
 	"our-little-chatik/internal/chat/internal"
 	models2 "our-little-chatik/internal/chat/internal/models"
 	"our-little-chatik/internal/models"
@@ -14,12 +15,13 @@ import (
 )
 
 const (
-	CreateChatParticipantsQuery = `INSERT INTO chat_participants VALUES ($1, $2)`
-	CreateChatQuery             = `INSERT INTO chats VALUES($1, $2, $3, $4)`
+	CreateChatParticipantsQuery = `INSERT INTO chat_participants VALUES ($1, $2, $3)`
+	CreateChatQuery             = `INSERT INTO chats VALUES($1, $2, $3)`
 	GetChatMessagesQuery        = `SELECT msg_id, sender_id, payload, created_at FROM messages WHERE chat_id=$1 ORDER BY created_at ASC OFFSET $2 LIMIT $3`
-	GetChatInfoQuery            = `SELECT chat_id, name, photo_url, created_at FROM chats WHERE chat_id=$1`
-	GetChatParticipantsQuery    = `SELECT participant_id FROM chat_participants WHERE chat_id=$1`
-	FetchChatListQuery          = `SELECT cp.chat_id, c.name, c.photo_url FROM chat_participants AS cp 
+	GetChatInfoQuery            = `SELECT c.chat_id, cp.chat_name, c.photo_url, c.created_at FROM chats AS c
+    LEFT JOIN chat_participants AS cp ON c.chat_id = cp.chat_id WHERE c.chat_id=$1`
+	GetChatParticipantsQuery = `SELECT participant_id FROM chat_participants WHERE chat_id=$1`
+	FetchChatListQuery       = `SELECT cp.chat_id, cp.chat_name, c.photo_url FROM chat_participants AS cp 
     LEFT JOIN chats AS c ON cp.chat_id = c.chat_id                      
                           WHERE cp.participant_id=$1`
 	UpdatePhotoURLQuery     = "UPDATE chats SET photo_url=$1 WHERE chat_id=$2"
@@ -42,10 +44,12 @@ func (pr PostgresRepo) GetChat(chat models.Chat) (models.Chat, error) {
 	row := pr.pool.QueryRow(ctx, GetChatInfoQuery, chat.ChatID)
 	err := row.Scan(&chat.ChatID, &chat.Name, &chat.PhotoURL, &chat.CreatedAt)
 	if err != nil {
+		log.Println("err here get", err.Error())
 		return models.Chat{}, err
 	}
 	rows, err := pr.pool.Query(ctx, GetChatParticipantsQuery, chat.ChatID)
 	if err != nil {
+		log.Println("err here get 2", err.Error())
 		return models.Chat{}, err
 	}
 	for rows.Next() {
@@ -100,11 +104,14 @@ func (pr PostgresRepo) FetchChatList(user models.User) ([]models.ChatItem, error
 		chatList = append(chatList, chat)
 	}
 
+	log.Println("====== list from repo", chatList)
+
 	return chatList, nil
 }
 
 // CreateChat
-func (pr PostgresRepo) CreateChat(chat models.Chat) error {
+func (pr PostgresRepo) CreateChat(chat models.Chat,
+	chatNames map[string]string) error {
 	ctx := context.Background()
 	tx, err := pr.pool.Begin(ctx)
 	if err != nil {
@@ -113,17 +120,19 @@ func (pr PostgresRepo) CreateChat(chat models.Chat) error {
 
 	batch := &pgx.Batch{}
 	for _, participant := range chat.Participants {
-		batch.Queue(CreateChatParticipantsQuery, chat.ChatID, participant)
+		batch.Queue(CreateChatParticipantsQuery, chat.ChatID, participant,
+			chatNames[participant.String()])
 	}
 
-	batch.Queue(CreateChatQuery, chat.ChatID, chat.Name, chat.PhotoURL, chat.CreatedAt)
+	batch.Queue(CreateChatQuery, chat.ChatID, chat.PhotoURL, chat.CreatedAt)
 
 	results := pr.pool.SendBatch(ctx, batch)
 	defer results.Close()
 	for _, participant := range chat.Participants {
 		_, err := results.Exec()
 		if err != nil {
-			slog.Error("Failed to add a chat user", "user", participant.String())
+			slog.Error("Failed to add a chat user-1", "user", participant.String())
+			log.Println("err here pg", err.Error())
 			txErr := tx.Rollback(ctx)
 			if err != nil {
 				slog.Error(txErr.Error())

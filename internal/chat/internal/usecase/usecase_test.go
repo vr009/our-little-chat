@@ -18,7 +18,8 @@ func TestChatUseCase_CreateChat(t *testing.T) {
 		queue internal.QueueRepo
 	}
 	type args struct {
-		chat models.Chat
+		chat      models.Chat
+		chatNames map[string]string
 	}
 
 	rMock := repo.RedisMock{}
@@ -41,6 +42,9 @@ func TestChatUseCase_CreateChat(t *testing.T) {
 			fields: fields{repo: pMock, queue: rMock},
 			args: args{
 				chat: testChat,
+				chatNames: map[string]string{
+					"test": "test",
+				},
 			},
 			want:    testChat,
 			wantErr: false,
@@ -52,7 +56,7 @@ func TestChatUseCase_CreateChat(t *testing.T) {
 				repo:  tt.fields.repo,
 				queue: tt.fields.queue,
 			}
-			got, err := ch.CreateChat(tt.args.chat)
+			got, err := ch.CreateChat(tt.args.chat, tt.args.chatNames)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("CreateChat() error = %v, wantErr %v", err, tt.wantErr)
 				return
