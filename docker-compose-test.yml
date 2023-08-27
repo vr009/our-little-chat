@@ -57,6 +57,9 @@ services:
       REDIS_PORT: "6379"
       REDIS_HOST: "test-db-peer"
       REDIS_PASSWORD: "test"
+      USER_DATA_BASE_URL: "http://test-user-data:8086"
+      ADMIN_PASSWORD: "test"
+      ADMIN_USER: "test"
     ports:
       - 8083:8083
     depends_on:

@@ -40,10 +40,11 @@ func (ch *ChatUseCase) GetChatList(user models.User) ([]models.ChatItem, error) 
 	return ch.repo.FetchChatList(user)
 }
 
-func (ch *ChatUseCase) CreateChat(chat models.Chat) (models.Chat, error) {
+func (ch *ChatUseCase) CreateChat(chat models.Chat,
+	chatNames map[string]string) (models.Chat, error) {
 	chat.ChatID = uuid.New()
 	chat.CreatedAt = time.Now().Unix()
-	err := ch.repo.CreateChat(chat)
+	err := ch.repo.CreateChat(chat, chatNames)
 	if err != nil {
 		slog.Error(err.Error())
 	}

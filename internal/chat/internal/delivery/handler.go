@@ -2,24 +2,27 @@ package delivery
 
 import (
 	"fmt"
-	"github.com/labstack/echo/v4"
-	"net/http"
-	models2 "our-little-chatik/internal/chat/internal/models"
-	"strconv"
-
 	"github.com/google/uuid"
+	"github.com/labstack/echo/v4"
 	"golang.org/x/exp/slog"
+	"log"
+	"net/http"
 	"our-little-chatik/internal/chat/internal"
+	models2 "our-little-chatik/internal/chat/internal/models"
 	"our-little-chatik/internal/models"
+	"strconv"
 )
 
 type ChatEchoHandler struct {
-	usecase internal.ChatUseCase
+	usecase        internal.ChatUseCase
+	userInteractor internal.UserDataInteractor
 }
 
-func NewChatEchoHandler(usecase internal.ChatUseCase) *ChatEchoHandler {
+func NewChatEchoHandler(usecase internal.ChatUseCase,
+	userInteractor internal.UserDataInteractor) *ChatEchoHandler {
 	return &ChatEchoHandler{
-		usecase: usecase,
+		usecase:        usecase,
+		userInteractor: userInteractor,
 	}
 }
 
@@ -131,6 +134,8 @@ func (ch *ChatEchoHandler) GetChatList(c echo.Context) error {
 		return c.JSON(http.StatusInternalServerError, models.Error{Msg: err.Error()})
 	}
 
+	log.Println("=============", chats)
+
 	return c.JSON(http.StatusOK, &chats)
 }
 
@@ -150,6 +155,7 @@ func (ch *ChatEchoHandler) PostNewChat(c echo.Context) error {
 		return c.JSON(http.StatusBadRequest, models.Error{Msg: "bad body"})
 	}
 
+	log.Println("participants", chat.Participants)
 	includeSelf := true
 	for _, participant := range chat.Participants {
 		if participant == uuid.Nil {
@@ -167,10 +173,44 @@ func (ch *ChatEchoHandler) PostNewChat(c echo.Context) error {
 		chat.Participants = append(chat.Participants, user.UserID)
 	}
 
-	createdChat, err := ch.usecase.CreateChat(chat)
+	chatName := make(map[string]string)
+	if len(chat.Participants) == 2 {
+		for i := range chat.Participants {
+			user, err := ch.userInteractor.GetUser(models.UserData{
+				User: models.User{
+					UserID: chat.Participants[(i+1)%2],
+				},
+			})
+			if err != nil {
+				//TODO chat id is not defined here
+				chatName[chat.Participants[i].String()] = chat.ChatID.String()
+			} else {
+				chatName[chat.Participants[i].String()] = user.Nickname
+			}
+		}
+	} else if len(chat.Participants) == 1 {
+		user, err := ch.userInteractor.GetUser(models.UserData{
+			User: models.User{
+				UserID: chat.Participants[0],
+			},
+		})
+		if err != nil {
+			chatName[chat.Participants[0].String()] = chat.ChatID.String()
+		} else {
+			chatName[chat.Participants[0].String()] = user.Nickname
+		}
+	} else {
+		for _, participant := range chat.Participants {
+			chatName[participant.String()] = "Group chat " + chat.ChatID.String()
+		}
+	}
+	log.Println(chat.Participants)
+	log.Println("==== creating ==== ", chatName)
+	createdChat, err := ch.usecase.CreateChat(chat, chatName)
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, models.Error{Msg: err.Error()})
 	}
+	createdChat.Name = chatName[user.UserID.String()]
 
 	return c.JSON(http.StatusCreated, &createdChat)
 }

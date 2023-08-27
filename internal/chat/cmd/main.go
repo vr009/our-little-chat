@@ -9,6 +9,7 @@ import (
 	"github.com/labstack/echo/v4/middleware"
 	"github.com/redis/go-redis/v9"
 	"log"
+	"net/http"
 	"os"
 	middleware2 "our-little-chatik/internal/middleware"
 	"our-little-chatik/internal/pkg"
@@ -65,6 +66,11 @@ func run() error {
 		panic("empty redis password")
 	}
 
+	userDataBaseURL := os.Getenv("USER_DATA_BASE_URL")
+	if userDataBaseURL == "" {
+		panic("empty userDataBaseURL")
+	}
+
 	appConfig.Redis.Port = redisPort
 	appConfig.Redis.Host = redisHost
 	appConfig.Redis.Password = redisPassword
@@ -92,7 +98,9 @@ func run() error {
 	repoRed := repo.NewRedisRepo(redisClient)
 	uc := usecase.NewChatUseCase(repop, repoRed)
 
-	handler := delivery.NewChatEchoHandler(uc)
+	udCl := delivery.NewUserDataClient(http.Client{}, userDataBaseURL)
+
+	handler := delivery.NewChatEchoHandler(uc, udCl)
 
 	e := echo.New()
 	// Middleware

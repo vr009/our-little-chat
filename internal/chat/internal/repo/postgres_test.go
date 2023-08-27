@@ -39,7 +39,7 @@ func TestPostgresRepo_FetchChatList(t *testing.T) {
 
 	columns := []string{
 		"cp.chat_id",
-		"c.name",
+		"cp.chat_name",
 		"c.photo_url",
 	}
 
@@ -122,10 +122,10 @@ func TestPostgresRepo_GetChat(t *testing.T) {
 	}
 
 	columns := []string{
-		"chat_id",
-		"name",
-		"photo_url",
-		"created_at",
+		"c.chat_id",
+		"cp.chat_name",
+		"c.photo_url",
+		"c.created_at",
 	}
 
 	pColumns := []string{

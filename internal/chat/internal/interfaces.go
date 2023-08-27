@@ -11,7 +11,7 @@ import (
 type ChatRepo interface {
 	GetChatMessages(chat models.Chat, opts models.Opts) (models.Messages, error)
 	FetchChatList(user models.User) ([]models.ChatItem, error)
-	CreateChat(models.Chat) error
+	CreateChat(chat models.Chat, chatNames map[string]string) error
 	UpdateChat(chat models.Chat, updateOpts models2.UpdateOptions) error
 	GetChat(chat models.Chat) (models.Chat, error)
 	DeleteMessage(message models.Message) error
@@ -23,7 +23,7 @@ type QueueRepo interface {
 }
 
 type ChatUseCase interface {
-	CreateChat(chat models.Chat) (models.Chat, error)
+	CreateChat(chat models.Chat, chatNames map[string]string) (models.Chat, error)
 	GetChatMessages(chat models.Chat, opts models.Opts) (models.Messages, error)
 	GetChatList(user models.User) ([]models.ChatItem, error)
 	UpdateChat(chat models.Chat, updateOpts models2.UpdateOptions) error
@@ -39,4 +39,8 @@ type DB interface {
 	SendBatch(ctx context.Context, b *pgx.Batch) pgx.BatchResults
 	Begin(ctx context.Context) (pgx.Tx, error)
 	CopyFrom(ctx context.Context, tableName pgx.Identifier, columnNames []string, rowSrc pgx.CopyFromSource) (int64, error)
+}
+
+type UserDataInteractor interface {
+	GetUser(user models.UserData) (models.UserData, error)
 }
