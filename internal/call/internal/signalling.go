@@ -13,7 +13,7 @@ var AllRooms RoomMap
 // CreateRoomRequestHandler Create a Room and return roomID
 func CreateRoomRequestHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Access-Control-Allow-Origin", "*")
-	chatID := r.URL.Query().Get("chat_id")
+	chatID := r.URL.Query().Get("room_id")
 	roomID := AllRooms.CreateRoom(chatID)
 
 	type resp struct {
@@ -43,7 +43,6 @@ func broadcaster() {
 		msg := <-broadcast
 		for _, client := range AllRooms.Map[msg.RoomID] {
 			if client.Conn != msg.Client {
-				log.Println("!!!!!!", client.Conn, msg.Client)
 				client.Mutex.Lock()
 				err := client.Conn.WriteJSON(msg.Message)
 				if err != nil {
@@ -60,10 +59,9 @@ func broadcaster() {
 
 // JoinRoomRequestHandler will join the client in a particular room
 func JoinRoomRequestHandler(w http.ResponseWriter, r *http.Request) {
-	roomID := r.URL.Query().Get("roomID")
-
+	roomID := r.URL.Query().Get("room_id")
 	if roomID == "" {
-		log.Println("roomID missing in URL Parameters")
+		log.Println("room_id missing in URL Parameters")
 		return
 	}
 
@@ -88,8 +86,37 @@ func JoinRoomRequestHandler(w http.ResponseWriter, r *http.Request) {
 		msg.Client = ws
 		msg.RoomID = roomID
 
-		log.Println(msg.Message)
+		//log.Println(msg..Message)
 
 		broadcast <- msg
 	}
+}
+
+func CreateOrJoinRoomHandler(w http.ResponseWriter, r *http.Request) {
+	roomID := r.URL.Query().Get("room_id")
+	if roomID == "" {
+		log.Println("room_id missing in URL Parameters")
+		return
+	}
+
+	if !AllRooms.RoomExists(roomID) {
+		AllRooms.CreateRoom(roomID)
+	}
+	JoinRoomRequestHandler(w, r)
+}
+
+func DeleteRoomHandler(w http.ResponseWriter, r *http.Request) {
+	roomID := r.URL.Query().Get("room_id")
+	if roomID == "" {
+		log.Println("room_id missing in URL Parameters")
+		return
+	}
+	log.Println("deleting", roomID)
+	if AllRooms.RoomExists(roomID) {
+		log.Println("DELETED", roomID)
+		AllRooms.DeleteRoom(roomID)
+	} else {
+		log.Println("NOT DELETED", roomID)
+	}
+	w.WriteHeader(http.StatusOK)
 }

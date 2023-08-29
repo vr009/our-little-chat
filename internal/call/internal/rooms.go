@@ -32,8 +32,15 @@ func (r *RoomMap) Get(roomID string) []Participant {
 	return r.Map[roomID]
 }
 
+func (r *RoomMap) RoomExists(roomID string) bool {
+	r.Mutex.Lock()
+	defer r.Mutex.Unlock()
+	_, ok := r.Map[roomID]
+	return ok
+}
+
 // CreateRoom generate a unique room ID and return it -> insert it in the hashmap
-func (r *RoomMap) CreateRoom(chatID string) string {
+func (r *RoomMap) CreateRoom(roomID string) string {
 	r.Mutex.Lock()
 	defer r.Mutex.Unlock()
 
@@ -45,9 +52,7 @@ func (r *RoomMap) CreateRoom(chatID string) string {
 	//	b[i] = letters[rand.Intn(len(letters))]
 	//}
 
-	roomID := chatID
 	r.Map[roomID] = []Participant{}
-
 	return roomID
 }
 
