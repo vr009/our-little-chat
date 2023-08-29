@@ -8,9 +8,9 @@ COPY go.mod .
 
 EXPOSE 8083
 
-RUN go mod tidy
-
 COPY . .
+
+RUN go mod tidy
 
 RUN go build -o chat-service ./internal/chat/cmd/main.go
 
