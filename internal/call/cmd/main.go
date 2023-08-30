@@ -24,8 +24,8 @@ func main() {
 	//http.HandleFunc("/join", internal.JoinRoomRequestHandler)
 
 	r := mux.NewRouter()
-	r.HandleFunc("/call", internal.CreateOrJoinRoomHandler)
-	r.HandleFunc("/finish", internal.DeleteRoomHandler).Methods("DELETE")
+	r.HandleFunc("/video/call", internal.CreateOrJoinRoomHandler)
+	r.HandleFunc("/video/finish", internal.DeleteRoomHandler).Methods("DELETE")
 
 	slog.Info(fmt.Sprintf("Starting Server on Port %s", port))
 	err := http.ListenAndServe(":"+port, r)

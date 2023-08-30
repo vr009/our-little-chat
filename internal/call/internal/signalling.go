@@ -99,6 +99,8 @@ func CreateOrJoinRoomHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	log.Println("HIT", roomID)
+
 	if !AllRooms.RoomExists(roomID) {
 		AllRooms.CreateRoom(roomID)
 	}
