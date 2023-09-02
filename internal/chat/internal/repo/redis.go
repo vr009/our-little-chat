@@ -46,8 +46,8 @@ func (r RedisRepo) GetChatMessages(chat models.Chat,
 	page := int(opts.Page)
 	firstElemIdx := limit * page
 	lastElemIdx := limit*page + limit
-	if lastElemIdx > cap(msgList) {
-		lastElemIdx = cap(msgList)
+	if lastElemIdx > len(msgList) {
+		lastElemIdx = len(msgList)
 	}
 	if len(msgList) <= firstElemIdx {
 		return models.Messages{}, nil
