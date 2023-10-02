@@ -88,7 +88,7 @@ func (pr PostgresRepo) GetChatMessages(chat models.Chat, opts models.Opts) (mode
 // FetchChatList
 func (pr PostgresRepo) FetchChatList(user models.User) ([]models.ChatItem, error) {
 	ctx := context.Background()
-	rows, err := pr.pool.Query(ctx, FetchChatListQuery, user.UserID)
+	rows, err := pr.pool.Query(ctx, FetchChatListQuery, user.ID)
 	if err != nil {
 		return nil, err
 	}

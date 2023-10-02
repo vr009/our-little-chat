@@ -42,5 +42,5 @@ type DB interface {
 }
 
 type UserDataInteractor interface {
-	GetUser(user models.UserData) (models.UserData, error)
+	GetUser(user models.User) (models.User, error)
 }

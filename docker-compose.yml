@@ -76,6 +76,9 @@ services:
       DATABASE_URL: "user=service password=${PG_USER_DATA_PASSWORD} host=db-user-data port=5432 dbname=users"
       ADMIN_PASSWORD: "test"
       ADMIN_USER: "test"
+      DATABASE_MAX_OPEN_CONNS: "10"
+      DATABASE_MAX_IDLE_CONNS: "10"
+      DATABASE_MAX_IDLE_TIME: "10m"
     command: ./user-data-service
     ports:
       - 8086:8086

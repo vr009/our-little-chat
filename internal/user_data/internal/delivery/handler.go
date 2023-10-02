@@ -1,6 +1,7 @@
 package delivery
 
 import (
+	"fmt"
 	"github.com/google/uuid"
 	"github.com/labstack/echo/v4"
 	"golang.org/x/exp/slog"
@@ -8,134 +9,162 @@ import (
 	"net/http"
 	models2 "our-little-chatik/internal/models"
 	"our-little-chatik/internal/pkg"
+	"our-little-chatik/internal/pkg/validator"
 	"our-little-chatik/internal/user_data/internal"
 )
 
-type UserdataEchoHandler struct {
-	useCase internal.UserdataUsecase
+type UserEchoHandler struct {
+	useCase internal.UserUsecase
 }
 
-func NewUserdataEchoHandler(useCase internal.UserdataUsecase) *UserdataEchoHandler {
-	return &UserdataEchoHandler{
+func NewUserEchoHandler(useCase internal.UserUsecase) *UserEchoHandler {
+	return &UserEchoHandler{
 		useCase: useCase,
 	}
 }
 
-func (udh *UserdataEchoHandler) GetAllUsers(c echo.Context) error {
+func (udh *UserEchoHandler) GetAllUsers(c echo.Context) error {
 	users, status := udh.useCase.GetAllUsers()
 	if status == models2.OK {
 		return c.JSON(http.StatusOK, &users)
 	}
-	return pkg.HandleErrorCode(status, models2.Error{Msg: "internal issue"}, c)
+	return pkg.NotFoundResponse(c)
 }
 
-func (udh *UserdataEchoHandler) CreateUser(c echo.Context) error {
-	person := models2.UserData{}
-	err := c.Bind(&person)
-	if err != nil {
-		slog.Error(err.Error())
-		return pkg.HandleErrorCode(models2.BadRequest, models2.Error{Msg: "bad body"}, c)
-	}
-
-	slog.Info("Unmarshalled:", "person", slog.AnyValue(person))
-
-	newPerson, errCode := udh.useCase.CreateUser(person)
-	if errCode != models2.OK {
-		return pkg.HandleErrorCode(errCode, models2.Error{Msg: "Failed to create user"}, c)
-	}
-	slog.Info("Created: ", slog.AnyValue(newPerson))
-	return c.JSON(http.StatusCreated, &newPerson)
-}
-
-func (udh *UserdataEchoHandler) GetMe(c echo.Context) error {
+func (udh *UserEchoHandler) GetMe(c echo.Context) error {
 	userID := c.Get("user_id").(uuid.UUID)
-	user := models2.User{UserID: userID}
+	user := models2.User{ID: userID}
 	log.Println("USER ME", userID.String())
 
-	person := models2.UserData{}
-	person.UserID = user.UserID
+	person := models2.User{}
+	person.ID = user.ID
 
 	s, errCode := udh.useCase.GetUser(person)
 	if errCode != models2.OK {
-		return pkg.HandleErrorCode(errCode, models2.Error{Msg: "Failed to find info about the user"}, c)
+		switch errCode {
+		case models2.NotFound:
+			return pkg.NotFoundResponse(c)
+		default:
+			return pkg.ServerErrorResponse(c, fmt.Errorf(""))
+		}
 	}
 
 	return c.JSON(http.StatusOK, &s)
 }
 
-func (udh *UserdataEchoHandler) GetUser(c echo.Context) error {
-	idStr := c.QueryParam("id")
+func (udh *UserEchoHandler) GetUser(c echo.Context) error {
+	idStr := c.Param("id")
 	id, err := uuid.Parse(idStr)
 	if err != nil {
-		return pkg.HandleErrorCode(models2.BadRequest, models2.Error{Msg: "Bad id format"}, c)
+		return pkg.BadRequestResponse(c, err)
 	}
 
-	person := models2.UserData{}
-	person.UserID = id
+	person := models2.User{}
+	person.ID = id
 
 	foundPerson, errCode := udh.useCase.GetUser(person)
 	if errCode != models2.OK {
-		return pkg.HandleErrorCode(errCode, models2.Error{Msg: "Failed to get info about the user"}, c)
+		switch errCode {
+		case models2.NotFound:
+			return pkg.NotFoundResponse(c)
+		default:
+			return pkg.ServerErrorResponse(c, fmt.Errorf("faile to get a user due to internal issue"))
+		}
 	}
 	return c.JSON(http.StatusOK, &foundPerson)
 }
 
-func (udh *UserdataEchoHandler) DeleteUser(c echo.Context) error {
+func (udh *UserEchoHandler) DeleteUser(c echo.Context) error {
 	log.Println("DELETING")
-	person := models2.UserData{}
-	err := c.Bind(&person)
+	idStr := c.Param("id")
+	v := validator.New()
+	v.Check(idStr != "", "id", "must be provided")
+	if !v.Valid() {
+		return pkg.FailedValidationResponse(c, v.Errors)
+	}
+
+	id, err := uuid.Parse(idStr)
 	if err != nil {
-		return pkg.HandleErrorCode(models2.BadRequest, models2.Error{Msg: "bad body"}, c)
+		return pkg.BadRequestResponse(c, err)
+	}
+
+	person := models2.User{
+		ID: id,
 	}
 
 	errCode := udh.useCase.DeleteUser(person)
 	if errCode != models2.OK {
-		return pkg.HandleErrorCode(errCode, models2.Error{Msg: "Failed to delete user"}, c)
+		switch errCode {
+		case models2.NotFound:
+			return pkg.NotFoundResponse(c)
+		default:
+			return pkg.ServerErrorResponse(c, fmt.Errorf("internal issue"))
+		}
 	}
 	return c.JSON(http.StatusOK, models2.Error{Msg: "OK"})
 }
 
-func (udh *UserdataEchoHandler) UpdateUser(c echo.Context) error {
-	person := models2.UserData{}
-	err := c.Bind(&person)
+func (udh *UserEchoHandler) UpdateUser(c echo.Context) error {
+	var input struct {
+		Nickname string `json:"nickname,omitempty"`
+		Name     string `json:"name,omitempty"`
+		Surname  string `json:"surname,omitempty"`
+		Password string `json:"-"`
+	}
+	err := c.Bind(&input)
 	if err != nil {
 		slog.Error(err.Error())
-		return pkg.HandleErrorCode(models2.BadRequest, models2.Error{Msg: "bad body"}, c)
+		return pkg.ServerErrorResponse(c, err)
 	}
 
-	s, errCode := udh.useCase.UpdateUser(person)
+	person := &models2.User{
+		Name:      input.Name,
+		Nickname:  input.Nickname,
+		Surname:   input.Surname,
+		Activated: false,
+	}
+
+	err = person.Password.Set(input.Password)
+	if err != nil {
+		return pkg.ServerErrorResponse(c, err)
+	}
+
+	v := validator.New()
+	validator.ValidateUserBySignUp(v, person)
+	if !v.Valid() {
+		return pkg.FailedValidationResponse(c, v.Errors)
+	}
+
+	s, errCode := udh.useCase.UpdateUser(*person)
 	if errCode != models2.OK {
-		return pkg.HandleErrorCode(errCode, models2.Error{Msg: "User update failed"}, c)
+		switch errCode {
+		case models2.NotFound:
+			return pkg.NotFoundResponse(c)
+		default:
+			return pkg.ServerErrorResponse(c, fmt.Errorf("internal issue"))
+		}
 	}
 
 	return c.JSON(http.StatusOK, &s)
 }
 
-func (udh *UserdataEchoHandler) CheckUserData(c echo.Context) error {
-	person := models2.UserData{}
-	err := c.Bind(&person)
-	if err != nil {
-		return pkg.HandleErrorCode(models2.BadRequest, models2.Error{Msg: "bad body"}, c)
-	}
-
-	_, errCode := udh.useCase.CheckUser(person)
-	if errCode != models2.OK {
-		return pkg.HandleErrorCode(errCode, models2.Error{Msg: "User data is inaccessible"}, c)
-	}
-
-	return c.JSON(http.StatusOK, models2.Error{Msg: "OK"})
-}
-
-func (udh *UserdataEchoHandler) FindUser(c echo.Context) error {
+func (udh *UserEchoHandler) FindUser(c echo.Context) error {
 	name := c.QueryParam("name")
-	if name == "" {
-		return pkg.HandleErrorCode(models2.BadRequest, models2.Error{Msg: "bad parameter"}, c)
+	v := validator.New()
+	v.Check(name != "", "name", "must be provided")
+	if !v.Valid() {
+		return pkg.FailedValidationResponse(c, v.Errors)
 	}
 	slog.Info("Searching for " + name)
 
 	users, errCode := udh.useCase.FindUser(name)
 	if errCode != models2.OK {
-		return pkg.HandleErrorCode(errCode, models2.Error{Msg: "Inaccessible user data"}, c)
+		switch errCode {
+		case models2.NotFound:
+			return pkg.NotFoundResponse(c)
+		default:
+			return pkg.ServerErrorResponse(c, fmt.Errorf("internal issue"))
+		}
 	}
 
 	return c.JSON(http.StatusOK, users)

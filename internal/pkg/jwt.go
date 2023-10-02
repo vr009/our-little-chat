@@ -34,7 +34,7 @@ func GenerateJWTTokenV2(user models.User, expireCookie bool) (string, error) {
 	}
 	// Set custom claims
 	claims := &JwtCustomClaims{
-		user.UserID.String(),
+		user.ID.String(),
 		jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Hour * 72 * time.Duration(m))),
 		},

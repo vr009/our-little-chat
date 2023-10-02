@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"github.com/golang-jwt/jwt/v5"
 	echojwt "github.com/labstack/echo-jwt/v4"
@@ -14,6 +15,8 @@ import (
 	"our-little-chatik/internal/user_data/internal/delivery"
 	"our-little-chatik/internal/user_data/internal/repo"
 	"our-little-chatik/internal/user_data/internal/usecase"
+	"strconv"
+	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	"golang.org/x/exp/slog"
@@ -23,12 +26,61 @@ type AppConfig struct {
 	Port string
 }
 
-func GetConnectionString() (string, error) {
+type dbConfig struct {
+	dsn          string
+	maxOpenConns int
+	maxIdleConns int
+	maxIdleTime  time.Duration
+}
+
+var (
+	defaultMaxOpenConns = 10
+	defaultMaxIdleConns = 10
+	defaultMaxIdleTime  = time.Minute * 10
+)
+
+func getConnectionString() *dbConfig {
+	dbCfg := &dbConfig{}
 	key, ok := os.LookupEnv("DATABASE_URL")
 	if !ok {
-		return "", errors.New("connection string not found")
+		panic(errors.New("connection string not found"))
 	}
-	return key, nil
+	dbCfg.dsn = key
+
+	key, ok = os.LookupEnv("DATABASE_MAX_OPEN_CONNS")
+	if !ok {
+		dbCfg.maxOpenConns = defaultMaxOpenConns
+	} else {
+		val, err := strconv.Atoi(key)
+		if err != nil {
+			panic(err.Error())
+		}
+		dbCfg.maxOpenConns = val
+	}
+
+	key, ok = os.LookupEnv("DATABASE_MAX_IDLE_CONNS")
+	if !ok {
+		dbCfg.maxIdleConns = defaultMaxIdleConns
+	} else {
+		val, err := strconv.Atoi(key)
+		if err != nil {
+			panic(err.Error())
+		}
+		dbCfg.maxIdleConns = val
+	}
+
+	key, ok = os.LookupEnv("DATABASE_MAX_IDLE_TIME")
+	if !ok {
+		dbCfg.maxIdleTime = defaultMaxIdleTime
+	} else {
+		duration, err := time.ParseDuration(key)
+		if err != nil {
+			panic(err.Error())
+		}
+		dbCfg.maxIdleTime = duration
+	}
+
+	return dbCfg
 }
 
 func main() {
@@ -43,24 +95,30 @@ func run() error {
 	}
 	appConfig.Port = port
 
-	connString, err := GetConnectionString()
-	if err != nil {
-		log.Fatal(err)
-	}
+	dbCfg := getConnectionString()
 
 	slog.SetDefault(slog.New(slog.NewTextHandler(os.Stderr, nil)))
 
-	pool, err := pgxpool.New(context.Background(), connString)
+	pool, err := pgxpool.New(context.Background(), dbCfg.dsn)
 	if err != nil {
 		log.Fatal("ERROR: : " + err.Error())
 	} else {
-		slog.Info("Connected to postgres: %s", connString)
+		slog.Info("Connected to postgres: %s", dbCfg.dsn)
 	}
 	defer pool.Close()
 
-	personRepo := repo.NewPersonRepo(pool)
-	useCase := usecase.NewUserdataUsecase(personRepo)
-	userDataHandler := delivery.NewUserdataEchoHandler(useCase)
+	db, err := sql.Open("pgx", dbCfg.dsn)
+	if err != nil {
+		panic(err)
+	}
+
+	db.SetConnMaxIdleTime(dbCfg.maxIdleTime)
+	db.SetMaxIdleConns(dbCfg.maxIdleConns)
+	db.SetMaxOpenConns(dbCfg.maxOpenConns)
+
+	personRepo := repo.NewPersonRepo(db)
+	useCase := usecase.NewUserUsecase(personRepo)
+	userDataHandler := delivery.NewUserEchoHandler(useCase)
 	authHandler := delivery.NewAuthEchoHandler(useCase)
 
 	e := echo.New()
@@ -89,7 +147,6 @@ func run() error {
 	adminRouter := e.Group("/api/v1/admin")
 
 	// Admin CRUD API
-	adminRouter.POST("/user", userDataHandler.CreateUser, middleware2.AdminAuth)
 	adminRouter.PATCH("/user", userDataHandler.UpdateUser, middleware2.AdminAuth)
 	adminRouter.DELETE("/user", userDataHandler.DeleteUser, middleware2.AdminAuth)
 	adminRouter.GET("/user", userDataHandler.GetUser, middleware2.AdminAuth)
@@ -98,7 +155,9 @@ func run() error {
 	commonRouter.GET("/all", userDataHandler.GetAllUsers)
 	commonRouter.GET("/me", userDataHandler.GetMe)
 	commonRouter.GET("/search", userDataHandler.FindUser)
-	commonRouter.GET("/info", userDataHandler.GetUser)
+	commonRouter.DELETE("/:id/info", userDataHandler.DeleteUser)
+	commonRouter.PATCH("/info", userDataHandler.UpdateUser)
+	commonRouter.GET("/:id/info", userDataHandler.GetUser)
 
 	// Auth API
 	authRouter.POST("/signup", authHandler.SignUp)

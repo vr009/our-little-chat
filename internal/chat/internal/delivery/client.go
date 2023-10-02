@@ -21,19 +21,19 @@ func NewUserDataClient(cl http.Client, baseURl string) *UserDataClient {
 	}
 }
 
-func (cl UserDataClient) GetUser(user models.UserData) (models.UserData, error) {
+func (cl UserDataClient) GetUser(user models.User) (models.User, error) {
 	req, err := http.NewRequest("GET",
-		cl.baseURl+getUserPath+"?id="+user.UserID.String(), nil)
+		cl.baseURl+getUserPath+"?id="+user.ID.String(), nil)
 	req.SetBasicAuth(os.Getenv("ADMIN_USER"), os.Getenv("ADMIN_PASSWORD"))
 
 	resp, err := cl.cl.Do(req)
 	if err != nil {
-		return models.UserData{}, err
+		return models.User{}, err
 	}
 
 	err = json.NewDecoder(resp.Body).Decode(&user)
 	if err != nil {
-		return models.UserData{}, err
+		return models.User{}, err
 	}
 	return user, nil
 }
