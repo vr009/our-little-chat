@@ -64,7 +64,7 @@ func TestPostgresRepo_FetchChatList(t *testing.T) {
 			},
 			args: args{
 				user: models.User{
-					UserID: testUserID,
+					ID: testUserID,
 				},
 			},
 			want:    []models.ChatItem{testChatItem},

@@ -33,7 +33,7 @@ func TestChatAPI(t *testing.T) {
 
 	var testChat models2.Chat
 	token, _ := pkg.GenerateJWTTokenV2(models2.User{
-		UserID: uuid.New(),
+		ID: uuid.New(),
 	}, false)
 
 	testCookie := &http.Cookie{Name: "Token", Value: token, Path: "/"}
@@ -243,7 +243,7 @@ func TestMsgAPI(t *testing.T) {
 	}
 
 	token, _ := pkg.GenerateJWTTokenV2(models2.User{
-		UserID: userID,
+		ID: userID,
 	}, false)
 
 	testCookie := &http.Cookie{Name: "Token", Value: token, Path: "/"}

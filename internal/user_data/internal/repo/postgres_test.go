@@ -1,10 +1,10 @@
 package repo
 
 import (
+	"database/sql"
+	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/google/uuid"
-	"github.com/pashagolub/pgxmock/v2"
 	"our-little-chatik/internal/models"
-	"our-little-chatik/internal/user_data/internal"
 	"reflect"
 	"regexp"
 	"testing"
@@ -13,31 +13,34 @@ import (
 
 func TestPersonRepo_CreateUser(t *testing.T) {
 	type fields struct {
-		pool internal.DB
+		pool *sql.DB
 	}
 	type args struct {
-		person models.UserData
+		person models.User
 	}
-	mock, err := pgxmock.NewPool()
+	db, mock, err := sqlmock.New()
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer mock.Close()
+	defer db.Close()
 
 	testUserID := uuid.New()
-	testTimestamp := time.Now().Unix()
 
-	testPerson := models.UserData{
-		User: models.User{
-			UserID:   testUserID,
-			Name:     "test",
-			Nickname: "test",
-			Surname:  "test",
-			Password: "test",
-		},
-		Registered: time.Unix(testTimestamp, 0),
-		LastAuth:   time.Unix(testTimestamp, 0),
+	testPassword := "test"
+
+	testRegisterTime := time.Now()
+
+	testPerson := models.User{
+		ID:         testUserID,
+		Name:       "test",
+		Nickname:   "test",
+		Surname:    "test",
+		Registered: testRegisterTime,
 		Avatar:     "avatar.png",
+	}
+	err = testPerson.Password.Set(testPassword)
+	if err != nil {
+		t.Fatal(err.Error())
 	}
 
 	tests := []struct {
@@ -45,33 +48,31 @@ func TestPersonRepo_CreateUser(t *testing.T) {
 		fields fields
 		pre    func()
 		args   args
-		want   models.UserData
+		want   models.User
 		want1  models.StatusCode
 	}{
 		{
 			name: "",
 			pre: func() {
-				mock.ExpectExec(regexp.QuoteMeta(InsertQuery)).
-					WithArgs(testPerson.UserID, testPerson.Nickname, testPerson.Name,
-						testPerson.Surname, testPerson.Password, testPerson.LastAuth,
-						testPerson.Registered, testPerson.Avatar).
-					WillReturnResult(pgxmock.NewResult("INSERT", 1))
+				mock.ExpectQuery(regexp.QuoteMeta(InsertQuery)).
+					WithArgs(testPerson.ID, testPerson.Nickname, testPerson.Name,
+						testPerson.Surname, testPerson.Password.Hash,
+						testPerson.Avatar).
+					WillReturnRows(sqlmock.NewRows([]string{"registered"}).AddRow(testPerson.Registered))
 			},
 			fields: fields{
-				pool: mock,
+				pool: db,
 			},
 			args: args{
 				person: testPerson,
 			},
-			want: models.UserData{
-				User: models.User{
-					UserID:   testUserID,
-					Name:     "test",
-					Nickname: "test",
-					Surname:  "test",
-				},
-				Registered: time.Unix(testTimestamp, 0),
-				LastAuth:   time.Unix(testTimestamp, 0),
+			want: models.User{
+				ID:         testUserID,
+				Name:       "test",
+				Nickname:   "test",
+				Surname:    "test",
+				Password:   testPerson.Password,
+				Registered: testRegisterTime,
 				Avatar:     "avatar.png",
 			},
 			want1: models.OK,
@@ -96,31 +97,27 @@ func TestPersonRepo_CreateUser(t *testing.T) {
 
 func TestPersonRepo_DeleteUser(t *testing.T) {
 	type fields struct {
-		pool internal.DB
+		pool *sql.DB
 	}
 	type args struct {
-		person models.UserData
+		person models.User
 	}
 
-	mock, err := pgxmock.NewPool()
+	db, mock, err := sqlmock.New()
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer mock.Close()
+	defer db.Close()
 
 	testUserID := uuid.New()
 	testTimestamp := time.Now().Unix()
 
-	testPerson := models.UserData{
-		User: models.User{
-			UserID:   testUserID,
-			Name:     "test",
-			Nickname: "test",
-			Surname:  "test",
-			Password: "test",
-		},
+	testPerson := models.User{
+		ID:         testUserID,
+		Name:       "test",
+		Nickname:   "test",
+		Surname:    "test",
 		Registered: time.Unix(testTimestamp, 0),
-		LastAuth:   time.Unix(testTimestamp, 0),
 		Avatar:     "avatar.png",
 	}
 
@@ -134,7 +131,7 @@ func TestPersonRepo_DeleteUser(t *testing.T) {
 		{
 			name: "",
 			fields: fields{
-				pool: mock,
+				pool: db,
 			},
 			args: args{
 				person: testPerson,
@@ -142,8 +139,8 @@ func TestPersonRepo_DeleteUser(t *testing.T) {
 			want: models.Deleted,
 			pre: func() {
 				mock.ExpectExec(regexp.QuoteMeta(DeleteQuery)).
-					WithArgs(testPerson.UserID).
-					WillReturnResult(pgxmock.NewResult("DELETE", 1))
+					WithArgs(testPerson.ID).
+					WillReturnResult(sqlmock.NewResult(1, 1))
 			},
 		},
 	}
@@ -162,28 +159,26 @@ func TestPersonRepo_DeleteUser(t *testing.T) {
 
 func TestPersonRepo_FindUser(t *testing.T) {
 	type fields struct {
-		pool internal.DB
+		pool *sql.DB
 	}
 	type args struct {
 		name string
 	}
 
-	mock, err := pgxmock.NewPool()
+	db, mock, err := sqlmock.New()
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer mock.Close()
+	defer db.Close()
 
 	testUserID := uuid.New()
 
-	testPerson := models.UserData{
-		User: models.User{
-			UserID:   testUserID,
-			Name:     "test",
-			Nickname: "test",
-			Surname:  "test",
-		},
-		Avatar: "avatar.png",
+	testPerson := models.User{
+		ID:       testUserID,
+		Name:     "test",
+		Nickname: "test",
+		Surname:  "test",
+		Avatar:   "avatar.png",
 	}
 
 	columns := []string{
@@ -195,22 +190,22 @@ func TestPersonRepo_FindUser(t *testing.T) {
 		fields fields
 		pre    func()
 		args   args
-		want   []models.UserData
+		want   []models.User
 		want1  models.StatusCode
 	}{
 		{
 			name: "",
 			pre: func() {
 				mock.ExpectQuery(regexp.QuoteMeta(FindUsersQuery)).
-					WithArgs(testPerson.Nickname).WillReturnRows(pgxmock.NewRows(columns).
-					AddRow(testPerson.UserID.String(), testPerson.Nickname, testPerson.Name,
+					WithArgs(testPerson.Nickname).WillReturnRows(sqlmock.NewRows(columns).
+					AddRow(testPerson.ID.String(), testPerson.Nickname, testPerson.Name,
 						testPerson.Surname, testPerson.Avatar))
 			},
-			fields: fields{pool: mock},
+			fields: fields{pool: db},
 			args: args{
 				name: testPerson.Nickname,
 			},
-			want:  []models.UserData{testPerson},
+			want:  []models.User{testPerson},
 			want1: models.OK,
 		},
 	}
@@ -233,23 +228,21 @@ func TestPersonRepo_FindUser(t *testing.T) {
 
 func TestPersonRepo_GetAllUsers(t *testing.T) {
 	type fields struct {
-		pool internal.DB
+		pool *sql.DB
 	}
 
-	mock, err := pgxmock.NewPool()
+	db, mock, err := sqlmock.New()
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer mock.Close()
+	defer db.Close()
 
 	testUserID := uuid.New()
 
-	testPerson := models.UserData{
-		User: models.User{
-			UserID:   testUserID,
-			Nickname: "test",
-		},
-		Avatar: "avatar.png",
+	testPerson := models.User{
+		ID:       testUserID,
+		Nickname: "test",
+		Avatar:   "avatar.png",
 	}
 
 	columns := []string{
@@ -260,18 +253,18 @@ func TestPersonRepo_GetAllUsers(t *testing.T) {
 		name   string
 		pre    func()
 		fields fields
-		want   []models.UserData
+		want   []models.User
 		want1  models.StatusCode
 	}{
 		{
 			name: "",
 			pre: func() {
 				mock.ExpectQuery(regexp.QuoteMeta(ListQuery)).
-					WillReturnRows(pgxmock.NewRows(columns).
-						AddRow(testPerson.UserID.String(), testPerson.Nickname, testPerson.Avatar))
+					WillReturnRows(sqlmock.NewRows(columns).
+						AddRow(testPerson.ID.String(), testPerson.Nickname, testPerson.Avatar))
 			},
-			fields: fields{pool: mock},
-			want:   []models.UserData{testPerson},
+			fields: fields{pool: db},
+			want:   []models.User{testPerson},
 			want1:  models.OK,
 		},
 	}
@@ -294,36 +287,35 @@ func TestPersonRepo_GetAllUsers(t *testing.T) {
 
 func TestPersonRepo_GetUser(t *testing.T) {
 	type fields struct {
-		pool internal.DB
+		pool *sql.DB
 	}
 	type args struct {
-		person models.UserData
+		person models.User
 	}
 
-	mock, err := pgxmock.NewPool()
+	db, mock, err := sqlmock.New()
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer mock.Close()
+	defer db.Close()
 
 	testUserID := uuid.New()
 	testTimestamp := time.Now().Unix()
+	password := "test"
 
-	testPerson := models.UserData{
-		User: models.User{
-			UserID:   testUserID,
-			Name:     "test",
-			Nickname: "test",
-			Surname:  "test",
-			Password: "test",
-		},
+	testPerson := models.User{
+		ID:         testUserID,
+		Name:       "test",
+		Nickname:   "test",
+		Surname:    "test",
 		Registered: time.Unix(testTimestamp, 0),
-		LastAuth:   time.Unix(testTimestamp, 0),
 		Avatar:     "avatar.png",
 	}
 
+	testPerson.Password.Set(password)
+
 	columns := []string{
-		"user_id", "nickname", "name", "surname", "last_auth", "registered",
+		"user_id", "nickname", "name", "surname", "password", "registered",
 		"avatar",
 	}
 
@@ -332,18 +324,19 @@ func TestPersonRepo_GetUser(t *testing.T) {
 		fields fields
 		pre    func()
 		args   args
-		want   models.UserData
+		want   models.User
 		want1  models.StatusCode
 	}{
 		{
 			name: "",
 			pre: func() {
 				mock.ExpectQuery(regexp.QuoteMeta(GetQuery)).
-					WithArgs(testPerson.UserID).WillReturnRows(pgxmock.NewRows(columns).
-					AddRow(testPerson.UserID.String(), testPerson.Nickname, testPerson.Name,
-						testPerson.Surname, testPerson.LastAuth, testPerson.Registered, testPerson.Avatar))
+					WithArgs(testPerson.ID).WillReturnRows(sqlmock.NewRows(columns).
+					AddRow(testPerson.ID.String(), testPerson.Nickname, testPerson.Name,
+						testPerson.Surname, testPerson.Password.Hash,
+						testPerson.Registered, testPerson.Avatar))
 			},
-			fields: fields{pool: mock},
+			fields: fields{pool: db},
 			args: args{
 				person: testPerson,
 			},
@@ -370,36 +363,34 @@ func TestPersonRepo_GetUser(t *testing.T) {
 
 func TestPersonRepo_GetUserForItsName(t *testing.T) {
 	type fields struct {
-		pool internal.DB
+		pool *sql.DB
 	}
 	type args struct {
-		person models.UserData
+		person models.User
 	}
 
-	mock, err := pgxmock.NewPool()
+	db, mock, err := sqlmock.New()
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer mock.Close()
+	defer db.Close()
 
 	testUserID := uuid.New()
 	testTimestamp := time.Now().Unix()
+	testPassword := "test"
 
-	testPerson := models.UserData{
-		User: models.User{
-			UserID:   testUserID,
-			Name:     "test",
-			Nickname: "test",
-			Surname:  "test",
-			Password: "test",
-		},
+	testPerson := models.User{
+		ID:         testUserID,
+		Name:       "test",
+		Nickname:   "test",
+		Surname:    "test",
 		Registered: time.Unix(testTimestamp, 0),
-		LastAuth:   time.Unix(testTimestamp, 0),
 		Avatar:     "avatar.png",
 	}
+	testPerson.Password.Set(testPassword)
 
 	columns := []string{
-		"user_id", "nickname", "name", "surname", "password", "last_auth", "registered",
+		"user_id", "nickname", "name", "surname", "password", "registered",
 		"avatar",
 	}
 
@@ -408,18 +399,18 @@ func TestPersonRepo_GetUserForItsName(t *testing.T) {
 		fields fields
 		pre    func()
 		args   args
-		want   models.UserData
+		want   models.User
 		want1  models.StatusCode
 	}{
 		{
 			name: "",
 			pre: func() {
 				mock.ExpectQuery(regexp.QuoteMeta(GetNameQuery)).
-					WithArgs(testPerson.Name).WillReturnRows(pgxmock.NewRows(columns).
-					AddRow(testPerson.UserID.String(), testPerson.Nickname, testPerson.Name,
-						testPerson.Surname, testPerson.Password, testPerson.LastAuth, testPerson.Registered, testPerson.Avatar))
+					WithArgs(testPerson.Name).WillReturnRows(sqlmock.NewRows(columns).
+					AddRow(testPerson.ID.String(), testPerson.Nickname, testPerson.Name,
+						testPerson.Surname, testPerson.Password.Hash, testPerson.Registered, testPerson.Avatar))
 			},
-			fields: fields{pool: mock},
+			fields: fields{pool: db},
 			args: args{
 				person: testPerson,
 			},
@@ -446,46 +437,45 @@ func TestPersonRepo_GetUserForItsName(t *testing.T) {
 
 func TestPersonRepo_UpdateUser(t *testing.T) {
 	type fields struct {
-		pool internal.DB
+		pool *sql.DB
 	}
 	type args struct {
-		personNew models.UserData
+		personNew models.User
 	}
 
-	mock, err := pgxmock.NewPool()
+	db, mock, err := sqlmock.New()
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer mock.Close()
+	defer db.Close()
 
+	testPassword := "test"
 	testUserID := uuid.New()
 	testTimestamp := time.Now().Unix()
 
-	testPerson := models.UserData{
-		User: models.User{
-			UserID:   testUserID,
-			Name:     "test",
-			Nickname: "test",
-			Surname:  "test",
-			Password: "test",
-		},
+	testPerson := models.User{
+		ID:         testUserID,
+		Name:       "test",
+		Nickname:   "test",
+		Surname:    "test",
 		Registered: time.Unix(testTimestamp, 0),
-		LastAuth:   time.Unix(testTimestamp, 0),
 		Avatar:     "avatar.png",
 	}
+
+	testPerson.Password.Set(testPassword)
 
 	tests := []struct {
 		name   string
 		fields fields
 		pre    func()
 		args   args
-		want   models.UserData
+		want   models.User
 		want1  models.StatusCode
 	}{
 		{
 			name: "",
 			fields: fields{
-				pool: mock,
+				pool: db,
 			},
 			args: args{
 				personNew: testPerson,
@@ -494,8 +484,8 @@ func TestPersonRepo_UpdateUser(t *testing.T) {
 			pre: func() {
 				mock.ExpectExec(regexp.QuoteMeta(UpdateQuery)).
 					WithArgs(testPerson.Nickname, testPerson.Name,
-						testPerson.Surname, testPerson.Avatar, testPerson.UserID).
-					WillReturnResult(pgxmock.NewResult("UPDATE", 1))
+						testPerson.Surname, testPerson.Avatar, testPerson.Password.Hash, testPerson.ID).
+					WillReturnResult(sqlmock.NewResult(1, 1))
 			},
 		},
 	}

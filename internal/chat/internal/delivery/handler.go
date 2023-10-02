@@ -126,7 +126,7 @@ func (ch *ChatEchoHandler) GetChatList(c echo.Context) error {
 	}()
 
 	userID := c.Get("user_id").(uuid.UUID)
-	user := models.User{UserID: userID}
+	user := models.User{ID: userID}
 
 	chats, err := ch.usecase.GetChatList(user)
 	if err != nil {
@@ -147,7 +147,7 @@ func (ch *ChatEchoHandler) PostNewChat(c echo.Context) error {
 		}
 	}()
 	userID := c.Get("user_id").(uuid.UUID)
-	user := models.User{UserID: userID}
+	user := models.User{ID: userID}
 
 	chat := models.Chat{}
 	err = c.Bind(&chat)
@@ -164,22 +164,20 @@ func (ch *ChatEchoHandler) PostNewChat(c echo.Context) error {
 				return c.JSON(http.StatusBadRequest, errObj)
 			}
 		}
-		if participant == user.UserID {
+		if participant == user.ID {
 			includeSelf = false
 		}
 	}
 	if includeSelf {
-		slog.Info("Adding a participant "+user.UserID.String()+" in list", "list", chat.Participants)
-		chat.Participants = append(chat.Participants, user.UserID)
+		slog.Info("Adding a participant "+user.ID.String()+" in list", "list", chat.Participants)
+		chat.Participants = append(chat.Participants, user.ID)
 	}
 
 	chatName := make(map[string]string)
 	if len(chat.Participants) == 2 {
 		for i := range chat.Participants {
-			user, err := ch.userInteractor.GetUser(models.UserData{
-				User: models.User{
-					UserID: chat.Participants[(i+1)%2],
-				},
+			user, err := ch.userInteractor.GetUser(models.User{
+				ID: chat.Participants[(i+1)%2],
 			})
 			if err != nil {
 				//TODO chat id is not defined here
@@ -189,10 +187,8 @@ func (ch *ChatEchoHandler) PostNewChat(c echo.Context) error {
 			}
 		}
 	} else if len(chat.Participants) == 1 {
-		user, err := ch.userInteractor.GetUser(models.UserData{
-			User: models.User{
-				UserID: chat.Participants[0],
-			},
+		user, err := ch.userInteractor.GetUser(models.User{
+			ID: chat.Participants[0],
 		})
 		if err != nil {
 			chatName[chat.Participants[0].String()] = chat.ChatID.String()
@@ -210,7 +206,7 @@ func (ch *ChatEchoHandler) PostNewChat(c echo.Context) error {
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, models.Error{Msg: err.Error()})
 	}
-	createdChat.Name = chatName[user.UserID.String()]
+	createdChat.Name = chatName[user.ID.String()]
 
 	return c.JSON(http.StatusCreated, &createdChat)
 }
