@@ -8,11 +8,13 @@ import (
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 	"github.com/redis/go-redis/v9"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 	"log"
-	"net/http"
 	"os"
 	middleware2 "our-little-chatik/internal/middleware"
 	"our-little-chatik/internal/pkg"
+	"our-little-chatik/internal/pkg/proto/users"
 	"strconv"
 
 	"our-little-chatik/internal/chat/internal/delivery"
@@ -98,7 +100,26 @@ func run() error {
 	repoRed := repo.NewRedisRepo(redisClient)
 	uc := usecase.NewChatUseCase(repop, repoRed)
 
-	udCl := delivery.NewUserDataClient(http.Client{}, userDataBaseURL)
+	usersGRPCHost := os.Getenv("GRPC_USERS_SERVER_HOST")
+	if usersGRPCHost == "" {
+		panic("no variable GRPC_USERS_SERVER_HOST passed")
+	}
+	usersGRPCPort := os.Getenv("GRPC_USERS_SERVER_PORT")
+	if usersGRPCPort == "" {
+		panic("no variable GRPC_USERS_SERVER_PORT passed")
+	}
+
+	usersGRPCServerAddr := usersGRPCHost + usersGRPCPort
+	// Set up a connection to the server.
+	conn, err := grpc.Dial(usersGRPCServerAddr,
+		grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		log.Fatalf("did not connect: %v", err)
+	}
+	defer conn.Close()
+	usersCl := users.NewUsersClient(conn)
+
+	udCl := delivery.NewUserDataClient(usersCl)
 
 	handler := delivery.NewChatEchoHandler(uc, udCl)
 
