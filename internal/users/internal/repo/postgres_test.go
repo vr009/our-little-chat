@@ -11,7 +11,7 @@ import (
 	"time"
 )
 
-func TestPersonRepo_CreateUser(t *testing.T) {
+func TestUserRepo_CreateUser(t *testing.T) {
 	type fields struct {
 		pool *sql.DB
 	}
@@ -80,7 +80,7 @@ func TestPersonRepo_CreateUser(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			pr := &PersonRepo{
+			pr := &UserRepo{
 				pool: tt.fields.pool,
 			}
 			tt.pre()
@@ -95,7 +95,7 @@ func TestPersonRepo_CreateUser(t *testing.T) {
 	}
 }
 
-func TestPersonRepo_DeleteUser(t *testing.T) {
+func TestUserRepo_DeleteUser(t *testing.T) {
 	type fields struct {
 		pool *sql.DB
 	}
@@ -146,18 +146,18 @@ func TestPersonRepo_DeleteUser(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			pr := &PersonRepo{
+			pr := &UserRepo{
 				pool: tt.fields.pool,
 			}
 			tt.pre()
-			if got := pr.DeleteUser(tt.args.person); got != tt.want {
+			if got := pr.DeactivateUser(tt.args.person); got != tt.want {
 				t.Errorf("DeleteUser() = %v, want %v", got, tt.want)
 			}
 		})
 	}
 }
 
-func TestPersonRepo_FindUser(t *testing.T) {
+func TestUserRepo_FindUser(t *testing.T) {
 	type fields struct {
 		pool *sql.DB
 	}
@@ -211,11 +211,11 @@ func TestPersonRepo_FindUser(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			pr := &PersonRepo{
+			pr := &UserRepo{
 				pool: tt.fields.pool,
 			}
 			tt.pre()
-			got, got1 := pr.FindUser(tt.args.name)
+			got, got1 := pr.FindUsers(tt.args.name)
 			if !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("FindUser() got = %v, want %v", got, tt.want)
 			}
@@ -226,66 +226,7 @@ func TestPersonRepo_FindUser(t *testing.T) {
 	}
 }
 
-func TestPersonRepo_GetAllUsers(t *testing.T) {
-	type fields struct {
-		pool *sql.DB
-	}
-
-	db, mock, err := sqlmock.New()
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer db.Close()
-
-	testUserID := uuid.New()
-
-	testPerson := models.User{
-		ID:       testUserID,
-		Nickname: "test",
-		Avatar:   "avatar.png",
-	}
-
-	columns := []string{
-		"user_id", "nickname", "avatar",
-	}
-
-	tests := []struct {
-		name   string
-		pre    func()
-		fields fields
-		want   []models.User
-		want1  models.StatusCode
-	}{
-		{
-			name: "",
-			pre: func() {
-				mock.ExpectQuery(regexp.QuoteMeta(ListQuery)).
-					WillReturnRows(sqlmock.NewRows(columns).
-						AddRow(testPerson.ID.String(), testPerson.Nickname, testPerson.Avatar))
-			},
-			fields: fields{pool: db},
-			want:   []models.User{testPerson},
-			want1:  models.OK,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			pr := &PersonRepo{
-				pool: tt.fields.pool,
-			}
-			tt.pre()
-			got, got1 := pr.GetAllUsers()
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("GetAllUsers() got = %v, want %v", got, tt.want)
-			}
-			if got1 != tt.want1 {
-				t.Errorf("GetAllUsers() got1 = %v, want %v", got1, tt.want1)
-			}
-		})
-	}
-}
-
-func TestPersonRepo_GetUser(t *testing.T) {
+func TestUserRepo_GetUser(t *testing.T) {
 	type fields struct {
 		pool *sql.DB
 	}
@@ -346,11 +287,11 @@ func TestPersonRepo_GetUser(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			pr := &PersonRepo{
+			pr := &UserRepo{
 				pool: tt.fields.pool,
 			}
 			tt.pre()
-			got, got1 := pr.GetUser(tt.args.person)
+			got, got1 := pr.GetUserForItsID(tt.args.person)
 			if !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("GetUser() got = %v, want %v", got, tt.want)
 			}
@@ -361,7 +302,7 @@ func TestPersonRepo_GetUser(t *testing.T) {
 	}
 }
 
-func TestPersonRepo_GetUserForItsName(t *testing.T) {
+func TestUserRepo_GetUserForItsNickname(t *testing.T) {
 	type fields struct {
 		pool *sql.DB
 	}
@@ -420,22 +361,22 @@ func TestPersonRepo_GetUserForItsName(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			pr := &PersonRepo{
+			pr := &UserRepo{
 				pool: tt.fields.pool,
 			}
 			tt.pre()
-			got, got1 := pr.GetUserForItsName(tt.args.person)
+			got, got1 := pr.GetUserForItsNickname(tt.args.person)
 			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("GetUserForItsName() got = %v, want %v", got, tt.want)
+				t.Errorf("GetUserForItsNickname() got = %v, want %v", got, tt.want)
 			}
 			if got1 != tt.want1 {
-				t.Errorf("GetUserForItsName() got1 = %v, want %v", got1, tt.want1)
+				t.Errorf("GetUserForItsNickname() got1 = %v, want %v", got1, tt.want1)
 			}
 		})
 	}
 }
 
-func TestPersonRepo_UpdateUser(t *testing.T) {
+func TestUserRepo_UpdateUser(t *testing.T) {
 	type fields struct {
 		pool *sql.DB
 	}
@@ -491,7 +432,7 @@ func TestPersonRepo_UpdateUser(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			pr := &PersonRepo{
+			pr := &UserRepo{
 				pool: tt.fields.pool,
 			}
 			tt.pre()

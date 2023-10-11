@@ -3,6 +3,7 @@ module our-little-chatik
 go 1.19
 
 require (
+	github.com/DATA-DOG/go-sqlmock v1.5.0
 	github.com/go-redis/redis v6.15.9+incompatible
 	github.com/go-redis/redismock/v9 v9.0.3
 	github.com/golang-jwt/jwt/v5 v5.0.0
@@ -15,12 +16,12 @@ require (
 	github.com/pashagolub/pgxmock/v2 v2.10.0
 	github.com/prometheus/common v0.26.0
 	github.com/redis/go-redis/v9 v9.0.5
+	go.uber.org/mock v0.3.0
 	golang.org/x/crypto v0.12.0
 	golang.org/x/exp v0.0.0-20230522175609-2e198f4a06a1
 )
 
 require (
-	github.com/DATA-DOG/go-sqlmock v1.5.0 // indirect
 	github.com/alecthomas/template v0.0.0-20190718012654-fb15b899a751 // indirect
 	github.com/alecthomas/units v0.0.0-20190924025748-f65c72e2690d // indirect
 	github.com/cespare/xxhash/v2 v2.2.0 // indirect

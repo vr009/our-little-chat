@@ -61,3 +61,11 @@ func InvalidCredentialsResponse(c echo.Context) error {
 	message := "invalid authentication credentials"
 	return ErrorResponse(c, http.StatusUnauthorized, message)
 }
+
+func UnauthorizedResponse(c echo.Context, err error) error {
+	return ErrorResponse(c, http.StatusUnauthorized, err.Error())
+}
+
+func ForbiddenResponse(c echo.Context, err error) error {
+	return ErrorResponse(c, http.StatusForbidden, err.Error())
+}

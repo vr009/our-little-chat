@@ -5,12 +5,12 @@ import (
 	"github.com/google/uuid"
 	"github.com/labstack/echo/v4"
 	"golang.org/x/exp/slog"
-	"log"
 	"net/http"
 	models2 "our-little-chatik/internal/models"
 	"our-little-chatik/internal/pkg"
 	"our-little-chatik/internal/pkg/validator"
-	"our-little-chatik/internal/user_data/internal"
+	"our-little-chatik/internal/users/internal"
+	"our-little-chatik/internal/users/internal/models"
 )
 
 type UserEchoHandler struct {
@@ -23,23 +23,10 @@ func NewUserEchoHandler(useCase internal.UserUsecase) *UserEchoHandler {
 	}
 }
 
-func (udh *UserEchoHandler) GetAllUsers(c echo.Context) error {
-	users, status := udh.useCase.GetAllUsers()
-	if status == models2.OK {
-		return c.JSON(http.StatusOK, &users)
-	}
-	return pkg.NotFoundResponse(c)
-}
-
 func (udh *UserEchoHandler) GetMe(c echo.Context) error {
 	userID := c.Get("user_id").(uuid.UUID)
-	user := models2.User{ID: userID}
-	log.Println("USER ME", userID.String())
 
-	person := models2.User{}
-	person.ID = user.ID
-
-	s, errCode := udh.useCase.GetUser(person)
+	me, errCode := udh.useCase.GetUser(models.GetUserRequest{UserID: userID})
 	if errCode != models2.OK {
 		switch errCode {
 		case models2.NotFound:
@@ -49,20 +36,17 @@ func (udh *UserEchoHandler) GetMe(c echo.Context) error {
 		}
 	}
 
-	return c.JSON(http.StatusOK, &s)
+	return c.JSON(http.StatusOK, &me)
 }
 
-func (udh *UserEchoHandler) GetUser(c echo.Context) error {
+func (udh *UserEchoHandler) GetUserForID(c echo.Context) error {
 	idStr := c.Param("id")
-	id, err := uuid.Parse(idStr)
+	userID, err := uuid.Parse(idStr)
 	if err != nil {
 		return pkg.BadRequestResponse(c, err)
 	}
 
-	person := models2.User{}
-	person.ID = id
-
-	foundPerson, errCode := udh.useCase.GetUser(person)
+	foundPerson, errCode := udh.useCase.GetUser(models.GetUserRequest{UserID: userID})
 	if errCode != models2.OK {
 		switch errCode {
 		case models2.NotFound:
@@ -74,25 +58,17 @@ func (udh *UserEchoHandler) GetUser(c echo.Context) error {
 	return c.JSON(http.StatusOK, &foundPerson)
 }
 
-func (udh *UserEchoHandler) DeleteUser(c echo.Context) error {
-	log.Println("DELETING")
-	idStr := c.Param("id")
-	v := validator.New()
-	v.Check(idStr != "", "id", "must be provided")
-	if !v.Valid() {
-		return pkg.FailedValidationResponse(c, v.Errors)
-	}
-
-	id, err := uuid.Parse(idStr)
-	if err != nil {
-		return pkg.BadRequestResponse(c, err)
+func (udh *UserEchoHandler) DeactivateUser(c echo.Context) error {
+	userID, ok := c.Get("user_id").(uuid.UUID)
+	if !ok {
+		return pkg.BadRequestResponse(c, fmt.Errorf("issuer info not provided"))
 	}
 
 	person := models2.User{
-		ID: id,
+		ID: userID,
 	}
 
-	errCode := udh.useCase.DeleteUser(person)
+	errCode := udh.useCase.DeactivateUser(person)
 	if errCode != models2.OK {
 		switch errCode {
 		case models2.NotFound:
@@ -105,37 +81,24 @@ func (udh *UserEchoHandler) DeleteUser(c echo.Context) error {
 }
 
 func (udh *UserEchoHandler) UpdateUser(c echo.Context) error {
-	var input struct {
-		Nickname string `json:"nickname,omitempty"`
-		Name     string `json:"name,omitempty"`
-		Surname  string `json:"surname,omitempty"`
-		Password string `json:"-"`
-	}
+	userID := c.Get("user_id").(uuid.UUID)
+	user := models2.User{ID: userID}
+
+	var input models.UpdateUserRequest
 	err := c.Bind(&input)
 	if err != nil {
 		slog.Error(err.Error())
-		return pkg.ServerErrorResponse(c, err)
-	}
-
-	person := &models2.User{
-		Name:      input.Name,
-		Nickname:  input.Nickname,
-		Surname:   input.Surname,
-		Activated: false,
-	}
-
-	err = person.Password.Set(input.Password)
-	if err != nil {
-		return pkg.ServerErrorResponse(c, err)
+		return pkg.BadRequestResponse(c, err)
 	}
 
 	v := validator.New()
-	validator.ValidateUserBySignUp(v, person)
+	models.ValidateUpdateUserRequest(v, input)
+
 	if !v.Valid() {
 		return pkg.FailedValidationResponse(c, v.Errors)
 	}
 
-	s, errCode := udh.useCase.UpdateUser(*person)
+	s, errCode := udh.useCase.UpdateUser(user, input)
 	if errCode != models2.OK {
 		switch errCode {
 		case models2.NotFound:
@@ -148,16 +111,16 @@ func (udh *UserEchoHandler) UpdateUser(c echo.Context) error {
 	return c.JSON(http.StatusOK, &s)
 }
 
-func (udh *UserEchoHandler) FindUser(c echo.Context) error {
-	name := c.QueryParam("name")
+func (udh *UserEchoHandler) SearchUsers(c echo.Context) error {
+	name := c.QueryParam("nickname")
 	v := validator.New()
-	v.Check(name != "", "name", "must be provided")
+	v.Check(name != "", "nickname", "must be provided")
 	if !v.Valid() {
 		return pkg.FailedValidationResponse(c, v.Errors)
 	}
 	slog.Info("Searching for " + name)
 
-	users, errCode := udh.useCase.FindUser(name)
+	users, errCode := udh.useCase.FindUsers(name)
 	if errCode != models2.OK {
 		switch errCode {
 		case models2.NotFound:
