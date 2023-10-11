@@ -8,10 +8,13 @@ import (
 	echojwt "github.com/labstack/echo-jwt/v4"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
+	"google.golang.org/grpc"
 	"log"
+	"net"
 	"os"
 	middleware2 "our-little-chatik/internal/middleware"
 	"our-little-chatik/internal/pkg"
+	"our-little-chatik/internal/pkg/proto/users"
 	"our-little-chatik/internal/users/internal/delivery"
 	"our-little-chatik/internal/users/internal/repo"
 	"our-little-chatik/internal/users/internal/usecase"
@@ -116,10 +119,12 @@ func run() error {
 	db.SetMaxIdleConns(dbCfg.maxIdleConns)
 	db.SetMaxOpenConns(dbCfg.maxOpenConns)
 
-	UserRepo := repo.NewUserRepo(db)
-	useCase := usecase.NewUserUsecase(UserRepo)
+	userRepo := repo.NewUserRepo(db)
+	useCase := usecase.NewUserUsecase(userRepo)
 	userDataHandler := delivery.NewUserEchoHandler(useCase)
 	authHandler := delivery.NewAuthEchoHandler(useCase)
+
+	grpcHandler := delivery.NewUserGRPCHandler(useCase)
 
 	e := echo.New()
 	// Middleware
@@ -165,6 +170,25 @@ func run() error {
 	// Log out method.
 	authRouter.DELETE("/logout", authHandler.Logout,
 		echojwt.WithConfig(config), middleware2.Auth)
+
+	go func() {
+		//TODO graceful shutdown + intercepting signals
+		usersGRPCPort := os.Getenv("GRPC_USERS_SERVER_PORT")
+		if usersGRPCPort == "" {
+			panic("no variable GRPC_USERS_SERVER_PORT passed")
+		}
+
+		lis, err := net.Listen("tcp", usersGRPCPort)
+		if err != nil {
+			log.Fatalf("failed to listen: %v", err)
+		}
+		s := grpc.NewServer()
+		users.RegisterUsersServer(s, grpcHandler)
+		log.Printf("grpc server listening at %v", lis.Addr())
+		if err := s.Serve(lis); err != nil {
+			log.Fatalf("failed to serve: %v", err)
+		}
+	}()
 
 	e.Logger.Fatal(e.Start(":" + appConfig.Port))
 	return nil

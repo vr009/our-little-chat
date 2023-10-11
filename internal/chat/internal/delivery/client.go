@@ -1,37 +1,36 @@
 package delivery
 
 import (
-	"encoding/json"
-	"net/http"
-	"os"
+	"context"
+	"github.com/google/uuid"
 	"our-little-chatik/internal/models"
+	"our-little-chatik/internal/pkg/proto/users"
 )
 
 type UserDataClient struct {
-	cl      http.Client
-	baseURl string
+	cl users.UsersClient
 }
 
-const getUserPath = "/api/v1/admin/user"
-
-func NewUserDataClient(cl http.Client, baseURl string) *UserDataClient {
+func NewUserDataClient(cl users.UsersClient) *UserDataClient {
 	return &UserDataClient{
-		cl:      cl,
-		baseURl: baseURl,
+		cl: cl,
 	}
 }
 
-func (cl UserDataClient) GetUser(user models.User) (models.User, error) {
-	req, err := http.NewRequest("GET",
-		cl.baseURl+getUserPath+"?id="+user.ID.String(), nil)
-	req.SetBasicAuth(os.Getenv("ADMIN_USER"), os.Getenv("ADMIN_PASSWORD"))
-
-	resp, err := cl.cl.Do(req)
+func (c UserDataClient) GetUser(user models.User) (models.User, error) {
+	resp, err := c.cl.GetUser(context.Background(),
+		&users.GetUserRequest{UserID: user.ID.String()})
 	if err != nil {
 		return models.User{}, err
 	}
-
-	err = json.NewDecoder(resp.Body).Decode(&user)
+	user = models.User{
+		Name:      resp.Name,
+		Nickname:  resp.Nickname,
+		Surname:   resp.Surname,
+		Avatar:    resp.Avatar,
+		Activated: resp.Activated,
+	}
+	user.ID, err = uuid.Parse(resp.UserID)
 	if err != nil {
 		return models.User{}, err
 	}

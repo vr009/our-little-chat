@@ -50,3 +50,9 @@ mocks: internal/users/internal/interfaces.go
 	@echo "Generating mocks..."
 	@rm -rf $(MOCKS_DESTINATION)
 	@for file in $^; do mockgen -source=$$file -destination=$(MOCKS_DESTINATION)/$${file#*/}; done
+
+.PHONY: proto
+proto:
+	protoc --go_out=. --go_opt=paths=source_relative \
+    	--go-grpc_out=. --go-grpc_opt=paths=source_relative \
+    	users.proto
