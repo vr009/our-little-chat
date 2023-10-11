@@ -4,8 +4,6 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
 	"github.com/labstack/echo/v4"
-	"net/http"
-	"our-little-chatik/internal/models"
 	"our-little-chatik/internal/pkg"
 )
 
@@ -17,7 +15,7 @@ func Auth(next echo.HandlerFunc) echo.HandlerFunc {
 		userIDStr := claims.UserID
 		userID, err := uuid.Parse(userIDStr)
 		if err != nil {
-			return c.JSON(http.StatusForbidden, models.Error{Msg: "bad token"})
+			return pkg.UnauthorizedResponse(c, err)
 		}
 
 		c.Set("user_id", userID)

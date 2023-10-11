@@ -10,6 +10,8 @@ const (
 	InternalError
 	Deleted
 	Conflict
+	Unauthorized
+	InActivated
 )
 
 type Error struct {

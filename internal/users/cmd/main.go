@@ -12,9 +12,9 @@ import (
 	"os"
 	middleware2 "our-little-chatik/internal/middleware"
 	"our-little-chatik/internal/pkg"
-	"our-little-chatik/internal/user_data/internal/delivery"
-	"our-little-chatik/internal/user_data/internal/repo"
-	"our-little-chatik/internal/user_data/internal/usecase"
+	"our-little-chatik/internal/users/internal/delivery"
+	"our-little-chatik/internal/users/internal/repo"
+	"our-little-chatik/internal/users/internal/usecase"
 	"strconv"
 	"time"
 
@@ -39,7 +39,7 @@ var (
 	defaultMaxIdleTime  = time.Minute * 10
 )
 
-func getConnectionString() *dbConfig {
+func lookUpDatabaseConfig() *dbConfig {
 	dbCfg := &dbConfig{}
 	key, ok := os.LookupEnv("DATABASE_URL")
 	if !ok {
@@ -95,7 +95,7 @@ func run() error {
 	}
 	appConfig.Port = port
 
-	dbCfg := getConnectionString()
+	dbCfg := lookUpDatabaseConfig()
 
 	slog.SetDefault(slog.New(slog.NewTextHandler(os.Stderr, nil)))
 
@@ -116,8 +116,8 @@ func run() error {
 	db.SetMaxIdleConns(dbCfg.maxIdleConns)
 	db.SetMaxOpenConns(dbCfg.maxOpenConns)
 
-	personRepo := repo.NewPersonRepo(db)
-	useCase := usecase.NewUserUsecase(personRepo)
+	UserRepo := repo.NewUserRepo(db)
+	useCase := usecase.NewUserUsecase(UserRepo)
 	userDataHandler := delivery.NewUserEchoHandler(useCase)
 	authHandler := delivery.NewAuthEchoHandler(useCase)
 
@@ -144,24 +144,25 @@ func run() error {
 	// Restricted group
 	authRouter := e.Group("/api/v1/auth")
 	commonRouter := e.Group("/api/v1/user", echojwt.WithConfig(config), middleware2.Auth)
-	adminRouter := e.Group("/api/v1/admin")
-
-	// Admin CRUD API
-	adminRouter.PATCH("/user", userDataHandler.UpdateUser, middleware2.AdminAuth)
-	adminRouter.DELETE("/user", userDataHandler.DeleteUser, middleware2.AdminAuth)
-	adminRouter.GET("/user", userDataHandler.GetUser, middleware2.AdminAuth)
 
 	// Common API
-	commonRouter.GET("/all", userDataHandler.GetAllUsers)
+	// Get info about the user which calls the method.
 	commonRouter.GET("/me", userDataHandler.GetMe)
-	commonRouter.GET("/search", userDataHandler.FindUser)
-	commonRouter.DELETE("/:id/info", userDataHandler.DeleteUser)
-	commonRouter.PATCH("/info", userDataHandler.UpdateUser)
-	commonRouter.GET("/:id/info", userDataHandler.GetUser)
+	// Deactivate user account which calls the method.
+	commonRouter.DELETE("/me", userDataHandler.DeactivateUser)
+	// Update user account which calls the method.
+	commonRouter.PATCH("/me", userDataHandler.UpdateUser)
+	// Search for users using nicknames.
+	commonRouter.GET("/search", userDataHandler.SearchUsers)
+	// Get user for its ID.
+	commonRouter.GET("/:id", userDataHandler.GetUserForID)
 
 	// Auth API
+	// Sign up method.
 	authRouter.POST("/signup", authHandler.SignUp)
+	// Log in method.
 	authRouter.POST("/login", authHandler.Login)
+	// Log out method.
 	authRouter.DELETE("/logout", authHandler.Logout,
 		echojwt.WithConfig(config), middleware2.Auth)
 
