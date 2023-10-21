@@ -4,13 +4,13 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/go-redis/redis"
+	"github.com/redis/go-redis/v9"
 	"golang.org/x/exp/slog"
 	"log"
 	"os"
 	"our-little-chatik/internal/flusher/internal/delivery"
 	"our-little-chatik/internal/flusher/internal/repo"
-	"strconv"
+	"time"
 
 	"github.com/jackc/pgx/v5"
 )
@@ -32,7 +32,7 @@ type AppConfig struct {
 	Port   string
 	DB     PostgresConfig
 	Redis  PeerDBConfig
-	Period int
+	Period time.Duration
 }
 
 func GetConnectionString() (string, error) {
@@ -65,7 +65,7 @@ func main() {
 		panic("empty flusher period")
 	}
 
-	period, err := strconv.Atoi(flusherPeriod)
+	period, err := time.ParseDuration(flusherPeriod)
 	if err != nil {
 		panic(err.Error())
 	}
