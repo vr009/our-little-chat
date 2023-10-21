@@ -2,9 +2,7 @@ version: '3.9'
 
 services:
   flusher:
-    build:
-      context: .
-      dockerfile: deployments/flusher.Dockerfile
+    image: vr0009/our-little-chat:flusher
     command: ./flusher-service
     environment:
       FLUSHER_PERIOD: "60"
@@ -20,9 +18,7 @@ services:
       - db-chat
 
   chat:
-    build:
-      context: .
-      dockerfile: deployments/chat.Dockerfile
+    image: vr0009/our-little-chat:chat
     command: ./chat-service
     environment:
       DATABASE_URL: "user=service password=${PG_CHAT_PASSWORD} host=db-chat port=5432 dbname=chats"
@@ -44,9 +40,7 @@ services:
       - db-chat
 
   peer:
-    build:
-      context: .
-      dockerfile: deployments/peer.Dockerfile
+    image: vr0009/our-little-chat:peer
     command: ./peer-service
     environment:
       REDIS_PORT: "6379"
@@ -59,9 +53,7 @@ services:
       - db-peer
 
   call:
-    build:
-      context: .
-      dockerfile: deployments/call.Dockerfile
+    image: vr0009/our-little-chat:call
     command: ./call-service
     environment:
       CALL_PORT: "8090"
@@ -69,9 +61,7 @@ services:
       - 8090:8090
 
   user-data:
-    build:
-      context: .
-      dockerfile: deployments/users.Dockerfile
+    image: vr0009/our-little-chat:users
     environment:
       USER_DATA_PORT: "8086"
       JWT_SIGNED_KEY: "${JWT_SECRET}"
