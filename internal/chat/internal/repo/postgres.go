@@ -2,16 +2,12 @@ package repo
 
 import (
 	"context"
+	"database/sql"
 	"github.com/google/uuid"
+	"golang.org/x/exp/slog"
 	"log"
-	"our-little-chatik/internal/chat/internal"
-	models2 "our-little-chatik/internal/chat/internal/models"
 	"our-little-chatik/internal/models"
 	"sort"
-	"time"
-
-	"github.com/jackc/pgx/v5"
-	"golang.org/x/exp/slog"
 )
 
 const (
@@ -31,26 +27,25 @@ const (
 )
 
 type PostgresRepo struct {
-	pool internal.DB
+	pool *sql.DB
 }
 
-func NewPostgresRepo(pool internal.DB) *PostgresRepo {
+func NewPostgresRepo(pool *sql.DB) *PostgresRepo {
 	return &PostgresRepo{pool: pool}
 }
 
 // GetChat
-func (pr PostgresRepo) GetChat(chat models.Chat) (models.Chat, error) {
-	ctx := context.Background()
-	row := pr.pool.QueryRow(ctx, GetChatInfoQuery, chat.ChatID)
+func (pr PostgresRepo) GetChat(ctx context.Context, chat models.Chat) (models.Chat, models.StatusCode) {
+	row := pr.pool.QueryRowContext(ctx, GetChatInfoQuery, chat.ChatID)
 	err := row.Scan(&chat.ChatID, &chat.Name, &chat.PhotoURL, &chat.CreatedAt)
 	if err != nil {
 		log.Println("err here get", err.Error())
-		return models.Chat{}, err
+		return models.Chat{}, models.NotFound
 	}
-	rows, err := pr.pool.Query(ctx, GetChatParticipantsQuery, chat.ChatID)
+	rows, err := pr.pool.QueryContext(ctx, GetChatParticipantsQuery, chat.ChatID)
 	if err != nil {
 		log.Println("err here get 2", err.Error())
-		return models.Chat{}, err
+		return models.Chat{}, models.InternalError
 	}
 	for rows.Next() {
 		var participantID uuid.UUID
@@ -60,15 +55,14 @@ func (pr PostgresRepo) GetChat(chat models.Chat) (models.Chat, error) {
 		}
 		chat.Participants = append(chat.Participants, participantID)
 	}
-	return chat, nil
+	return chat, models.OK
 }
 
 // GetChatMessages
-func (pr PostgresRepo) GetChatMessages(chat models.Chat, opts models.Opts) (models.Messages, error) {
-	ctx := context.Background()
-	rows, err := pr.pool.Query(ctx, GetChatMessagesQuery, chat.ChatID, opts.Page, opts.Limit)
+func (pr PostgresRepo) GetChatMessages(ctx context.Context, chat models.Chat, opts models.Opts) (models.Messages, models.StatusCode) {
+	rows, err := pr.pool.QueryContext(ctx, GetChatMessagesQuery, chat.ChatID, opts.Page, opts.Limit)
 	if err != nil {
-		return nil, err
+		return nil, models.NotFound
 	}
 
 	msgs := make(models.Messages, 0)
@@ -76,21 +70,20 @@ func (pr PostgresRepo) GetChatMessages(chat models.Chat, opts models.Opts) (mode
 		msg := models.Message{}
 		err := rows.Scan(&msg.MsgID, &msg.SenderID, &msg.Payload, &msg.CreatedAt)
 		if err != nil {
-			return nil, err
+			return nil, models.InternalError
 		}
 		msg.ChatID = chat.ChatID
 		msgs = append(msgs, msg)
 	}
 	sort.Sort(msgs)
-	return msgs, nil
+	return msgs, models.OK
 }
 
 // FetchChatList
-func (pr PostgresRepo) FetchChatList(user models.User) ([]models.ChatItem, error) {
-	ctx := context.Background()
-	rows, err := pr.pool.Query(ctx, FetchChatListQuery, user.ID)
+func (pr PostgresRepo) FetchChatList(ctx context.Context, user models.User) ([]models.ChatItem, models.StatusCode) {
+	rows, err := pr.pool.QueryContext(ctx, FetchChatListQuery, user.ID)
 	if err != nil {
-		return nil, err
+		return nil, models.NotFound
 	}
 
 	chatList := make([]models.ChatItem, 0)
@@ -98,127 +91,151 @@ func (pr PostgresRepo) FetchChatList(user models.User) ([]models.ChatItem, error
 		chat := models.ChatItem{}
 		err := rows.Scan(&chat.ChatID, &chat.Name, &chat.PhotoURL)
 		if err != nil {
-			return nil, err
+			return nil, models.InternalError
 		}
 
 		chatList = append(chatList, chat)
 	}
 
-	log.Println("====== list from repo", chatList)
-
-	return chatList, nil
+	return chatList, models.OK
 }
 
 // CreateChat
-func (pr PostgresRepo) CreateChat(chat models.Chat,
-	chatNames map[string]string) error {
-	ctx := context.Background()
-	tx, err := pr.pool.Begin(ctx)
+func (pr PostgresRepo) CreateChat(ctx context.Context, chat models.Chat,
+	chatNames map[string]string) models.StatusCode {
+	tx, err := pr.pool.Begin()
 	if err != nil {
-		return err
+		return models.InternalError
 	}
 
-	batch := &pgx.Batch{}
 	for _, participant := range chat.Participants {
-		batch.Queue(CreateChatParticipantsQuery, chat.ChatID, participant,
+		_, err := pr.pool.ExecContext(ctx, CreateChatParticipantsQuery, chat.ChatID, participant,
 			chatNames[participant.String()])
-	}
-
-	batch.Queue(CreateChatQuery, chat.ChatID, chat.PhotoURL, chat.CreatedAt)
-
-	results := pr.pool.SendBatch(ctx, batch)
-	defer results.Close()
-	for _, participant := range chat.Participants {
-		_, err := results.Exec()
 		if err != nil {
 			slog.Error("Failed to add a chat user-1", "user", participant.String())
 			log.Println("err here pg", err.Error())
-			txErr := tx.Rollback(ctx)
-			if err != nil {
+			txErr := tx.Rollback()
+			if txErr != nil {
 				slog.Error(txErr.Error())
 			}
-			return err
+			return models.InternalError
 		}
 	}
-	_, err = results.Exec()
+
+	res, err := pr.pool.ExecContext(ctx, CreateChatQuery, chat.ChatID, chat.PhotoURL, chat.CreatedAt)
 	if err != nil {
-		slog.Error("Failed to add a chat")
-		txErr := tx.Rollback(ctx)
-		if err != nil {
+		txErr := tx.Rollback()
+		if txErr != nil {
 			slog.Error(txErr.Error())
 		}
-		return err
+		return models.InternalError
+	}
+	if val, err := res.RowsAffected(); err != nil || val == 0 {
+		txErr := tx.Rollback()
+		if txErr != nil {
+			slog.Error(txErr.Error())
+		}
+		return models.InternalError
 	}
 
-	txErr := tx.Commit(ctx)
-	if err != nil {
-		slog.Error(txErr.Error())
+	txErr := tx.Commit()
+	if txErr != nil {
+		return models.InternalError
 	}
-	return nil
+	return models.OK
 }
 
-// UpdateChat
-func (pr PostgresRepo) UpdateChat(chat models.Chat, updateOpts models2.UpdateOptions) error {
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
-	defer cancel()
-	switch updateOpts.Action {
-	case models2.UpdatePhotoURL:
-		_, err := pr.pool.Exec(ctx, UpdatePhotoURLQuery, chat.PhotoURL, chat.ChatID)
-		if err != nil {
-			return err
-		}
-	case models2.AddUsersToParticipants:
-		if len(chat.Participants) > 0 {
-			batch := &pgx.Batch{}
-			for _, participant := range chat.Participants {
-				batch.Queue(CreateChatParticipantsQuery, chat.ChatID, participant)
-			}
-			results := pr.pool.SendBatch(ctx, batch)
-			defer results.Close()
-			for _, participant := range chat.Participants {
-				_, err := results.Exec()
-				if err != nil {
-					slog.Error("Failed to add a chat user", "user", participant.String())
-					return err
+func (pr PostgresRepo) UpdateChatPhotoURL(ctx context.Context, chat models.Chat,
+	photoURL string) models.StatusCode {
+	res, err := pr.pool.ExecContext(ctx, UpdatePhotoURLQuery, photoURL, chat.ChatID)
+	if err != nil {
+		return models.InternalError
+	}
+	if affected, err := res.RowsAffected(); err != nil || affected == 0 {
+		return models.InternalError
+	}
+	return models.OK
+}
+
+func (pr PostgresRepo) AddUsersToChat(ctx context.Context,
+	chat models.Chat, chatNames map[string]string, users ...models.User) models.StatusCode {
+	tx, err := pr.pool.Begin()
+	if err != nil {
+		return models.InternalError
+	}
+	if len(chat.Participants) > 0 {
+		for _, user := range users {
+			res, err := tx.ExecContext(ctx, CreateChatParticipantsQuery,
+				chat.ChatID, user.ID, chatNames[user.ID.String()])
+			if err != nil {
+				slog.Error("Failed to add a chat user", "user", user.ID.String())
+				txErr := tx.Rollback()
+				if txErr != nil {
+					slog.Error(txErr.Error())
 				}
+				return models.InternalError
 			}
-		}
-	case models2.RemoveUsersFromParticipants:
-		if len(chat.Participants) > 0 {
-			batch := &pgx.Batch{}
-			for _, participant := range chat.Participants {
-				batch.Queue(RemoveUserFromChatQuery, chat.ChatID, participant)
-			}
-			results := pr.pool.SendBatch(ctx, batch)
-			defer results.Close()
-			for _, participant := range chat.Participants {
-				_, err := results.Exec()
-				if err != nil {
-					slog.Error("Failed to remove a chat user", "user", participant.String())
-					return err
+			if affected, err := res.RowsAffected(); err != nil || affected == 0 {
+				txErr := tx.Rollback()
+				if txErr != nil {
+					slog.Error(txErr.Error())
 				}
+				return models.InternalError
 			}
 		}
 	}
-	return nil
+	txErr := tx.Commit()
+	if txErr != nil {
+		return models.InternalError
+	}
+	return models.OK
 }
 
-func (pr PostgresRepo) DeleteChat(chat models.Chat) error {
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
-	defer cancel()
-	_, err := pr.pool.Exec(ctx, DeleteChatQuery, chat.ChatID)
+func (pr PostgresRepo) RemoveUserFromChat(ctx context.Context,
+	chat models.Chat, users ...models.User) models.StatusCode {
+	tx, err := pr.pool.Begin()
 	if err != nil {
-		return err
+		return models.InternalError
 	}
-	return err
+	if len(users) > 0 {
+		for _, participant := range users {
+			res, err := tx.ExecContext(ctx, RemoveUserFromChatQuery, participant.ID, chat.ChatID)
+			if err != nil {
+				slog.Error("Failed to remove a chat user", "user", participant.ID.String())
+				txErr := tx.Rollback()
+				if txErr != nil {
+					slog.Error(txErr.Error())
+				}
+				return models.InternalError
+			}
+			if affected, err := res.RowsAffected(); err != nil || affected == 0 {
+				txErr := tx.Rollback()
+				if txErr != nil {
+					slog.Error(txErr.Error())
+				}
+				return models.InternalError
+			}
+		}
+	}
+	txErr := tx.Commit()
+	if txErr != nil {
+		return models.InternalError
+	}
+	return models.OK
 }
 
-func (pr PostgresRepo) DeleteMessage(message models.Message) error {
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
-	defer cancel()
-	_, err := pr.pool.Exec(ctx, DeleteMessageQuery, message.MsgID)
+func (pr PostgresRepo) DeleteChat(ctx context.Context, chat models.Chat) models.StatusCode {
+	_, err := pr.pool.ExecContext(ctx, DeleteChatQuery, chat.ChatID)
 	if err != nil {
-		return err
+		return models.InternalError
 	}
-	return err
+	return models.Deleted
+}
+
+func (pr PostgresRepo) DeleteMessage(ctx context.Context, message models.Message) models.StatusCode {
+	_, err := pr.pool.ExecContext(ctx, DeleteMessageQuery, message.MsgID)
+	if err != nil {
+		return models.InternalError
+	}
+	return models.Deleted
 }

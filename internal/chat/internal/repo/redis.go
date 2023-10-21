@@ -20,15 +20,15 @@ func NewRedisRepo(cl *redis.Client) *RedisRepo {
 }
 
 func (r RedisRepo) GetChatMessages(chat models.Chat,
-	opts models.Opts) (models.Messages, error) {
+	opts models.Opts) (models.Messages, models.StatusCode) {
 	keys, err := r.cl.Keys(context.Background(), chat.ChatID.String()+"*").Result()
 	if err != nil {
-		return nil, err
+		return nil, models.NotFound
 	}
 	msgList := make(models.Messages, 0)
 	values, err := r.cl.MGet(context.Background(), keys...).Result()
 	if err != nil {
-		return nil, err
+		return nil, models.NotFound
 	}
 
 	for _, val := range values {
@@ -50,8 +50,8 @@ func (r RedisRepo) GetChatMessages(chat models.Chat,
 		lastElemIdx = len(msgList)
 	}
 	if len(msgList) <= firstElemIdx {
-		return models.Messages{}, nil
+		return models.Messages{}, models.NotFound
 	} else {
-		return msgList[firstElemIdx:lastElemIdx], nil
+		return msgList[firstElemIdx:lastElemIdx], models.OK
 	}
 }

@@ -47,11 +47,11 @@ func TestRedisRepo_GetChatMessages(t *testing.T) {
 	mock.ExpectMGet(key).SetVal([]interface{}{string(bData)})
 
 	tests := []struct {
-		name    string
-		fields  fields
-		args    args
-		want    models.Messages
-		wantErr bool
+		name   string
+		fields fields
+		args   args
+		want   models.Messages
+		status models.StatusCode
 	}{
 		{
 			name: "",
@@ -61,8 +61,8 @@ func TestRedisRepo_GetChatMessages(t *testing.T) {
 			args: args{
 				chat: testChat,
 			},
-			want:    models.Messages{testMsg},
-			wantErr: false,
+			want:   models.Messages{testMsg},
+			status: models.OK,
 		},
 	}
 	for _, tt := range tests {
@@ -70,9 +70,9 @@ func TestRedisRepo_GetChatMessages(t *testing.T) {
 			r := RedisRepo{
 				cl: tt.fields.cl,
 			}
-			got, err := r.GetChatMessages(tt.args.chat, models.Opts{Limit: 10, Page: 0})
-			if (err != nil) != tt.wantErr {
-				t.Errorf("GetChatMessages() error = %v, wantErr %v", err, tt.wantErr)
+			got, status := r.GetChatMessages(tt.args.chat, models.Opts{Limit: 10, Page: 0})
+			if status != tt.status {
+				t.Errorf("GetChatMessages() error = %v, wantErr %v", status, tt.status)
 				return
 			}
 			if !reflect.DeepEqual(got, tt.want) {
