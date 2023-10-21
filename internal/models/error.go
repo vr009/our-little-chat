@@ -13,7 +13,3 @@ const (
 	Unauthorized
 	InActivated
 )
-
-type Error struct {
-	Msg string `json:"message"`
-}

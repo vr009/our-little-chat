@@ -24,6 +24,18 @@ func NewAuthEchoHandler(useCase internal.UserUsecase) *AuthEchoHandler {
 	}
 }
 
+// SignUp godoc
+// @Summary Sign up a user.
+// @Description sign up a user.
+// @Accept json
+// @Produce json
+// @Tags auth
+// @Param request body models.SignUpPersonRequest true "sign up user request"
+// @Success 303
+// @Failure 401 {object} models.HttpResponse
+// @Failure 422 {object} models.HttpResponse
+// @Failure 500 {object} models.HttpResponse
+// @Router /users/signup [post]
 func (h *AuthEchoHandler) SignUp(c echo.Context) error {
 	input := models2.SignUpPersonRequest{}
 	err := c.Bind(&input)
@@ -58,6 +70,18 @@ func (h *AuthEchoHandler) SignUp(c echo.Context) error {
 	return c.Redirect(http.StatusSeeOther, "/")
 }
 
+// Login godoc
+// @Summary log in a user.
+// @Description log in a user.
+// @Accept json
+// @Produce json
+// @Tags auth
+// @Param request body models.LoginRequest true "log in request"
+// @Success 303
+// @Failure 401 {object} models.HttpResponse
+// @Failure 422 {object} models.HttpResponse
+// @Failure 500 {object} models.HttpResponse
+// @Router /users/login [post]
 func (h *AuthEchoHandler) Login(c echo.Context) error {
 	input := models2.LoginRequest{}
 	err := c.Bind(&input)
@@ -91,6 +115,17 @@ func (h *AuthEchoHandler) Login(c echo.Context) error {
 	return c.Redirect(http.StatusSeeOther, "/")
 }
 
+// Logout godoc
+// @Summary Log out a user.
+// @Description log out a user.
+// @Accept json
+// @Produce json
+// @Tags auth
+// @Success 303
+// @Failure 401 {object} models.HttpResponse
+// @Failure 422 {object} models.HttpResponse
+// @Failure 500 {object} models.HttpResponse
+// @Router /users/logout [post]
 func (h *AuthEchoHandler) Logout(c echo.Context) error {
 	userID := c.Get("user_id").(uuid.UUID)
 	user := models.User{ID: userID}

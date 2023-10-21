@@ -18,9 +18,9 @@ func logError(err error) {
 // type for the message parameter, rather than just a string type, as this gives us
 // more flexibility over the values that we can include in the response.
 func ErrorResponse(c echo.Context, status int, message interface{}) error {
-	env := models.Envelope{"error": message}
+	env := models.EnvelopIntoHttpResponse(message, "description", status)
 	// Write the response using the writeJSON() helper. If this happens to return an // error then log it, and fall back to sending the client an empty response with a // 500 Internal Server Error status code.
-	err := c.JSON(status, env)
+	err := c.JSON(status, &env)
 	if err != nil {
 		logError(c.NoContent(http.StatusInternalServerError))
 	}

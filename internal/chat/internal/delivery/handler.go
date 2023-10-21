@@ -25,6 +25,17 @@ func NewChatEchoHandler(usecase internal.ChatUseCase) *ChatEchoHandler {
 	}
 }
 
+// GetChat godoc
+// @Summary Get chat for its id.
+// @Description get chat for its id.
+// @Param id path int true "Chat ID"
+// @Produce json
+// @Tags chat
+// @Success 200 {object} models.HttpResponse
+// @Failure 404 {object} models.HttpResponse
+// @Failure 422 {object} models.HttpResponse
+// @Failure 500 {object} models.HttpResponse
+// @Router /chat/{id} [get]
 func (ch *ChatEchoHandler) GetChat(c echo.Context) error {
 	var err error
 	defer func() {
@@ -54,9 +65,23 @@ func (ch *ChatEchoHandler) GetChat(c echo.Context) error {
 		return pkg.ErrorResponse(c, http.StatusBadRequest, err.Error())
 	}
 
-	return c.JSON(http.StatusOK, &chat)
+	response := models.EnvelopIntoHttpResponse(chat, "chat", http.StatusOK)
+	return c.JSON(http.StatusOK, &response)
 }
 
+// GetChatMessages godoc
+// @Summary Get chat messages.
+// @Description get chat messages.
+// @Param id path int true "Chat ID"
+// @Param offset query int false "offset"
+// @Param limit query int false "limit"
+// @Produce json
+// @Tags chat
+// @Success 200 {object} models.HttpResponse
+// @Failure 404 {object} models.HttpResponse
+// @Failure 422 {object} models.HttpResponse
+// @Failure 500 {object} models.HttpResponse
+// @Router /chat/{id}/messages [get]
 func (ch *ChatEchoHandler) GetChatMessages(c echo.Context) error {
 	var err error
 	defer func() {
@@ -99,12 +124,27 @@ func (ch *ChatEchoHandler) GetChatMessages(c echo.Context) error {
 	chat := models.Chat{ChatID: chatID}
 	msgs, status := ch.usecase.GetChatMessages(ctx, chat, opts)
 	if status != models.OK {
-		return pkg.ErrorResponse(c, http.StatusInternalServerError, "internal issue")
+		switch status {
+		case models.NotFound:
+			return pkg.NotFoundResponse(c)
+		default:
+			return pkg.ErrorResponse(c, http.StatusInternalServerError, "internal issue")
+		}
 	}
 
-	return c.JSON(http.StatusOK, &msgs)
+	response := models.EnvelopIntoHttpResponse(msgs, "message_list", http.StatusOK)
+	return c.JSON(http.StatusOK, &response)
 }
 
+// GetChatList godoc
+// @Summary Get chat list of the user.
+// @Description get chat list of the user.
+// @Produce json
+// @Tags chat
+// @Success 200 {object} models.HttpResponse
+// @Failure 404 {object} models.HttpResponse
+// @Failure 500 {object} models.HttpResponse
+// @Router /chat/list [get]
 func (ch *ChatEchoHandler) GetChatList(c echo.Context) error {
 	var err error
 	defer func() {
@@ -121,12 +161,29 @@ func (ch *ChatEchoHandler) GetChatList(c echo.Context) error {
 
 	chats, status := ch.usecase.GetChatList(ctx, user)
 	if status != models.OK {
-		return pkg.ErrorResponse(c, http.StatusInternalServerError, err.Error())
+		switch status {
+		case models.NotFound:
+			return pkg.NotFoundResponse(c)
+		default:
+			return pkg.ErrorResponse(c, http.StatusInternalServerError, err.Error())
+		}
 	}
 
-	return c.JSON(http.StatusOK, &chats)
+	response := models.EnvelopIntoHttpResponse(chats, "chat_list", http.StatusOK)
+	return c.JSON(http.StatusOK, &response)
 }
 
+// PostNewChat godoc
+// @Summary Show the status of server.
+// @Description get the status of server.
+// @Accept json
+// @Produce json
+// @Tags chat
+// @Param request body models.CreateChatRequest true "create chat request"
+// @Success 200 {object} models.HttpResponse
+// @Failure 409 {object} models.HttpResponse
+// @Failure 500 {object} models.HttpResponse
+// @Router /chat/new [post]
 func (ch *ChatEchoHandler) PostNewChat(c echo.Context) error {
 	var err error
 	defer func() {
@@ -153,12 +210,29 @@ func (ch *ChatEchoHandler) PostNewChat(c echo.Context) error {
 	input.IssuerID = userID
 	createdChat, status := ch.usecase.CreateChat(ctx, input)
 	if status != models.OK {
-		return pkg.ErrorResponse(c, http.StatusInternalServerError, err.Error())
+		switch status {
+		case models.Conflict:
+			return pkg.ErrorResponse(c, http.StatusConflict, err.Error())
+		default:
+			return pkg.ErrorResponse(c, http.StatusInternalServerError, err.Error())
+		}
 	}
 
-	return c.JSON(http.StatusCreated, &createdChat)
+	response := models.EnvelopIntoHttpResponse(createdChat, "created_chat", http.StatusCreated)
+	return c.JSON(http.StatusCreated, &response)
 }
 
+// AddUsersToChat godoc
+// @Summary Show the status of server.
+// @Description get the status of server.
+// @Accept json
+// @Produce json
+// @Tags chat
+// @Param request body models.AddUsersToChatRequest true "add users to chat request"
+// @Success 200 {object} models.HttpResponse
+// @Failure 422 {object} models.HttpResponse
+// @Failure 500 {object} models.HttpResponse
+// @Router /chat/users [post]
 func (ch *ChatEchoHandler) AddUsersToChat(c echo.Context) error {
 	var err error
 	defer func() {
@@ -193,10 +267,15 @@ func (ch *ChatEchoHandler) AddUsersToChat(c echo.Context) error {
 
 	status := ch.usecase.AddUsersToChat(ctx, chat, users...)
 	if status != models.OK {
-		return pkg.ErrorResponse(c, http.StatusBadRequest, "Failed to add users")
+		switch status {
+		case models.NotFound:
+			return pkg.NotFoundResponse(c)
+		default:
+			return pkg.ErrorResponse(c, http.StatusBadRequest, "Failed to add users")
+		}
 	}
 
-	return c.JSON(http.StatusOK, models.Error{Msg: "OK"})
+	return c.JSON(http.StatusOK, &models.HttpResponse{Message: "OK"})
 }
 
 func (ch *ChatEchoHandler) RemoveUsersFromChat(c echo.Context) error {
@@ -236,9 +315,20 @@ func (ch *ChatEchoHandler) RemoveUsersFromChat(c echo.Context) error {
 		return pkg.ErrorResponse(c, http.StatusBadRequest, "Failed to add users")
 	}
 
-	return c.JSON(http.StatusOK, models.Error{Msg: "OK"})
+	return c.JSON(http.StatusOK, &models.HttpResponse{Message: "OK"})
 }
 
+// ChangeChatPhoto godoc
+// @Summary Change chat photo.
+// @Description change chat photo.
+// @Accept json
+// @Produce json
+// @Tags chat
+// @Param request body models.UpdateChatPhotoURLRequest true "change chat photo url request"
+// @Success 200 {object} models.HttpResponse
+// @Failure 422 {object} models.HttpResponse
+// @Failure 500 {object} models.HttpResponse
+// @Router /chat/photo [post]
 func (ch *ChatEchoHandler) ChangeChatPhoto(c echo.Context) error {
 	var err error
 	defer func() {
@@ -266,9 +356,14 @@ func (ch *ChatEchoHandler) ChangeChatPhoto(c echo.Context) error {
 
 	status := ch.usecase.UpdateChatPhotoURL(ctx, chat, *input.PhotoURL)
 	if status != models.OK {
-		return pkg.ErrorResponse(c, http.StatusInternalServerError, "Failed to update photo url")
+		switch status {
+		case models.NotFound:
+			return pkg.NotFoundResponse(c)
+		default:
+			return pkg.ErrorResponse(c, http.StatusInternalServerError, "Failed to update photo url")
+		}
 	}
-	return c.JSON(http.StatusOK, models.Error{Msg: "OK"})
+	return c.JSON(http.StatusOK, &models.HttpResponse{Message: "OK"})
 }
 
 func (ch *ChatEchoHandler) DeleteChat(c echo.Context) error {
@@ -332,5 +427,5 @@ func (ch *ChatEchoHandler) DeleteMessage(c echo.Context) error {
 		return pkg.ErrorResponse(c, http.StatusBadRequest, err.Error())
 	}
 
-	return c.JSON(http.StatusOK, &models.Error{Msg: "OK"})
+	return c.JSON(http.StatusOK, &models.HttpResponse{Message: "OK"})
 }

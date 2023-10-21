@@ -23,6 +23,15 @@ func NewUserEchoHandler(useCase internal.UserUsecase) *UserEchoHandler {
 	}
 }
 
+// GetMe godoc
+// @Summary Get info about token holder.
+// @Description get info about token holder.
+// @Produce json
+// @Tags users
+// @Success 200 {object} models.HttpResponse
+// @Failure 404 {object} models.HttpResponse
+// @Failure 500 {object} models.HttpResponse
+// @Router /user/me [get]
 func (udh *UserEchoHandler) GetMe(c echo.Context) error {
 	userID := c.Get("user_id").(uuid.UUID)
 
@@ -36,9 +45,20 @@ func (udh *UserEchoHandler) GetMe(c echo.Context) error {
 		}
 	}
 
-	return c.JSON(http.StatusOK, &me)
+	response := models2.EnvelopIntoHttpResponse(me, "me", http.StatusOK)
+	return c.JSON(http.StatusOK, &response)
 }
 
+// GetUserForID godoc
+// @Summary Get user for its id.
+// @Description get user for its id.
+// @Produce json
+// @Tags users
+// @Param id path int true "User ID"
+// @Success 200 {object} models.HttpResponse
+// @Failure 404 {object} models.HttpResponse
+// @Failure 500 {object} models.HttpResponse
+// @Router /user/{id} [get]
 func (udh *UserEchoHandler) GetUserForID(c echo.Context) error {
 	idStr := c.Param("id")
 	userID, err := uuid.Parse(idStr)
@@ -55,7 +75,8 @@ func (udh *UserEchoHandler) GetUserForID(c echo.Context) error {
 			return pkg.ServerErrorResponse(c, fmt.Errorf("faile to get a user due to internal issue"))
 		}
 	}
-	return c.JSON(http.StatusOK, &foundPerson)
+	response := models2.EnvelopIntoHttpResponse(foundPerson, "found_person", http.StatusOK)
+	return c.JSON(http.StatusOK, &response)
 }
 
 func (udh *UserEchoHandler) DeactivateUser(c echo.Context) error {
@@ -77,9 +98,20 @@ func (udh *UserEchoHandler) DeactivateUser(c echo.Context) error {
 			return pkg.ServerErrorResponse(c, fmt.Errorf("internal issue"))
 		}
 	}
-	return c.JSON(http.StatusOK, models2.Error{Msg: "OK"})
+	return c.JSON(http.StatusOK, &models2.HttpResponse{Message: "OK"})
 }
 
+// UpdateUser godoc
+// @Summary Update user info.
+// @Description update user info.
+// @Accept json
+// @Produce json
+// @Tags users
+// @Param request body models.UpdateUserRequest true "update user request"
+// @Success 200 {object} models.HttpResponse
+// @Failure 422 {object} models.HttpResponse
+// @Failure 500 {object} models.HttpResponse
+// @Router /user/me [patch]
 func (udh *UserEchoHandler) UpdateUser(c echo.Context) error {
 	userID := c.Get("user_id").(uuid.UUID)
 	user := models2.User{ID: userID}
@@ -108,9 +140,20 @@ func (udh *UserEchoHandler) UpdateUser(c echo.Context) error {
 		}
 	}
 
-	return c.JSON(http.StatusOK, &s)
+	response := models2.EnvelopIntoHttpResponse(s, "updated_person", http.StatusOK)
+	return c.JSON(http.StatusOK, &response)
 }
 
+// SearchUsers godoc
+// @Summary Search user for its nickname.
+// @Description search user for its nickname.
+// @Produce json
+// @Tags users
+// @Param offset query string true "nickname"
+// @Success 200 {object} models.HttpResponse
+// @Failure 404 {object} models.HttpResponse
+// @Failure 500 {object} models.HttpResponse
+// @Router /user/search [get]
 func (udh *UserEchoHandler) SearchUsers(c echo.Context) error {
 	name := c.QueryParam("nickname")
 	v := validator.New()
@@ -130,5 +173,6 @@ func (udh *UserEchoHandler) SearchUsers(c echo.Context) error {
 		}
 	}
 
-	return c.JSON(http.StatusOK, users)
+	response := models2.EnvelopIntoHttpResponse(users, "found_users", http.StatusOK)
+	return c.JSON(http.StatusOK, response)
 }
