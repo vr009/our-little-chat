@@ -1,7 +1,7 @@
 package main
 
 import (
-	"context"
+	"database/sql"
 	"errors"
 	"github.com/golang-jwt/jwt/v5"
 	echojwt "github.com/labstack/echo-jwt/v4"
@@ -16,12 +16,12 @@ import (
 	"our-little-chatik/internal/pkg"
 	"our-little-chatik/internal/pkg/proto/users"
 	"strconv"
+	"time"
 
 	"our-little-chatik/internal/chat/internal/delivery"
 	"our-little-chatik/internal/chat/internal/repo"
 	"our-little-chatik/internal/chat/internal/usecase"
 
-	"github.com/jackc/pgx/v5/pgxpool"
 	"golang.org/x/exp/slog"
 )
 
@@ -36,12 +36,61 @@ type RedisConfig struct {
 	Password string
 }
 
-func GetConnectionString() (string, error) {
+type dbConfig struct {
+	dsn          string
+	maxOpenConns int
+	maxIdleConns int
+	maxIdleTime  time.Duration
+}
+
+var (
+	defaultMaxOpenConns = 10
+	defaultMaxIdleConns = 10
+	defaultMaxIdleTime  = time.Minute * 10
+)
+
+func lookUpDatabaseConfig() *dbConfig {
+	dbCfg := &dbConfig{}
 	key, ok := os.LookupEnv("DATABASE_URL")
 	if !ok {
-		return "", errors.New("connection string not found")
+		panic(errors.New("connection string not found"))
 	}
-	return key, nil
+	dbCfg.dsn = key
+
+	key, ok = os.LookupEnv("DATABASE_MAX_OPEN_CONNS")
+	if !ok {
+		dbCfg.maxOpenConns = defaultMaxOpenConns
+	} else {
+		val, err := strconv.Atoi(key)
+		if err != nil {
+			panic(err.Error())
+		}
+		dbCfg.maxOpenConns = val
+	}
+
+	key, ok = os.LookupEnv("DATABASE_MAX_IDLE_CONNS")
+	if !ok {
+		dbCfg.maxIdleConns = defaultMaxIdleConns
+	} else {
+		val, err := strconv.Atoi(key)
+		if err != nil {
+			panic(err.Error())
+		}
+		dbCfg.maxIdleConns = val
+	}
+
+	key, ok = os.LookupEnv("DATABASE_MAX_IDLE_TIME")
+	if !ok {
+		dbCfg.maxIdleTime = defaultMaxIdleTime
+	} else {
+		duration, err := time.ParseDuration(key)
+		if err != nil {
+			panic(err.Error())
+		}
+		dbCfg.maxIdleTime = duration
+	}
+
+	return dbCfg
 }
 
 func main() {
@@ -68,11 +117,6 @@ func run() error {
 		panic("empty redis password")
 	}
 
-	userDataBaseURL := os.Getenv("USER_DATA_BASE_URL")
-	if userDataBaseURL == "" {
-		panic("empty userDataBaseURL")
-	}
-
 	appConfig.Redis.Port = redisPort
 	appConfig.Redis.Host = redisHost
 	appConfig.Redis.Password = redisPassword
@@ -84,21 +128,16 @@ func run() error {
 		Password: appConfig.Redis.Password,
 	})
 
-	ctx := context.Background()
-	connStr, err := GetConnectionString()
+	dbCfg := lookUpDatabaseConfig()
+	db, err := sql.Open("pgx", dbCfg.dsn)
 	if err != nil {
 		panic(err)
 	}
+	defer db.Close()
 
-	pool, err := pgxpool.New(ctx, connStr)
-	if err != nil {
-		panic(err)
-	}
-	defer pool.Close()
-
-	repop := repo.NewPostgresRepo(pool)
-	repoRed := repo.NewRedisRepo(redisClient)
-	uc := usecase.NewChatUseCase(repop, repoRed)
+	db.SetConnMaxIdleTime(dbCfg.maxIdleTime)
+	db.SetMaxIdleConns(dbCfg.maxIdleConns)
+	db.SetMaxOpenConns(dbCfg.maxOpenConns)
 
 	usersGRPCHost := os.Getenv("GRPC_USERS_SERVER_HOST")
 	if usersGRPCHost == "" {
@@ -117,11 +156,13 @@ func run() error {
 		log.Fatalf("did not connect: %v", err)
 	}
 	defer conn.Close()
-	usersCl := users.NewUsersClient(conn)
+	usersGRPCCl := users.NewUsersClient(conn)
 
-	udCl := delivery.NewUserDataClient(usersCl)
-
-	handler := delivery.NewChatEchoHandler(uc, udCl)
+	usersClient := repo.NewUserDataClient(usersGRPCCl)
+	repoPostgres := repo.NewPostgresRepo(db)
+	repoRedis := repo.NewRedisRepo(redisClient)
+	uc := usecase.NewChatUseCase(repoPostgres, repoRedis, usersClient)
+	handler := delivery.NewChatEchoHandler(uc)
 
 	e := echo.New()
 	// Middleware
@@ -148,25 +189,20 @@ func run() error {
 	}
 	r.Use(echojwt.WithConfig(config), middleware2.Auth)
 
-	// Admin API
-	adminRouter := e.Group("/api/v1/admin")
-	// Getting chat info
-	adminRouter.GET("/chat", handler.GetChat)
-	adminRouter.DELETE("/chat", handler.DeleteChat)
-	adminRouter.POST("/chat", handler.PostNewChat)
+	chatRouter := r.Group("/chat")
 
 	// Get chat info
-	r.GET("/chat", handler.GetChat)
+	chatRouter.GET("/:id", handler.GetChat)
 	// Get chat messages
-	r.GET("/conv", handler.GetChatMessages)
+	chatRouter.GET("/:id/messages", handler.GetChatMessages)
 	// Get the list of users chats
-	r.GET("/list", handler.GetChatList)
+	chatRouter.GET("/list", handler.GetChatList)
 	// Create a new chat
-	r.POST("/new", handler.PostNewChat)
+	chatRouter.POST("/new", handler.PostNewChat)
 	// Update photo url of the chat
-	r.POST("/chat/photo", handler.ChangeChatPhoto)
+	chatRouter.POST("/photo", handler.ChangeChatPhoto)
 	// Add users to chat
-	r.POST("/chat/users", handler.AddUsersToChat)
+	chatRouter.POST("/users", handler.AddUsersToChat)
 
 	e.Logger.Fatal(e.Start(":" + strconv.Itoa(appConfig.Port)))
 	return nil

@@ -2,45 +2,44 @@ package internal
 
 import (
 	"context"
-	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgconn"
 	models2 "our-little-chatik/internal/chat/internal/models"
 	"our-little-chatik/internal/models"
 )
 
 type ChatRepo interface {
-	GetChatMessages(chat models.Chat, opts models.Opts) (models.Messages, error)
-	FetchChatList(user models.User) ([]models.ChatItem, error)
-	CreateChat(chat models.Chat, chatNames map[string]string) error
-	UpdateChat(chat models.Chat, updateOpts models2.UpdateOptions) error
-	GetChat(chat models.Chat) (models.Chat, error)
-	DeleteMessage(message models.Message) error
-	DeleteChat(chat models.Chat) error
+	GetChatMessages(ctx context.Context, chat models.Chat, opts models.Opts) (models.Messages, models.StatusCode)
+	FetchChatList(ctx context.Context, user models.User) ([]models.ChatItem, models.StatusCode)
+	CreateChat(ctx context.Context, chat models.Chat, chatNames map[string]string) models.StatusCode
+	GetChat(ctx context.Context, chat models.Chat) (models.Chat, models.StatusCode)
+	DeleteMessage(ctx context.Context, message models.Message) models.StatusCode
+	DeleteChat(ctx context.Context, chat models.Chat) models.StatusCode
+	RemoveUserFromChat(ctx context.Context,
+		chat models.Chat, users ...models.User) models.StatusCode
+	AddUsersToChat(ctx context.Context,
+		chat models.Chat, chatNames map[string]string, users ...models.User) models.StatusCode
+	UpdateChatPhotoURL(ctx context.Context, chat models.Chat,
+		photoURL string) models.StatusCode
 }
 
 type QueueRepo interface {
-	GetChatMessages(chat models.Chat, opts models.Opts) (models.Messages, error)
+	GetChatMessages(chat models.Chat, opts models.Opts) (models.Messages, models.StatusCode)
 }
 
 type ChatUseCase interface {
-	CreateChat(chat models.Chat, chatNames map[string]string) (models.Chat, error)
-	GetChatMessages(chat models.Chat, opts models.Opts) (models.Messages, error)
-	GetChatList(user models.User) ([]models.ChatItem, error)
-	UpdateChat(chat models.Chat, updateOpts models2.UpdateOptions) error
-	GetChat(chat models.Chat) (models.Chat, error)
-	DeleteChat(chat models.Chat) error
-	DeleteMessage(message models.Message) error
-}
-
-type DB interface {
-	Exec(ctx context.Context, sql string, arguments ...interface{}) (pgconn.CommandTag, error)
-	Query(ctx context.Context, sql string, args ...interface{}) (pgx.Rows, error)
-	QueryRow(ctx context.Context, sql string, args ...interface{}) pgx.Row
-	SendBatch(ctx context.Context, b *pgx.Batch) pgx.BatchResults
-	Begin(ctx context.Context) (pgx.Tx, error)
-	CopyFrom(ctx context.Context, tableName pgx.Identifier, columnNames []string, rowSrc pgx.CopyFromSource) (int64, error)
+	CreateChat(ctx context.Context, chat models2.CreateChatRequest) (models.Chat, models.StatusCode)
+	GetChatMessages(ctx context.Context, chat models.Chat, opts models.Opts) (models.Messages, models.StatusCode)
+	GetChatList(ctx context.Context, user models.User) ([]models.ChatItem, models.StatusCode)
+	GetChat(ctx context.Context, chat models.Chat) (models.Chat, models.StatusCode)
+	DeleteChat(ctx context.Context, chat models.Chat) models.StatusCode
+	DeleteMessage(ctx context.Context, message models.Message) models.StatusCode
+	RemoveUserFromChat(ctx context.Context,
+		chat models.Chat, users ...models.User) models.StatusCode
+	AddUsersToChat(ctx context.Context,
+		chat models.Chat, users ...models.User) models.StatusCode
+	UpdateChatPhotoURL(ctx context.Context, chat models.Chat,
+		photoURL string) models.StatusCode
 }
 
 type UserDataInteractor interface {
-	GetUser(user models.User) (models.User, error)
+	GetUser(user models.User) (models.User, models.StatusCode)
 }

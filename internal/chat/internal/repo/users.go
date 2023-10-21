@@ -1,4 +1,4 @@
-package delivery
+package repo
 
 import (
 	"context"
@@ -17,11 +17,11 @@ func NewUserDataClient(cl users.UsersClient) *UserDataClient {
 	}
 }
 
-func (c UserDataClient) GetUser(user models.User) (models.User, error) {
+func (c UserDataClient) GetUser(user models.User) (models.User, models.StatusCode) {
 	resp, err := c.cl.GetUser(context.Background(),
 		&users.GetUserRequest{UserID: user.ID.String()})
 	if err != nil {
-		return models.User{}, err
+		return models.User{}, models.NotFound
 	}
 	user = models.User{
 		Name:      resp.Name,
@@ -32,7 +32,7 @@ func (c UserDataClient) GetUser(user models.User) (models.User, error) {
 	}
 	user.ID, err = uuid.Parse(resp.UserID)
 	if err != nil {
-		return models.User{}, err
+		return models.User{}, models.InternalError
 	}
-	return user, nil
+	return user, models.OK
 }

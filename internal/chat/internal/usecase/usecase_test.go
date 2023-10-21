@@ -1,53 +1,113 @@
 package usecase
 
 import (
+	"context"
 	"github.com/google/uuid"
-	"our-little-chatik/internal/chat/internal"
+	"go.uber.org/mock/gomock"
+	"our-little-chatik/internal/chat/internal/mocks/chat"
 	models2 "our-little-chatik/internal/chat/internal/models"
-	"our-little-chatik/internal/chat/internal/repo"
 	"our-little-chatik/internal/models"
 	"reflect"
-	"sort"
 	"testing"
-	"time"
 )
 
-func TestChatUseCase_CreateChat(t *testing.T) {
+func TestChatUseCase_AddUsersToChat(t *testing.T) {
 	type fields struct {
-		repo  internal.ChatRepo
-		queue internal.QueueRepo
+		repo  *chat.MockChatRepo
+		queue *chat.MockQueueRepo
+		users *chat.MockUserDataInteractor
 	}
 	type args struct {
-		chat      models.Chat
-		chatNames map[string]string
+		ctx   context.Context
+		chat  models.Chat
+		users []models.User
 	}
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
 
-	rMock := repo.RedisMock{}
+	testUserID1 := uuid.New()
+	testUserID2 := uuid.New()
+	testUserID3 := uuid.New()
 
-	pMock := repo.PostgresMock{}
+	testUser3 := models.User{
+		ID:       testUserID3,
+		Name:     "test3",
+		Nickname: "test3",
+		Surname:  "test3",
+	}
+	testCtx := context.Background()
 
 	testChat := models.Chat{
-		Name: "test",
+		ChatID: uuid.New(),
+		Participants: []uuid.UUID{
+			testUserID1,
+			testUserID2,
+		},
+	}
+
+	testNamedChat := models.Chat{
+		ChatID: uuid.New(),
+		Participants: []uuid.UUID{
+			testUserID1,
+			testUserID2,
+		},
+		Name: "chat",
 	}
 
 	tests := []struct {
-		name    string
-		fields  fields
-		args    args
-		want    models.Chat
-		wantErr bool
+		name   string
+		fields fields
+		args   args
+		pre    func(f *fields)
+		status models.StatusCode
 	}{
 		{
-			name:   "",
-			fields: fields{repo: pMock, queue: rMock},
-			args: args{
-				chat: testChat,
-				chatNames: map[string]string{
-					"test": "test",
-				},
+			name: "success",
+			fields: fields{
+				repo:  chat.NewMockChatRepo(ctrl),
+				queue: chat.NewMockQueueRepo(ctrl),
+				users: chat.NewMockUserDataInteractor(ctrl),
 			},
-			want:    testChat,
-			wantErr: false,
+			args: args{
+				ctx:   testCtx,
+				chat:  testChat,
+				users: []models.User{testUser3},
+			},
+			pre: func(f *fields) {
+				f.repo.EXPECT().GetChat(testCtx, testChat).Return(testChat, models.OK)
+				f.repo.EXPECT().AddUsersToChat(testCtx, testChat, gomock.Cond(func(x any) bool {
+					chatNames := x.(map[string]string)
+					if _, ok := chatNames[testUser3.ID.String()]; !ok {
+						return false
+					}
+					return true
+				}), testUser3)
+			},
+			status: models.OK,
+		},
+		{
+			name: "success chat is named",
+			fields: fields{
+				repo:  chat.NewMockChatRepo(ctrl),
+				queue: chat.NewMockQueueRepo(ctrl),
+				users: chat.NewMockUserDataInteractor(ctrl),
+			},
+			args: args{
+				ctx:   testCtx,
+				chat:  testNamedChat,
+				users: []models.User{testUser3},
+			},
+			pre: func(f *fields) {
+				f.repo.EXPECT().GetChat(testCtx, testNamedChat).Return(testNamedChat, models.OK)
+				f.repo.EXPECT().AddUsersToChat(testCtx, testNamedChat, gomock.Cond(func(x any) bool {
+					chatNames := x.(map[string]string)
+					if name, ok := chatNames[testUser3.ID.String()]; !ok && name != testNamedChat.Name {
+						return false
+					}
+					return true
+				}), testUser3)
+			},
+			status: models.OK,
 		},
 	}
 	for _, tt := range tests {
@@ -55,14 +115,252 @@ func TestChatUseCase_CreateChat(t *testing.T) {
 			ch := &ChatUseCase{
 				repo:  tt.fields.repo,
 				queue: tt.fields.queue,
+				users: tt.fields.users,
 			}
-			got, err := ch.CreateChat(tt.args.chat, tt.args.chatNames)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("CreateChat() error = %v, wantErr %v", err, tt.wantErr)
+			tt.pre(&tt.fields)
+			if status := ch.AddUsersToChat(tt.args.ctx, tt.args.chat, tt.args.users...); status != tt.status {
+				t.Errorf("AddUsersToChat() error = %v, status %v", status, tt.status)
+			}
+		})
+	}
+}
+
+func TestChatUseCase_CreateChat(t *testing.T) {
+	type fields struct {
+		repo  *chat.MockChatRepo
+		queue *chat.MockQueueRepo
+		users *chat.MockUserDataInteractor
+	}
+
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	testName := "test1"
+	testPhotoURL := "test"
+	testUserID1 := uuid.New()
+	testUserID2 := uuid.New()
+
+	testUser1 := models.User{
+		ID:       testUserID1,
+		Name:     "test1",
+		Nickname: "test1",
+		Surname:  "test1",
+	}
+	testUser2 := models.User{
+		ID:       testUserID2,
+		Name:     "test2",
+		Nickname: "test2",
+		Surname:  "test2",
+	}
+	testCtx := context.Background()
+
+	testChatRequest1 := models2.CreateChatRequest{
+		Participants: []uuid.UUID{testUserID1, testUserID2},
+		IssuerID:     testUserID1,
+		Name:         &testName,
+		PhotoURL:     &testPhotoURL,
+	}
+
+	testChatRequest2 := models2.CreateChatRequest{
+		Participants: []uuid.UUID{testUserID2},
+		IssuerID:     testUserID1,
+		Name:         &testName,
+		PhotoURL:     &testPhotoURL,
+	}
+
+	testChatRequest3 := models2.CreateChatRequest{
+		Participants: []uuid.UUID{testUserID1},
+		IssuerID:     testUserID1,
+		Name:         &testName,
+		PhotoURL:     &testPhotoURL,
+	}
+
+	type args struct {
+		ctx     context.Context
+		request models2.CreateChatRequest
+	}
+	tests := []struct {
+		name   string
+		fields fields
+		args   args
+		pre    func(f *fields)
+		want   func(models.Chat) bool
+		status models.StatusCode
+	}{
+		{
+			name: "success",
+			fields: fields{
+				repo:  chat.NewMockChatRepo(ctrl),
+				queue: chat.NewMockQueueRepo(ctrl),
+				users: chat.NewMockUserDataInteractor(ctrl),
+			},
+			args: args{
+				ctx:     testCtx,
+				request: testChatRequest1,
+			},
+			pre: func(f *fields) {
+				f.users.EXPECT().GetUser(models.User{ID: testUserID2}).Return(testUser2, models.OK)
+				f.users.EXPECT().GetUser(models.User{ID: testUserID1}).Return(testUser1, models.OK)
+				f.repo.EXPECT().CreateChat(testCtx, gomock.Cond(func(x any) bool {
+					ch := x.(models.Chat)
+					if ch.ChatID == uuid.Nil {
+						return false
+					}
+					if ch.CreatedAt == 0 {
+						return false
+					}
+					if len(ch.Participants) != 2 {
+						return false
+					}
+					if ch.Name != testUser1.Name && ch.Name != testUser2.Name {
+						return false
+					}
+					return true
+				}), gomock.Cond(func(x any) bool {
+					chatNames := x.(map[string]string)
+					if chatNames[testUserID1.String()] != testUser2.Name {
+						return false
+					}
+					if chatNames[testUserID2.String()] != testUser1.Name {
+						return false
+					}
+					return true
+				}))
+			},
+			want: func(m models.Chat) bool {
+				if m.ChatID == uuid.Nil {
+					return false
+				}
+				if len(m.Participants) != 2 {
+					return false
+				}
+				if m.CreatedAt == 0 {
+					return false
+				}
+				return true
+			},
+			status: models.OK,
+		},
+		{
+			name: "success include self ",
+			fields: fields{
+				repo:  chat.NewMockChatRepo(ctrl),
+				queue: chat.NewMockQueueRepo(ctrl),
+				users: chat.NewMockUserDataInteractor(ctrl),
+			},
+			args: args{
+				ctx:     testCtx,
+				request: testChatRequest2,
+			},
+			pre: func(f *fields) {
+				f.users.EXPECT().GetUser(models.User{ID: testUserID1}).Return(testUser1, models.OK)
+				f.users.EXPECT().GetUser(models.User{ID: testUserID2}).Return(testUser2, models.OK)
+				f.repo.EXPECT().CreateChat(testCtx, gomock.Cond(func(x any) bool {
+					ch := x.(models.Chat)
+					if ch.ChatID == uuid.Nil {
+						return false
+					}
+					if ch.CreatedAt == 0 {
+						return false
+					}
+					if len(ch.Participants) != 2 {
+						return false
+					}
+					if ch.Name != testUser1.Name && ch.Name != testUser2.Name {
+						return false
+					}
+					return true
+				}), gomock.Cond(func(x any) bool {
+					chatNames := x.(map[string]string)
+					if chatNames[testUserID1.String()] != testUser2.Name {
+						return false
+					}
+					if chatNames[testUserID2.String()] != testUser1.Name {
+						return false
+					}
+					return true
+				}))
+			},
+			status: models.OK,
+			want: func(m models.Chat) bool {
+				if m.ChatID == uuid.Nil {
+					return false
+				}
+				if len(m.Participants) != 2 {
+					return false
+				}
+				if m.CreatedAt == 0 {
+					return false
+				}
+				return true
+			},
+		},
+		{
+			name: "success single user chat",
+			fields: fields{
+				repo:  chat.NewMockChatRepo(ctrl),
+				queue: chat.NewMockQueueRepo(ctrl),
+				users: chat.NewMockUserDataInteractor(ctrl),
+			},
+			args: args{
+				ctx:     testCtx,
+				request: testChatRequest3,
+			},
+			pre: func(f *fields) {
+				f.users.EXPECT().GetUser(models.User{ID: testUserID1}).Return(testUser1, models.OK)
+				f.repo.EXPECT().CreateChat(testCtx, gomock.Cond(func(x any) bool {
+					ch := x.(models.Chat)
+					if ch.ChatID == uuid.Nil {
+						return false
+					}
+					if ch.CreatedAt == 0 {
+						return false
+					}
+					if len(ch.Participants) != 1 {
+						return false
+					}
+					if ch.Name != testUser1.Name && ch.Name != testUser2.Name {
+						return false
+					}
+					return true
+				}), gomock.Cond(func(x any) bool {
+					chatNames := x.(map[string]string)
+					if chatNames[testUserID1.String()] != testUser1.Name {
+						return false
+					}
+					return true
+				}))
+			},
+			status: models.OK,
+			want: func(m models.Chat) bool {
+				if m.ChatID == uuid.Nil {
+					return false
+				}
+				if len(m.Participants) != 1 {
+					return false
+				}
+				if m.CreatedAt == 0 {
+					return false
+				}
+				return true
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ch := &ChatUseCase{
+				repo:  tt.fields.repo,
+				queue: tt.fields.queue,
+				users: tt.fields.users,
+			}
+			tt.pre(&tt.fields)
+			got, status := ch.CreateChat(tt.args.ctx, tt.args.request)
+			if status != tt.status {
+				t.Errorf("CreateChat() error = %v, status %v", status, tt.status)
 				return
 			}
-			if !reflect.DeepEqual(got.Name, tt.want.Name) {
-				t.Errorf("CreateChat() got = %v, want %v", got, tt.want)
+			if !tt.want(got) {
+				t.Errorf("failed check of the result")
 			}
 		})
 	}
@@ -70,119 +368,100 @@ func TestChatUseCase_CreateChat(t *testing.T) {
 
 func TestChatUseCase_GetChatMessages(t *testing.T) {
 	type fields struct {
-		repo  internal.ChatRepo
-		queue internal.QueueRepo
+		repo  *chat.MockChatRepo
+		queue *chat.MockQueueRepo
+		users *chat.MockUserDataInteractor
 	}
+
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	testCtx := context.Background()
+	testOpts1 := models.Opts{
+		Limit: 3,
+		Page:  0,
+	}
+	testOpts2 := models.Opts{
+		Limit: 1,
+		Page:  0,
+	}
+
+	testChat := models.Chat{
+		ChatID: uuid.New(),
+	}
+
+	testMsg1 := models.Message{
+		ChatID:    testChat.ChatID,
+		MsgID:     uuid.New(),
+		Payload:   "",
+		CreatedAt: 10,
+	}
+
+	testMsg2 := models.Message{
+		ChatID:    testChat.ChatID,
+		MsgID:     uuid.New(),
+		Payload:   "",
+		CreatedAt: 9,
+	}
+	testMsg3 := models.Message{
+		ChatID:    testChat.ChatID,
+		MsgID:     uuid.New(),
+		Payload:   "",
+		CreatedAt: 8,
+	}
+
 	type args struct {
+		ctx  context.Context
 		chat models.Chat
 		opts models.Opts
 	}
-
-	chatID := uuid.New()
-	senderID := uuid.New()
-	timestamp := time.Now().Unix()
-
-	msg1 := models.Message{
-		MsgID:     uuid.New(),
-		Payload:   "test",
-		SenderID:  senderID,
-		ChatID:    chatID,
-		CreatedAt: timestamp - 500,
-	}
-	msg2 := models.Message{
-		MsgID:     uuid.New(),
-		Payload:   "test1",
-		SenderID:  senderID,
-		ChatID:    chatID,
-		CreatedAt: timestamp - 100,
-	}
-
-	msg3 := models.Message{
-		MsgID:     uuid.New(),
-		Payload:   "test",
-		SenderID:  senderID,
-		ChatID:    chatID,
-		CreatedAt: timestamp - 1500,
-	}
-	msg4 := models.Message{
-		MsgID:     uuid.New(),
-		Payload:   "test1",
-		SenderID:  senderID,
-		ChatID:    chatID,
-		CreatedAt: timestamp - 1200,
-	}
-
-	rMock := repo.RedisMock{
-		ID: chatID,
-		Msgs: models.Messages{
-			msg1, msg2,
-		},
-	}
-
-	pMock := repo.PostgresMock{
-		Chat: models.Chat{
-			ChatID: chatID,
-		},
-		Msgs: models.Messages{
-			msg3, msg4,
-		},
-	}
-
 	tests := []struct {
-		name    string
-		fields  fields
-		args    args
-		want    models.Messages
-		wantErr bool
+		name   string
+		fields fields
+		args   args
+		pre    func(f *fields)
+		want   models.Messages
+		status models.StatusCode
 	}{
 		{
-			name: "Successful get",
+			name: "fetch from both storages",
 			fields: fields{
-				queue: rMock,
-				repo:  pMock,
+				repo:  chat.NewMockChatRepo(ctrl),
+				queue: chat.NewMockQueueRepo(ctrl),
+				users: chat.NewMockUserDataInteractor(ctrl),
 			},
-			args:    args{chat: models.Chat{ChatID: chatID}, opts: models.Opts{Limit: 10, Page: 0}},
-			wantErr: false,
-			want: models.Messages{
-				msg2,
-				msg1,
-				msg4,
-				msg3,
+			args: args{
+				ctx:  testCtx,
+				chat: testChat,
+				opts: testOpts1,
 			},
+			pre: func(f *fields) {
+				f.queue.EXPECT().GetChatMessages(testChat, testOpts1).
+					Return(models.Messages{testMsg1, testMsg2}, models.OK)
+				f.repo.EXPECT().GetChatMessages(testCtx, testChat, testOpts2).
+					Return(models.Messages{testMsg3}, models.OK)
+			},
+			want:   models.Messages{testMsg1, testMsg2, testMsg3},
+			status: models.OK,
 		},
 		{
-			name: "Successful get no data from redis",
+			name: "fetch only from queue",
 			fields: fields{
-				queue: repo.RedisMock{
-					ID:   chatID,
-					Msgs: models.Messages{},
-				},
-				repo: pMock,
+				repo:  chat.NewMockChatRepo(ctrl),
+				queue: chat.NewMockQueueRepo(ctrl),
+				users: chat.NewMockUserDataInteractor(ctrl),
 			},
-			args:    args{chat: models.Chat{ChatID: chatID}, opts: models.Opts{Limit: 10, Page: 0}},
-			wantErr: false,
-			want: models.Messages{
-				msg4,
-				msg3,
+			args: args{
+				ctx:  testCtx,
+				chat: testChat,
+				opts: testOpts2,
 			},
-		},
-		{
-			name: "Successful get no data from postgres",
-			fields: fields{
-				queue: rMock,
-				repo: repo.PostgresMock{
-					Chat: models.Chat{
-						ChatID: chatID,
-					},
-					Msgs: models.Messages{},
-				},
+			pre: func(f *fields) {
+				f.queue.EXPECT().GetChatMessages(testChat, testOpts2).
+					Return(models.Messages{testMsg1}, models.OK)
 			},
-			args:    args{chat: models.Chat{ChatID: chatID}, opts: models.Opts{Limit: 10, Page: 0}},
-			wantErr: false,
-			want: models.Messages{
-				msg2,
-				msg1,
-			},
+			want:   models.Messages{testMsg1},
+			status: models.OK,
 		},
 	}
 	for _, tt := range tests {
@@ -190,133 +469,16 @@ func TestChatUseCase_GetChatMessages(t *testing.T) {
 			ch := &ChatUseCase{
 				repo:  tt.fields.repo,
 				queue: tt.fields.queue,
+				users: tt.fields.users,
 			}
-			got, err := ch.GetChatMessages(tt.args.chat, tt.args.opts)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("GetChatMessages() error = %v, wantErr %v", err, tt.wantErr)
+			tt.pre(&tt.fields)
+			got, status := ch.GetChatMessages(tt.args.ctx, tt.args.chat, tt.args.opts)
+			if status != tt.status {
+				t.Errorf("GetChatMessages() error = %v, status %v", status, tt.status)
 				return
 			}
 			if !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("GetChatMessages() got = %v, want %v", got, tt.want)
-			}
-			if !sort.IsSorted(got) {
-				t.Errorf("result slice of messages is not sorted")
-			}
-		})
-	}
-}
-
-func TestChatUseCase_GetChat(t *testing.T) {
-	type fields struct {
-		repo  internal.ChatRepo
-		queue internal.QueueRepo
-	}
-	type args struct {
-		chat models.Chat
-	}
-	rMock := repo.RedisMock{}
-
-	pMock := repo.PostgresMock{}
-
-	tests := []struct {
-		name    string
-		fields  fields
-		args    args
-		want    models.Chat
-		wantErr bool
-	}{
-		{
-			fields: fields{
-				repo:  pMock,
-				queue: rMock,
-			},
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			ch := &ChatUseCase{
-				repo:  tt.fields.repo,
-				queue: tt.fields.queue,
-			}
-			got, err := ch.GetChat(tt.args.chat)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("GetChat() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("GetChat() got = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}
-
-func TestChatUseCase_GetChatList(t *testing.T) {
-	type fields struct {
-		repo  internal.ChatRepo
-		queue internal.QueueRepo
-	}
-	type args struct {
-		user models.User
-	}
-	rMock := repo.RedisMock{}
-
-	pMock := repo.PostgresMock{}
-
-	tests := []struct {
-		name    string
-		fields  fields
-		args    args
-		want    []models.ChatItem
-		wantErr bool
-	}{
-		{
-			fields: fields{
-				repo:  pMock,
-				queue: rMock,
-			},
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			ch := &ChatUseCase{
-				repo:  tt.fields.repo,
-				queue: tt.fields.queue,
-			}
-			got, err := ch.GetChatList(tt.args.user)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("GetChatList() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("GetChatList() got = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}
-
-func TestChatUseCase_UpdateChat(t *testing.T) {
-	type fields struct {
-		repo  internal.ChatRepo
-		queue internal.QueueRepo
-	}
-	type args struct {
-		chat       models.Chat
-		updateOpts models2.UpdateOptions
-	}
-	tests := []struct {
-		name    string
-		fields  fields
-		args    args
-		wantErr bool
-	}{}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			ch := &ChatUseCase{
-				repo:  tt.fields.repo,
-				queue: tt.fields.queue,
-			}
-			if err := ch.UpdateChat(tt.args.chat, tt.args.updateOpts); (err != nil) != tt.wantErr {
-				t.Errorf("UpdateChat() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}
