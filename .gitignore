@@ -1,1 +1,6 @@
 temp
+/.idea/.gitignore
+/coverage.out
+/.idea/modules.xml
+/.idea/our-little-chatik.iml
+/.idea/vcs.xml
