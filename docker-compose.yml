@@ -5,7 +5,7 @@ services:
     image: vr0009/our-little-chat:flusher
     command: ./flusher-service
     environment:
-      FLUSHER_PERIOD: "60"
+      FLUSHER_PERIOD: "60m"
       FLUSHER_PORT: "8082"
       REDIS_PORT: "6379"
       REDIS_HOST: "db-peer"

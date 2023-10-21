@@ -1,8 +1,10 @@
 package repo
 
 import (
-	"github.com/go-redis/redis"
+	"context"
+	"encoding/json"
 	"github.com/prometheus/common/log"
+	"github.com/redis/go-redis/v9"
 	"golang.org/x/exp/slog"
 	"our-little-chatik/internal/models"
 )
@@ -18,17 +20,17 @@ func NewRedisRepo(cl *redis.Client) *RedisRepo {
 }
 
 func (r RedisRepo) FetchAllMessages() ([]models.Message, error) {
-	keys, err := r.cl.Keys("*").Result()
+	keys, err := r.cl.Keys(context.Background(), "*").Result()
 	if err != nil {
 		return nil, err
 	}
 
-	values, err := r.cl.MGet(keys...).Result()
+	values, err := r.cl.MGet(context.Background(), keys...).Result()
 	if err != nil {
 		return nil, err
 	}
 
-	num, err := r.cl.Del(keys...).Result()
+	num, err := r.cl.Del(context.Background(), keys...).Result()
 	if err != nil {
 		log.Errorf("failed to delete keys in db: %v", err)
 	}
@@ -39,11 +41,14 @@ func (r RedisRepo) FetchAllMessages() ([]models.Message, error) {
 	// in both slices is ensured.
 	messages := make([]models.Message, 0)
 	for i := range values {
-		if msg, ok := values[i].(models.Message); ok {
-			messages = append(messages, msg)
-		} else {
+		var msg models.Message
+		valStr := values[i].(string)
+		err := json.Unmarshal([]byte(valStr), &msg)
+		if err != nil {
 			slog.Warn("failed to cast a value from redis to models.Message")
+			continue
 		}
+		messages = append(messages, msg)
 	}
 	return messages, nil
 }
