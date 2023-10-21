@@ -19,7 +19,7 @@ services:
   test-user-data:
     build:
       context: .
-      dockerfile: ./deployments/user_data.Dockerfile
+      dockerfile: deployments/users.Dockerfile
     environment:
       USER_DATA_PORT: "8086"
       JWT_SIGNED_KEY: "test"
