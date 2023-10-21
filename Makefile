@@ -1,9 +1,11 @@
 .SILENT:
-.PHONY: run migrate-Users migrate-Users-drop user-data-service-up start
+.PHONY: run migrate-users migrate-users-drop migrate-chat migrate-chat-drop user-data-service-up start
 INDEX_PATH ?= temp/dist/index.html
 BRANCH := dev
 USERS_DB_URL := 'postgres://postgres:admin@0.0.0.0:5433/users?sslmode=disable'
-USERS_MIGRATIONS_PATH := ./internal/user_data/db/migrations
+CHAT_DB_URL := 'postgres://postgres:admin@0.0.0.0:5433/chat?sslmode=disable'
+USERS_MIGRATIONS_PATH := ./internal/users/db/migrations
+CHAT_MIGRATIONS_PATH := ./internal/chat/db/migrations
 MOCKS_DESTINATION=internal/mocks
 
 ${INDEX_PATH} frontend:
@@ -21,6 +23,12 @@ migrate-users:
 
 migrate-users-drop:
 	migrate -path ${USERS_MIGRATIONS_PATH} -database ${USERS_DB_URL} drop
+
+migrate-chat:
+	migrate -path ${CHAT_MIGRATIONS_PATH} -database ${CHAT_DB_URL} up
+
+migrate-chat-drop:
+	migrate -path ${CHAT_MIGRATIONS_PATH} -database ${CHAT_DB_URL} drop
 
 ## test: run all unit tests
 .PHONY: unit
