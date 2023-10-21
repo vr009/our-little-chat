@@ -1,0 +1,449 @@
+definitions:
+  models.AddUsersToChatRequest:
+    properties:
+      chat_id:
+        type: string
+      participants:
+        items:
+          type: string
+        type: array
+    type: object
+  models.CreateChatRequest:
+    properties:
+      name:
+        type: string
+      participants:
+        items:
+          type: string
+        type: array
+      photo_url:
+        type: string
+    type: object
+  models.HttpResponse:
+    properties:
+      message:
+        type: string
+      properties:
+        additionalProperties: {}
+        type: object
+    type: object
+  models.LoginRequest:
+    properties:
+      nickname:
+        type: string
+      password:
+        type: string
+    type: object
+  models.SignUpPersonRequest:
+    properties:
+      avatar:
+        type: string
+      name:
+        type: string
+      nickname:
+        type: string
+      password:
+        type: string
+      surname:
+        type: string
+    type: object
+  models.UpdateChatPhotoURLRequest:
+    properties:
+      chat_id:
+        type: string
+      photo_url:
+        type: string
+    type: object
+  models.UpdateUserRequest:
+    properties:
+      avatar:
+        type: string
+      name:
+        type: string
+      new_password:
+        type: string
+      nickname:
+        type: string
+      old_password:
+        type: string
+      surname:
+        type: string
+    type: object
+info:
+  contact: {}
+paths:
+  /chat/{id}:
+    get:
+      description: get chat for its id.
+      parameters:
+      - description: Chat ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.HttpResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/models.HttpResponse'
+        "422":
+          description: Unprocessable Entity
+          schema:
+            $ref: '#/definitions/models.HttpResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/models.HttpResponse'
+      summary: Get chat for its id.
+      tags:
+      - chat
+  /chat/{id}/messages:
+    get:
+      description: get chat messages.
+      parameters:
+      - description: Chat ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: offset
+        in: query
+        name: offset
+        type: integer
+      - description: limit
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.HttpResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/models.HttpResponse'
+        "422":
+          description: Unprocessable Entity
+          schema:
+            $ref: '#/definitions/models.HttpResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/models.HttpResponse'
+      summary: Get chat messages.
+      tags:
+      - chat
+  /chat/list:
+    get:
+      description: get chat list of the user.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.HttpResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/models.HttpResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/models.HttpResponse'
+      summary: Get chat list of the user.
+      tags:
+      - chat
+  /chat/new:
+    post:
+      consumes:
+      - application/json
+      description: get the status of server.
+      parameters:
+      - description: create chat request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/models.CreateChatRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.HttpResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/models.HttpResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/models.HttpResponse'
+      summary: Show the status of server.
+      tags:
+      - chat
+  /chat/photo:
+    post:
+      consumes:
+      - application/json
+      description: change chat photo.
+      parameters:
+      - description: change chat photo url request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/models.UpdateChatPhotoURLRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.HttpResponse'
+        "422":
+          description: Unprocessable Entity
+          schema:
+            $ref: '#/definitions/models.HttpResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/models.HttpResponse'
+      summary: Change chat photo.
+      tags:
+      - chat
+  /chat/users:
+    post:
+      consumes:
+      - application/json
+      description: get the status of server.
+      parameters:
+      - description: add users to chat request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/models.AddUsersToChatRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.HttpResponse'
+        "422":
+          description: Unprocessable Entity
+          schema:
+            $ref: '#/definitions/models.HttpResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/models.HttpResponse'
+      summary: Show the status of server.
+      tags:
+      - chat
+  /user/{id}:
+    get:
+      description: get user for its id.
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.HttpResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/models.HttpResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/models.HttpResponse'
+      summary: Get user for its id.
+      tags:
+      - users
+  /user/me:
+    get:
+      description: get info about token holder.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.HttpResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/models.HttpResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/models.HttpResponse'
+      summary: Get info about token holder.
+      tags:
+      - users
+    patch:
+      consumes:
+      - application/json
+      description: update user info.
+      parameters:
+      - description: update user request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/models.UpdateUserRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.HttpResponse'
+        "422":
+          description: Unprocessable Entity
+          schema:
+            $ref: '#/definitions/models.HttpResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/models.HttpResponse'
+      summary: Update user info.
+      tags:
+      - users
+  /user/search:
+    get:
+      description: search user for its nickname.
+      parameters:
+      - description: nickname
+        in: query
+        name: offset
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.HttpResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/models.HttpResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/models.HttpResponse'
+      summary: Search user for its nickname.
+      tags:
+      - users
+  /users/login:
+    post:
+      consumes:
+      - application/json
+      description: log in a user.
+      parameters:
+      - description: log in request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/models.LoginRequest'
+      produces:
+      - application/json
+      responses:
+        "303":
+          description: See Other
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/models.HttpResponse'
+        "422":
+          description: Unprocessable Entity
+          schema:
+            $ref: '#/definitions/models.HttpResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/models.HttpResponse'
+      summary: log in a user.
+      tags:
+      - auth
+  /users/logout:
+    post:
+      consumes:
+      - application/json
+      description: log out a user.
+      produces:
+      - application/json
+      responses:
+        "303":
+          description: See Other
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/models.HttpResponse'
+        "422":
+          description: Unprocessable Entity
+          schema:
+            $ref: '#/definitions/models.HttpResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/models.HttpResponse'
+      summary: Log out a user.
+      tags:
+      - auth
+  /users/signup:
+    post:
+      consumes:
+      - application/json
+      description: sign up a user.
+      parameters:
+      - description: sign up user request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/models.SignUpPersonRequest'
+      produces:
+      - application/json
+      responses:
+        "303":
+          description: See Other
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/models.HttpResponse'
+        "422":
+          description: Unprocessable Entity
+          schema:
+            $ref: '#/definitions/models.HttpResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/models.HttpResponse'
+      summary: Sign up a user.
+      tags:
+      - auth
+swagger: "2.0"

@@ -51,6 +51,9 @@ mocks: internal/users/internal/interfaces.go internal/chat/internal/interfaces.g
 	@rm -rf $(MOCKS_DESTINATION)
 	@for file in $^; do mockgen -source=$$file -destination=$(MOCKS_DESTINATION)/$${file#*/}; done
 
+swagger:
+	swag init -g internal/users/cmd/main.go --output docs/
+
 .PHONY: proto
 proto:
 	protoc --go_out=. --go_opt=paths=source_relative \
