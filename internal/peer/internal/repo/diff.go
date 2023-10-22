@@ -18,7 +18,7 @@ func NewDiffRepository(cl *redis.Client) *DiffRepository {
 	}
 }
 
-func (r *DiffRepository) StartSubscriber(ctx context.Context,
+func (r *DiffRepository) SubscribeOnChatMessages(ctx context.Context,
 	messageChan chan models.Message, chatChannels []string) {
 	/*
 		this goroutine exits when the application shuts down. When the pusub connection is closed,

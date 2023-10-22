@@ -8,6 +8,7 @@ import (
 	"golang.org/x/exp/slog"
 	"log"
 	"our-little-chatik/internal/models"
+	models2 "our-little-chatik/internal/peer/internal/models"
 )
 
 type PeerRepository struct {
@@ -29,12 +30,13 @@ func parseMessage(msgStr string) (*models.Message, error) {
 	return &msg, nil
 }
 
-func (r *PeerRepository) StartSubscriber(ctx context.Context,
-	messageChan chan models.Message, chatChannel string, readyChan chan struct{}) {
+func (r *PeerRepository) SubscribeOnChatMessages(ctx context.Context,
+	chatChannel string, readyChan chan struct{}) chan models.Message {
 	/*
 		this goroutine exits when the application shuts down. When the pusub connection is closed,
 		the channel range loop terminates, hence terminating the goroutine
 	*/
+	messageChan := make(chan models.Message)
 	go func() {
 		log.Println("starting subscriber...", chatChannel)
 		sub := r.cl.Subscribe(chatChannel)
@@ -62,10 +64,11 @@ func (r *PeerRepository) StartSubscriber(ctx context.Context,
 		default:
 		}
 	}()
+	return messageChan
 }
 
-// SendToChannel pusblishes on a redis pubsub channel
-func (r *PeerRepository) SendToChannel(ctx context.Context,
+// SendMessageToChannel pusblishes on a redis pubsub channel
+func (r *PeerRepository) SendMessageToChannel(ctx context.Context,
 	msg models.Message, chatChannel string) {
 	log.Println(msg.Payload, "sent to ", chatChannel)
 	bMsg, err := json.Marshal(&msg)
@@ -126,8 +129,8 @@ func (r *PeerRepository) SubscribeToChats(ctx context.Context,
 	chats []models.Chat) (chan models.Message, error) {
 	chatChannels := make([]string, 0)
 	for _, chat := range chats {
-		chatChannels = append(chatChannels, "users_"+chat.ChatID.String())
-		log.Println("subscribe to " + "users_" + chat.ChatID.String())
+		chatChannels = append(chatChannels, fmt.Sprintf(models2.ChatUsersFmtStr, "users", chat.ChatID.String()))
+		log.Println("subscribe to " + fmt.Sprintf(models2.ChatUsersFmtStr, "users", chat.ChatID.String()))
 	}
 	sub := r.cl.PSubscribe(chatChannels...)
 

@@ -58,7 +58,7 @@ func main() {
 		panic(err)
 	}
 	peerRepo := repo.NewPeerRepository(redisClient)
-	peerHandler := delivery.NewPeerHandler(peerRepo)
+	peerHandler := delivery.NewPeerHandler(peerRepo, peerRepo)
 
 	diffHandler := delivery.NewDiffHandler(peerRepo, peerRepo)
 
