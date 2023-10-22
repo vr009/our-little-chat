@@ -6,12 +6,15 @@ import (
 )
 
 type PeerRepo interface {
-	SendToChannel(ctx context.Context, msg models.Message, chatChannel string)
 	CheckUserExists(ctx context.Context, user string, userSet string) (bool, error)
 	CreateUser(ctx context.Context, user string, userSet string) error
 	RemoveUser(ctx context.Context, user string, userSet string)
-	StartSubscriber(ctx context.Context, messageChan chan models.Message, chatChannel string, readyChan chan struct{})
 	SaveMessage(message models.Message) error
+}
+
+type MessageBus interface {
+	SubscribeOnChatMessages(ctx context.Context, chatChannel string, readyChan chan struct{}) chan models.Message
+	SendMessageToChannel(ctx context.Context, msg models.Message, chatChannel string)
 }
 
 type DiffRepo interface {

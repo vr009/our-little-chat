@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"our-little-chatik/internal/models"
 	"our-little-chatik/internal/peer/internal"
+	models2 "our-little-chatik/internal/peer/internal/models"
 	"sync"
 	"time"
 )
@@ -21,13 +22,18 @@ var upgrader = websocket.Upgrader{
 }
 
 type PeerHandler struct {
+	// peersMap is a sync map where keys are chat ids and values
+	// are maps where keys are user ids and values are their corresponding
+	// websocket connections
 	peersMap sync.Map
 	repo     internal.PeerRepo
+	msgBus   internal.MessageBus
 }
 
-func NewPeerHandler(repo internal.PeerRepo) *PeerHandler {
+func NewPeerHandler(repo internal.PeerRepo, msgBus internal.MessageBus) *PeerHandler {
 	return &PeerHandler{
-		repo: repo,
+		repo:   repo,
+		msgBus: msgBus,
 	}
 }
 
@@ -53,12 +59,12 @@ func (h *PeerHandler) ConnectToChat(w http.ResponseWriter, r *http.Request) {
 
 	if val, ok = h.peersMap.Load(chatID); !ok {
 		peers = make(map[string]*websocket.Conn)
+		h.peersMap.Store(chatID, peers)
 	} else {
 		peers = val.(map[string]*websocket.Conn)
-		h.peersMap.Store(chatID, peers)
 	}
 
-	chatSession := NewChatSession(userID, peer, peers, chatID, h.repo)
+	chatSession := NewChatSession(userID, peer, peers, chatID, h.repo, h.msgBus)
 	chatSession.Start()
 }
 
@@ -69,42 +75,46 @@ type ChatSession struct {
 	Peers  map[string]*websocket.Conn
 	repo   internal.PeerRepo
 	chatID string
+	msgBus internal.MessageBus
 }
 
 // NewChatSession returns a new ChatSession
 func NewChatSession(user string, peer *websocket.Conn,
 	peers map[string]*websocket.Conn, chatID string,
-	repo internal.PeerRepo) *ChatSession {
-	return &ChatSession{user: user, peer: peer, Peers: peers, repo: repo, chatID: chatID}
+	repo internal.PeerRepo, msgBus internal.MessageBus) *ChatSession {
+	return &ChatSession{
+		user:   user,
+		peer:   peer,
+		Peers:  peers,
+		repo:   repo,
+		chatID: chatID,
+		msgBus: msgBus,
+	}
 }
 
 const usernameHasBeenTaken = "username %s is already taken. please retry with a different name"
 const retryMessage = "failed to connect. please try again"
 const welcome = "Welcome %s!"
 
-const userSet = "%s_%s"
-
 // Start starts the chat by reading messages sent by the peer and broadcasting the to redis pub-sub channel
 func (s *ChatSession) Start() {
 	usernameTaken, err := s.repo.CheckUserExists(context.Background(),
-		s.user, fmt.Sprintf(userSet, "users", s.user))
-
+		s.user, fmt.Sprintf(models2.ChatUsersFmtStr, "users", s.chatID))
 	if err != nil {
 		log.Println("unable to determine whether user exists -", s.user)
 		s.notifyPeer(retryMessage)
 		s.peer.Close()
 		return
 	}
-
 	if usernameTaken {
 		msg := fmt.Sprintf(usernameHasBeenTaken, s.user)
-		s.peer.WriteMessage(websocket.TextMessage, []byte(msg))
+		s.notifyPeer(msg)
 		s.peer.Close()
 		return
 	}
 
 	err = s.repo.CreateUser(context.Background(),
-		s.user, fmt.Sprintf(userSet, "users", s.user))
+		s.user, fmt.Sprintf(models2.ChatUsersFmtStr, "users", s.chatID))
 	if err != nil {
 		log.Println("failed to add user to list of active chat users", s.user)
 		s.notifyPeer(retryMessage)
@@ -155,43 +165,59 @@ func (s *ChatSession) Start() {
 			if err != nil {
 				slog.Error(err.Error())
 			}
-			s.repo.SendToChannel(context.Background(),
-				msg, fmt.Sprintf(userSet, "users", s.chatID))
+			// Send via message bus
+			s.msgBus.SendMessageToChannel(context.Background(),
+				msg, fmt.Sprintf(models2.ChatUsersFmtStr, "users", s.chatID))
 		}
 	}()
-	wg := sync.WaitGroup{}
-	wg.Add(1)
+
+	readyChan := make(chan struct{})
 	go func() {
-		msgChan := make(chan models.Message)
-		readyChan := make(chan struct{})
-		s.repo.StartSubscriber(context.Background(),
-			msgChan, fmt.Sprintf(userSet, "users", s.chatID), readyChan)
-		<-readyChan
-		wg.Done()
+		msgChan := s.msgBus.SubscribeOnChatMessages(context.Background(),
+			fmt.Sprintf(models2.ChatUsersFmtStr, "users", s.chatID), readyChan)
 
 		for {
 			select {
 			case msg := <-msgChan:
-				//fmt.Printf("got your message: %s from %s\n", msg.Payload, msg.SenderID.String())
+				// TODO probably, there is no need to send it to all peers and hold the map at all.
+				//  It is enough to send to the current peer - other peers will receive their
+				//  messages in another goroutine
 				for _, peer := range s.Peers {
-					//if msg.SenderID.String() != user { //don't recieve your own messages
-					bMsg, err := json.Marshal(msg)
+					err := sendMessageToPeer(peer, msg)
 					if err != nil {
 						slog.Error(err.Error())
 						break
 					}
-					peer.WriteMessage(websocket.TextMessage, bMsg)
-					//}
 				}
 			}
 		}
 	}()
-	wg.Wait()
+
+	<-readyChan
 	s.notifyPeer(fmt.Sprintf(welcome, s.user))
 }
 
+func sendMessageToPeer(peer *websocket.Conn, msg models.Message) error {
+	notification := models2.Notification{
+		Type:    models2.ChatMessage,
+		Message: &msg,
+	}
+	bMsg, err := json.Marshal(&notification)
+	if err != nil {
+		slog.Error(err.Error())
+		return err
+	}
+	peer.WriteMessage(websocket.TextMessage, bMsg)
+	return nil
+}
+
 func (s *ChatSession) notifyPeer(msg string) {
-	err := s.peer.WriteMessage(websocket.TextMessage, []byte(msg))
+	notification := models2.Notification{
+		Type:        models2.InfoMessage,
+		Description: msg,
+	}
+	bNotification, _ := json.Marshal(notification)
+	err := s.peer.WriteMessage(websocket.TextMessage, bNotification)
 	if err != nil {
 		log.Println("failed to write message", err)
 	}
@@ -201,7 +227,7 @@ func (s *ChatSession) notifyPeer(msg string) {
 func (s *ChatSession) disconnect() {
 	//remove user from SET
 	s.repo.RemoveUser(context.Background(),
-		s.user, fmt.Sprintf(userSet, "users", s.user))
+		s.user, fmt.Sprintf(models2.ChatUsersFmtStr, "users", s.chatID))
 
 	//close websocket
 	s.peer.Close()
