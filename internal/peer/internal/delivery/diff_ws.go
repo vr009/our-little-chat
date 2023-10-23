@@ -61,7 +61,7 @@ func NewDiffSession(user string, peer *websocket.Conn,
 // Start starts the chat by reading messages sent by the peer and broadcasting the to redis pub-sub channel
 func (s *DiffSession) Start() {
 	usernameTaken, err := s.repo.CheckUserExists(context.Background(),
-		s.user, fmt.Sprintf(models2.ChatUsersFmtStr, "diff_users", s.user))
+		s.user, fmt.Sprintf(models2.CommonFormat, "diff_users", s.user))
 	if err != nil {
 		log.Println("unable to determine whether user exists -", s.user)
 		s.notifyPeer(retryMessage)
@@ -77,7 +77,7 @@ func (s *DiffSession) Start() {
 	}
 
 	err = s.repo.CreateUser(context.Background(),
-		s.user, fmt.Sprintf(models2.ChatUsersFmtStr, "diff_users", s.user))
+		s.user, fmt.Sprintf(models2.CommonFormat, "diff_users", s.user))
 	if err != nil {
 		log.Println("failed to add user to list of active chat diff users", s.user)
 		s.notifyPeer(retryMessage)
@@ -154,7 +154,7 @@ func (s *DiffSession) notifyPeer(msg string) {
 func (s *DiffSession) disconnect() {
 	//remove user from SET
 	s.repo.RemoveUser(context.Background(),
-		s.user, fmt.Sprintf(models2.ChatUsersFmtStr, "diff_users", s.user))
+		s.user, fmt.Sprintf(models2.CommonFormat, "diff_users", s.user))
 
 	//close websocket
 	s.peer.Close()

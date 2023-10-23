@@ -12,7 +12,6 @@ import (
 	"our-little-chatik/internal/models"
 	"our-little-chatik/internal/peer/internal"
 	models2 "our-little-chatik/internal/peer/internal/models"
-	"sync"
 	"time"
 )
 
@@ -22,12 +21,8 @@ var upgrader = websocket.Upgrader{
 }
 
 type PeerHandler struct {
-	// peersMap is a sync map where keys are chat ids and values
-	// are maps where keys are user ids and values are their corresponding
-	// websocket connections
-	peersMap sync.Map
-	repo     internal.PeerRepo
-	msgBus   internal.MessageBus
+	repo   internal.PeerRepo
+	msgBus internal.MessageBus
 }
 
 func NewPeerHandler(repo internal.PeerRepo, msgBus internal.MessageBus) *PeerHandler {
@@ -53,42 +48,28 @@ func (h *PeerHandler) ConnectToChat(w http.ResponseWriter, r *http.Request) {
 		log.Fatal("websocket conn failed", err)
 	}
 
-	var peers map[string]*websocket.Conn
-	var val interface{}
-	var ok bool
-
-	if val, ok = h.peersMap.Load(chatID); !ok {
-		peers = make(map[string]*websocket.Conn)
-		h.peersMap.Store(chatID, peers)
-	} else {
-		peers = val.(map[string]*websocket.Conn)
-	}
-
-	chatSession := NewChatSession(userID, peer, peers, chatID, h.repo, h.msgBus)
+	chatSession := NewChatSession(userID, peer, chatID, h.repo, h.msgBus)
 	chatSession.Start()
 }
 
 // ChatSession represents a connected/active chat user
 type ChatSession struct {
-	user   string
-	peer   *websocket.Conn
-	Peers  map[string]*websocket.Conn
-	repo   internal.PeerRepo
-	chatID string
-	msgBus internal.MessageBus
+	userID   string
+	peerConn *websocket.Conn
+	repo     internal.PeerRepo
+	chatID   string
+	msgBus   internal.MessageBus
 }
 
 // NewChatSession returns a new ChatSession
-func NewChatSession(user string, peer *websocket.Conn,
-	peers map[string]*websocket.Conn, chatID string,
+func NewChatSession(userID string, peerConn *websocket.Conn, chatID string,
 	repo internal.PeerRepo, msgBus internal.MessageBus) *ChatSession {
 	return &ChatSession{
-		user:   user,
-		peer:   peer,
-		Peers:  peers,
-		repo:   repo,
-		chatID: chatID,
-		msgBus: msgBus,
+		userID:   userID,
+		peerConn: peerConn,
+		chatID:   chatID,
+		repo:     repo,
+		msgBus:   msgBus,
 	}
 }
 
@@ -99,29 +80,28 @@ const welcome = "Welcome %s!"
 // Start starts the chat by reading messages sent by the peer and broadcasting the to redis pub-sub channel
 func (s *ChatSession) Start() {
 	usernameTaken, err := s.repo.CheckUserExists(context.Background(),
-		s.user, fmt.Sprintf(models2.ChatUsersFmtStr, "users", s.chatID))
+		s.userID, fmt.Sprintf(models2.CommonFormat, "users", s.userID))
 	if err != nil {
-		log.Println("unable to determine whether user exists -", s.user)
+		log.Println("unable to determine whether user exists -", s.userID)
 		s.notifyPeer(retryMessage)
-		s.peer.Close()
+		s.peerConn.Close()
 		return
 	}
 	if usernameTaken {
-		msg := fmt.Sprintf(usernameHasBeenTaken, s.user)
+		msg := fmt.Sprintf(usernameHasBeenTaken, s.userID)
 		s.notifyPeer(msg)
-		s.peer.Close()
+		s.peerConn.Close()
 		return
 	}
 
 	err = s.repo.CreateUser(context.Background(),
-		s.user, fmt.Sprintf(models2.ChatUsersFmtStr, "users", s.chatID))
+		s.userID, fmt.Sprintf(models2.CommonFormat, "users", s.userID))
 	if err != nil {
-		log.Println("failed to add user to list of active chat users", s.user)
+		log.Println("failed to add user to list of active chat users", s.userID)
 		s.notifyPeer(retryMessage)
-		s.peer.Close()
+		s.peerConn.Close()
 		return
 	}
-	s.Peers[s.user] = s.peer
 
 	/*
 		this go-routine will exit when:
@@ -129,9 +109,9 @@ func (s *ChatSession) Start() {
 		(2) the app is closed
 	*/
 	go func() {
-		log.Println("user joined", s.user)
+		log.Println("user joined", s.userID)
 		for {
-			_, bMsg, err := s.peer.ReadMessage()
+			_, bMsg, err := s.peerConn.ReadMessage()
 			if err != nil {
 				log.Println("=========== disconnecting ===========")
 				_, ok := err.(*websocket.CloseError)
@@ -147,7 +127,7 @@ func (s *ChatSession) Start() {
 				slog.Error(err.Error())
 				return
 			}
-			senderID, err := uuid.Parse(s.user)
+			senderID, err := uuid.Parse(s.userID)
 			if err != nil {
 				slog.Error(err.Error())
 				return
@@ -167,34 +147,29 @@ func (s *ChatSession) Start() {
 			}
 			// Send via message bus
 			s.msgBus.SendMessageToChannel(context.Background(),
-				msg, fmt.Sprintf(models2.ChatUsersFmtStr, "users", s.chatID))
+				msg, fmt.Sprintf(models2.CommonFormat, "chat", s.chatID))
 		}
 	}()
 
 	readyChan := make(chan struct{})
 	go func() {
 		msgChan := s.msgBus.SubscribeOnChatMessages(context.Background(),
-			fmt.Sprintf(models2.ChatUsersFmtStr, "users", s.chatID), readyChan)
+			fmt.Sprintf(models2.CommonFormat, "chat", s.chatID), readyChan)
 
 		for {
 			select {
 			case msg := <-msgChan:
-				// TODO probably, there is no need to send it to all peers and hold the map at all.
-				//  It is enough to send to the current peer - other peers will receive their
-				//  messages in another goroutine
-				for _, peer := range s.Peers {
-					err := sendMessageToPeer(peer, msg)
-					if err != nil {
-						slog.Error(err.Error())
-						break
-					}
+				err := sendMessageToPeer(s.peerConn, msg)
+				if err != nil {
+					slog.Error(err.Error())
+					break
 				}
 			}
 		}
 	}()
 
 	<-readyChan
-	s.notifyPeer(fmt.Sprintf(welcome, s.user))
+	s.notifyPeer(fmt.Sprintf(welcome, s.userID))
 }
 
 func sendMessageToPeer(peer *websocket.Conn, msg models.Message) error {
@@ -217,7 +192,7 @@ func (s *ChatSession) notifyPeer(msg string) {
 		Description: msg,
 	}
 	bNotification, _ := json.Marshal(notification)
-	err := s.peer.WriteMessage(websocket.TextMessage, bNotification)
+	err := s.peerConn.WriteMessage(websocket.TextMessage, bNotification)
 	if err != nil {
 		log.Println("failed to write message", err)
 	}
@@ -227,11 +202,8 @@ func (s *ChatSession) notifyPeer(msg string) {
 func (s *ChatSession) disconnect() {
 	//remove user from SET
 	s.repo.RemoveUser(context.Background(),
-		s.user, fmt.Sprintf(models2.ChatUsersFmtStr, "users", s.chatID))
+		s.userID, fmt.Sprintf(models2.CommonFormat, "users", s.userID))
 
 	//close websocket
-	s.peer.Close()
-
-	//remove from Peers
-	delete(s.Peers, s.user)
+	s.peerConn.Close()
 }
