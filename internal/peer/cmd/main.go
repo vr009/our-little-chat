@@ -60,7 +60,9 @@ func main() {
 	peerRepo := repo.NewPeerRepository(redisClient)
 	peerHandler := delivery.NewPeerHandler(peerRepo, peerRepo)
 
-	diffHandler := delivery.NewDiffHandler(peerRepo, peerRepo)
+	diffRepo := repo.NewDiffRepository(redisClient)
+
+	diffHandler := delivery.NewDiffHandler(peerRepo, diffRepo)
 
 	r := mux.NewRouter()
 

@@ -46,41 +46,46 @@ func (h *DiffHandler) ConnectToDiff(w http.ResponseWriter, r *http.Request) {
 
 // DiffSession represents a connected/active chats diff user
 type DiffSession struct {
-	user     string
+	userID   string
 	peer     *websocket.Conn
 	repo     internal.PeerRepo
 	diffRepo internal.DiffRepo
 }
 
 // NewDiffSession returns a new DiffSession
-func NewDiffSession(user string, peer *websocket.Conn,
+func NewDiffSession(userID string, peer *websocket.Conn,
 	repo internal.PeerRepo, diffRepo internal.DiffRepo) *DiffSession {
-	return &DiffSession{user: user, peer: peer, repo: repo, diffRepo: diffRepo}
+	return &DiffSession{userID: userID, peer: peer, repo: repo, diffRepo: diffRepo}
 }
 
 // Start starts the chat by reading messages sent by the peer and broadcasting the to redis pub-sub channel
 func (s *DiffSession) Start() {
 	usernameTaken, err := s.repo.CheckUserExists(context.Background(),
-		s.user, fmt.Sprintf(models2.CommonFormat, "diff_users", s.user))
+		s.userID, fmt.Sprintf(models2.CommonFormat, "diff_users", s.userID))
 	if err != nil {
-		log.Println("unable to determine whether user exists -", s.user)
-		s.notifyPeer(retryMessage)
+		log.Println("unable to determine whether user exists -", s.userID)
+		s.notifyPeer(models2.Failed, map[string]any{
+			"description": retryMessage,
+		})
 		s.peer.Close()
 		return
 	}
-
 	if usernameTaken {
-		msg := fmt.Sprintf(usernameHasBeenTaken, s.user)
-		s.notifyPeer(msg)
+		msg := fmt.Sprintf(usernameHasBeenTaken, s.userID)
+		s.notifyPeer(models2.Conflict, map[string]any{
+			"description": msg,
+		})
 		s.peer.Close()
 		return
 	}
 
 	err = s.repo.CreateUser(context.Background(),
-		s.user, fmt.Sprintf(models2.CommonFormat, "diff_users", s.user))
+		s.userID, fmt.Sprintf(models2.CommonFormat, "diff_users", s.userID))
 	if err != nil {
-		log.Println("failed to add user to list of active chat diff users", s.user)
-		s.notifyPeer(retryMessage)
+		log.Println("failed to add user to list of active chat diff users", s.userID)
+		s.notifyPeer(models2.Failed, map[string]any{
+			"description": retryMessage,
+		})
 		s.peer.Close()
 		return
 	}
@@ -91,7 +96,7 @@ func (s *DiffSession) Start() {
 		(2) the app is closed
 	*/
 	go func() {
-		log.Println("user joined", s.user)
+		log.Println("user joined", s.userID)
 		ctx, cancel := context.WithCancel(context.Background())
 		for {
 			_, bMsg, err := s.peer.ReadMessage()
@@ -143,8 +148,18 @@ func (s *DiffSession) Start() {
 	}()
 }
 
-func (s *DiffSession) notifyPeer(msg string) {
-	err := s.peer.WriteMessage(websocket.TextMessage, []byte(msg))
+func (s *DiffSession) notifyPeer(statusType models2.ConnectionStatusType,
+	properties map[string]any) {
+	status := models2.PeerConnectionStatus{
+		Status:     statusType,
+		Properties: properties,
+	}
+	notification := models2.Notification{
+		Type: models2.InfoMessage,
+		Body: &status,
+	}
+	bNotification, _ := json.Marshal(notification)
+	err := s.peer.WriteMessage(websocket.TextMessage, bNotification)
 	if err != nil {
 		log.Println("failed to write message", err)
 	}
@@ -154,7 +169,7 @@ func (s *DiffSession) notifyPeer(msg string) {
 func (s *DiffSession) disconnect() {
 	//remove user from SET
 	s.repo.RemoveUser(context.Background(),
-		s.user, fmt.Sprintf(models2.CommonFormat, "diff_users", s.user))
+		s.userID, fmt.Sprintf(models2.CommonFormat, "diff_users", s.userID))
 
 	//close websocket
 	s.peer.Close()

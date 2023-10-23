@@ -8,7 +8,6 @@ import (
 	"golang.org/x/exp/slog"
 	"log"
 	"our-little-chatik/internal/models"
-	models2 "our-little-chatik/internal/peer/internal/models"
 )
 
 type PeerRepository struct {
@@ -123,37 +122,4 @@ func (r *PeerRepository) SaveMessage(message models.Message) error {
 		return err
 	}
 	return nil
-}
-
-func (r *PeerRepository) SubscribeToChats(ctx context.Context,
-	chats []models.Chat) (chan models.Message, error) {
-	chatChannels := make([]string, 0)
-	for _, chat := range chats {
-		chatChannels = append(chatChannels, fmt.Sprintf(models2.CommonFormat, "users", chat.ChatID.String()))
-		log.Println("subscribe to " + fmt.Sprintf(models2.CommonFormat, "users", chat.ChatID.String()))
-	}
-	sub := r.cl.PSubscribe(chatChannels...)
-
-	userMsgChan := make(chan models.Message)
-
-	msgChan := sub.Channel()
-	go func() {
-		for {
-			select {
-			case redisMsg := <-msgChan:
-				log.Println("GOT MESSAGES")
-				msg := models.Message{}
-				bMsg := redisMsg.Payload
-				err := json.Unmarshal([]byte(bMsg), &msg)
-				if err != nil {
-					slog.Error(err.Error())
-					continue
-				}
-				userMsgChan <- msg
-			case <-ctx.Done():
-				slog.Warn("finish by context")
-			}
-		}
-	}()
-	return userMsgChan, nil
 }
