@@ -2,11 +2,11 @@ package models
 
 import "our-little-chatik/internal/models"
 
-type NotificationType int8
+type NotificationType string
 
 const (
-	InfoMessage NotificationType = iota
-	ChatMessage
+	InfoMessage NotificationType = "info"
+	ChatMessage NotificationType = "chat"
 )
 
 type Notification struct {

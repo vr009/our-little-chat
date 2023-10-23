@@ -153,6 +153,7 @@ func (s *ChatSession) Start() {
 
 	readyChan := make(chan struct{})
 	go func() {
+		// subscribe on messages from the message bus
 		msgChan := s.msgBus.SubscribeOnChatMessages(context.Background(),
 			fmt.Sprintf(models2.CommonFormat, "chat", s.chatID), readyChan)
 
