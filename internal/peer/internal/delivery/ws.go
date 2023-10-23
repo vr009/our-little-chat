@@ -83,13 +83,17 @@ func (s *ChatSession) Start() {
 		s.userID, fmt.Sprintf(models2.CommonFormat, "users", s.userID))
 	if err != nil {
 		log.Println("unable to determine whether user exists -", s.userID)
-		s.notifyPeer(retryMessage)
+		s.notifyPeer(models2.Failed, map[string]any{
+			"description": retryMessage,
+		})
 		s.peerConn.Close()
 		return
 	}
 	if usernameTaken {
 		msg := fmt.Sprintf(usernameHasBeenTaken, s.userID)
-		s.notifyPeer(msg)
+		s.notifyPeer(models2.Conflict, map[string]any{
+			"description": msg,
+		})
 		s.peerConn.Close()
 		return
 	}
@@ -98,7 +102,9 @@ func (s *ChatSession) Start() {
 		s.userID, fmt.Sprintf(models2.CommonFormat, "users", s.userID))
 	if err != nil {
 		log.Println("failed to add user to list of active chat users", s.userID)
-		s.notifyPeer(retryMessage)
+		s.notifyPeer(models2.Failed, map[string]any{
+			"description": retryMessage,
+		})
 		s.peerConn.Close()
 		return
 	}
@@ -170,13 +176,16 @@ func (s *ChatSession) Start() {
 	}()
 
 	<-readyChan
-	s.notifyPeer(fmt.Sprintf(welcome, s.userID))
+	s.notifyPeer(models2.Established, map[string]any{
+		"peer_user_id":      s.userID,
+		"connected_chat_id": s.chatID,
+	})
 }
 
 func sendMessageToPeer(peer *websocket.Conn, msg models.Message) error {
 	notification := models2.Notification{
-		Type:    models2.ChatMessage,
-		Message: &msg,
+		Type: models2.ChatMessage,
+		Body: &msg,
 	}
 	bMsg, err := json.Marshal(&notification)
 	if err != nil {
@@ -187,10 +196,15 @@ func sendMessageToPeer(peer *websocket.Conn, msg models.Message) error {
 	return nil
 }
 
-func (s *ChatSession) notifyPeer(msg string) {
+func (s *ChatSession) notifyPeer(statusType models2.ConnectionStatusType,
+	properties map[string]any) {
+	status := models2.PeerConnectionStatus{
+		Status:     statusType,
+		Properties: properties,
+	}
 	notification := models2.Notification{
-		Type:        models2.InfoMessage,
-		Description: msg,
+		Type: models2.InfoMessage,
+		Body: &status,
 	}
 	bNotification, _ := json.Marshal(notification)
 	err := s.peerConn.WriteMessage(websocket.TextMessage, bNotification)
