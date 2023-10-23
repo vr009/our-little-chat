@@ -25,6 +25,6 @@ const (
 
 // PeerConnectionStatus is a type for notifying peer about a connection status.
 type PeerConnectionStatus struct {
-	Status     ConnectionStatusType
-	Properties map[string]any
+	Status     ConnectionStatusType `json:"status"`
+	Properties map[string]any       `json:"properties,omitempty"`
 }
