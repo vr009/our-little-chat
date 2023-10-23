@@ -2,10 +2,13 @@ package repo
 
 import (
 	"context"
+	"encoding/json"
+	"fmt"
 	"github.com/go-redis/redis"
 	"golang.org/x/exp/slog"
 	"log"
 	"our-little-chatik/internal/models"
+	models2 "our-little-chatik/internal/peer/internal/models"
 )
 
 type DiffRepository struct {
@@ -18,32 +21,33 @@ func NewDiffRepository(cl *redis.Client) *DiffRepository {
 	}
 }
 
-func (r *DiffRepository) SubscribeOnChatMessages(ctx context.Context,
-	messageChan chan models.Message, chatChannels []string) {
-	/*
-		this goroutine exits when the application shuts down. When the pusub connection is closed,
-		the channel range loop terminates, hence terminating the goroutine
-	*/
+func (r *DiffRepository) SubscribeToChats(ctx context.Context,
+	chats []models.Chat) (chan models.Message, error) {
+	chatChannels := make([]string, 0)
+	for _, chat := range chats {
+		chatChannels = append(chatChannels, fmt.Sprintf(models2.CommonFormat, "users", chat.ChatID.String()))
+		log.Println("subscribe to " + fmt.Sprintf(models2.CommonFormat, "users", chat.ChatID.String()))
+	}
+	sub := r.cl.PSubscribe(chatChannels...)
+	userMsgChan := make(chan models.Message)
+	msgChan := sub.Channel()
 	go func() {
-		log.Println("starting subscriber...")
-		sub := r.cl.Subscribe(chatChannels...)
-		messages := sub.Channel()
-		for message := range messages {
-			msg, err := parseMessage(message.Payload)
-			if err != nil {
-				slog.Error(err.Error())
-				continue
+		for {
+			select {
+			case redisMsg := <-msgChan:
+				log.Println("GOT MESSAGES")
+				msg := models.Message{}
+				bMsg := redisMsg.Payload
+				err := json.Unmarshal([]byte(bMsg), &msg)
+				if err != nil {
+					slog.Error(err.Error())
+					continue
+				}
+				userMsgChan <- msg
+			case <-ctx.Done():
+				slog.Warn("finish by context")
 			}
-			messageChan <- *msg
-		}
-		select {
-		case <-ctx.Done():
-			err := sub.Unsubscribe(chatChannels...)
-			if err != nil {
-				slog.Error(err.Error())
-			}
-			return
-		default:
 		}
 	}()
+	return userMsgChan, nil
 }
