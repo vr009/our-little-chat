@@ -1,3 +1,3 @@
 package models
 
-const ChatUsersFmtStr = "%s_%s"
+const CommonFormat = "%s_%s"

@@ -129,8 +129,8 @@ func (r *PeerRepository) SubscribeToChats(ctx context.Context,
 	chats []models.Chat) (chan models.Message, error) {
 	chatChannels := make([]string, 0)
 	for _, chat := range chats {
-		chatChannels = append(chatChannels, fmt.Sprintf(models2.ChatUsersFmtStr, "users", chat.ChatID.String()))
-		log.Println("subscribe to " + fmt.Sprintf(models2.ChatUsersFmtStr, "users", chat.ChatID.String()))
+		chatChannels = append(chatChannels, fmt.Sprintf(models2.CommonFormat, "users", chat.ChatID.String()))
+		log.Println("subscribe to " + fmt.Sprintf(models2.CommonFormat, "users", chat.ChatID.String()))
 	}
 	sub := r.cl.PSubscribe(chatChannels...)
 
