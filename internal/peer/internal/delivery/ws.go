@@ -177,7 +177,7 @@ func (s *ChatSession) Start() {
 
 	<-readyChan
 	s.notifyPeer(models2.Established, map[string]any{
-		"peer_user_id":      s.userID,
+		"connected_user_id": s.userID,
 		"connected_chat_id": s.chatID,
 	})
 }
