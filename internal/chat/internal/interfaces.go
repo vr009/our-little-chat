@@ -8,7 +8,7 @@ import (
 
 type ChatRepo interface {
 	GetChatMessages(ctx context.Context, chat models.Chat, opts models.Opts) (models.Messages, models.StatusCode)
-	FetchChatList(ctx context.Context, user models.User) ([]models.ChatItem, models.StatusCode)
+	FetchChatList(ctx context.Context, user models.User) ([]models.Chat, models.StatusCode)
 	CreateChat(ctx context.Context, chat models.Chat, chatNames map[string]string) models.StatusCode
 	GetChat(ctx context.Context, chat models.Chat) (models.Chat, models.StatusCode)
 	DeleteMessage(ctx context.Context, message models.Message) models.StatusCode
@@ -28,7 +28,7 @@ type QueueRepo interface {
 type ChatUseCase interface {
 	CreateChat(ctx context.Context, chat models2.CreateChatRequest) (models.Chat, models.StatusCode)
 	GetChatMessages(ctx context.Context, chat models.Chat, opts models.Opts) (models.Messages, models.StatusCode)
-	GetChatList(ctx context.Context, user models.User) ([]models.ChatItem, models.StatusCode)
+	GetChatList(ctx context.Context, user models.User) ([]models.Chat, models.StatusCode)
 	GetChat(ctx context.Context, chat models.Chat) (models.Chat, models.StatusCode)
 	DeleteChat(ctx context.Context, chat models.Chat) models.StatusCode
 	DeleteMessage(ctx context.Context, message models.Message) models.StatusCode

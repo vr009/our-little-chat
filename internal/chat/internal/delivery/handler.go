@@ -200,7 +200,7 @@ func (ch *ChatEchoHandler) PostNewChat(c echo.Context) error {
 	}
 
 	v := validator.New()
-	models2.ValidateLoginRequest(v, input)
+	models2.ValidateCreateChatRequest(v, input)
 	if !v.Valid() {
 		return pkg.FailedValidationResponse(c, v.Errors)
 	}

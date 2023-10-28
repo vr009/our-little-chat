@@ -12,7 +12,7 @@ type CreateChatRequest struct {
 	IssuerID     uuid.UUID   `json:"-"`
 }
 
-func ValidateLoginRequest(v *validator.Validator, request CreateChatRequest) {
+func ValidateCreateChatRequest(v *validator.Validator, request CreateChatRequest) {
 	if request.Name != nil {
 		v.Check(len(*request.Name) < 50, "name", "must be less than 50 bytes")
 	}
