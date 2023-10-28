@@ -33,16 +33,28 @@ func TestPostgresRepo_FetchChatList(t *testing.T) {
 	testURL := "test_url"
 	testName := "test"
 
-	testChatItem := models.ChatItem{
-		ChatID:   testChatID,
-		Name:     testName,
-		PhotoURL: testURL,
+	testMsg := models.Message{
+		MsgID:     uuid.New(),
+		SenderID:  uuid.New(),
+		Payload:   "test",
+		CreatedAt: int64(1),
+	}
+
+	testChat := models.Chat{
+		ChatID:      testChatID,
+		Name:        testName,
+		PhotoURL:    testURL,
+		LastMessage: testMsg,
 	}
 
 	columns := []string{
 		"cp.chat_id",
 		"cp.chat_name",
 		"c.photo_url",
+		"m.msg_id",
+		"m.sender_id",
+		"m.payload",
+		"m.created_at",
 	}
 
 	tests := []struct {
@@ -50,7 +62,7 @@ func TestPostgresRepo_FetchChatList(t *testing.T) {
 		pre    func()
 		fields fields
 		args   args
-		want   []models.ChatItem
+		want   []models.Chat
 		status models.StatusCode
 	}{
 		{
@@ -62,14 +74,15 @@ func TestPostgresRepo_FetchChatList(t *testing.T) {
 				mock.ExpectQuery(regexp.QuoteMeta(FetchChatListQuery)).
 					WithArgs(testUserID).
 					WillReturnRows(sqlmock.NewRows(columns).AddRow(testChatID,
-						testName, testURL))
+						testName, testURL, testMsg.MsgID, testMsg.SenderID,
+						testMsg.Payload, testMsg.CreatedAt))
 			},
 			args: args{
 				user: models.User{
 					ID: testUserID,
 				},
 			},
-			want:   []models.ChatItem{testChatItem},
+			want:   []models.Chat{testChat},
 			status: models.OK,
 		},
 	}
@@ -112,6 +125,13 @@ func TestPostgresRepo_GetChat(t *testing.T) {
 	participant1 := uuid.New()
 	participant2 := uuid.New()
 
+	testMsg := models.Message{
+		MsgID:     uuid.New(),
+		SenderID:  uuid.New(),
+		Payload:   "test",
+		CreatedAt: int64(1),
+	}
+
 	passingTestChat := models.Chat{
 		ChatID: testChatID,
 	}
@@ -121,6 +141,12 @@ func TestPostgresRepo_GetChat(t *testing.T) {
 		PhotoURL:     testURL,
 		CreatedAt:    testTimestamp,
 		Participants: []uuid.UUID{participant1, participant2},
+		LastMessage: models.Message{
+			MsgID:     testMsg.MsgID,
+			SenderID:  testMsg.SenderID,
+			Payload:   testMsg.Payload,
+			CreatedAt: testMsg.CreatedAt,
+		},
 	}
 
 	columns := []string{
@@ -128,6 +154,10 @@ func TestPostgresRepo_GetChat(t *testing.T) {
 		"cp.chat_name",
 		"c.photo_url",
 		"c.created_at",
+		"m.msg_id",
+		"m.sender_id",
+		"m.payload",
+		"m.created_at",
 	}
 
 	pColumns := []string{
@@ -151,7 +181,8 @@ func TestPostgresRepo_GetChat(t *testing.T) {
 				mock.ExpectQuery(regexp.QuoteMeta(GetChatInfoQuery)).
 					WithArgs(expectedTestChat.ChatID).
 					WillReturnRows(sqlmock.NewRows(columns).AddRow(testChatID,
-						testName, testURL, testTimestamp))
+						testName, testURL, testTimestamp, testMsg.MsgID, testMsg.SenderID,
+						testMsg.Payload, testMsg.CreatedAt))
 				mock.ExpectQuery(regexp.QuoteMeta(GetChatParticipantsQuery)).
 					WithArgs(expectedTestChat.ChatID).
 					WillReturnRows(sqlmock.NewRows(pColumns).AddRow(participant1).AddRow(participant2))

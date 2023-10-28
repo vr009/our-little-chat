@@ -41,9 +41,11 @@ func (ch *ChatUseCase) GetChatMessages(ctx context.Context, chat models.Chat,
 	return msgs, models.OK
 }
 
-func (ch *ChatUseCase) GetChatList(ctx context.Context, user models.User) ([]models.ChatItem, models.StatusCode) {
+func (ch *ChatUseCase) GetChatList(ctx context.Context, user models.User) ([]models.Chat, models.StatusCode) {
 	return ch.repo.FetchChatList(ctx, user)
 }
+
+const defaultPhotoURL = "default.png"
 
 func (ch *ChatUseCase) CreateChat(ctx context.Context, request models2.CreateChatRequest) (models.Chat, models.StatusCode) {
 	chat := models.Chat{
@@ -98,6 +100,9 @@ func (ch *ChatUseCase) CreateChat(ctx context.Context, request models2.CreateCha
 		for _, participant := range chat.Participants {
 			chatName[participant.String()] = "Group chat " + chat.ChatID.String()
 		}
+	}
+	if request.PhotoURL == nil {
+		chat.PhotoURL = defaultPhotoURL
 	}
 	status := ch.repo.CreateChat(ctx, chat, chatName)
 	if status != models.OK {

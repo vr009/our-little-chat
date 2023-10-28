@@ -356,7 +356,7 @@ func TestChatEchoHandler_GetChatList(t *testing.T) {
 	userID := uuid.New()
 
 	chatID := uuid.New()
-	testChat := models2.ChatItem{
+	testChat := models2.Chat{
 		ChatID: chatID,
 	}
 
@@ -385,7 +385,7 @@ func TestChatEchoHandler_GetChatList(t *testing.T) {
 			prepare: func(f *fields) {
 				f.usecase.EXPECT().
 					GetChatList(gomock.Any(), models2.User{ID: userID}).
-					Return([]models2.ChatItem{testChat}, models2.OK)
+					Return([]models2.Chat{testChat}, models2.OK)
 			},
 			checkResponse: func(recorder *httptest.ResponseRecorder) error {
 				if recorder.Code != http.StatusOK {

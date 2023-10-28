@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"github.com/go-redis/redis"
 	"golang.org/x/exp/slog"
-	"log"
 	"our-little-chatik/internal/models"
 	models2 "our-little-chatik/internal/peer/internal/models"
 )
@@ -26,7 +25,6 @@ func (r *DiffRepository) SubscribeToChats(ctx context.Context,
 	chatChannels := make([]string, 0)
 	for _, chat := range chats {
 		chatChannels = append(chatChannels, fmt.Sprintf(models2.CommonFormat, "chat", chat.ChatID.String()))
-		log.Println("subscribe to " + fmt.Sprintf(models2.CommonFormat, "chat", chat.ChatID.String()))
 	}
 	sub := r.cl.PSubscribe(chatChannels...)
 	userMsgChan := make(chan models.Message)
@@ -35,7 +33,6 @@ func (r *DiffRepository) SubscribeToChats(ctx context.Context,
 		for {
 			select {
 			case redisMsg := <-msgChan:
-				log.Println("GOT MESSAGES")
 				msg := models.Message{}
 				bMsg := redisMsg.Payload
 				err := json.Unmarshal([]byte(bMsg), &msg)

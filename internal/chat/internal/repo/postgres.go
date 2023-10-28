@@ -14,11 +14,13 @@ const (
 	CreateChatParticipantsQuery = `INSERT INTO chat_participants VALUES ($1, $2, $3)`
 	CreateChatQuery             = `INSERT INTO chats VALUES($1, $2, $3)`
 	GetChatMessagesQuery        = `SELECT msg_id, sender_id, payload, created_at FROM messages WHERE chat_id=$1 ORDER BY created_at ASC OFFSET $2 LIMIT $3`
-	GetChatInfoQuery            = `SELECT c.chat_id, cp.chat_name, c.photo_url, c.created_at FROM chats AS c
-    LEFT JOIN chat_participants AS cp ON c.chat_id = cp.chat_id WHERE c.chat_id=$1`
+	GetChatInfoQuery            = `SELECT c.chat_id, cp.chat_name, c.photo_url, c.created_at, m.msg_id, m.sender_id, m.payload, m.created_at FROM chats AS c
+    LEFT JOIN chat_participants AS cp ON c.chat_id = cp.chat_id 
+    LEFT JOIN messages AS m ON c.last_msg_id = m.msg_id WHERE c.chat_id=$1`
 	GetChatParticipantsQuery = `SELECT participant_id FROM chat_participants WHERE chat_id=$1`
-	FetchChatListQuery       = `SELECT cp.chat_id, cp.chat_name, c.photo_url FROM chat_participants AS cp 
-    LEFT JOIN chats AS c ON cp.chat_id = c.chat_id                      
+	FetchChatListQuery       = `SELECT cp.chat_id, cp.chat_name, c.photo_url, m.msg_id, m.sender_id, m.payload, m.created_at FROM chat_participants AS cp 
+    LEFT JOIN chats AS c ON cp.chat_id = c.chat_id
+    LEFT JOIN messages AS m on c.last_msg_id = m.msg_id                                         
                           WHERE cp.participant_id=$1`
 	UpdatePhotoURLQuery     = "UPDATE chats SET photo_url=$1 WHERE chat_id=$2"
 	RemoveUserFromChatQuery = "DELETE FROM chat_participants WHERE participant_id=$1 AND chat_id=$2"
@@ -37,14 +39,29 @@ func NewPostgresRepo(pool *sql.DB) *PostgresRepo {
 // GetChat
 func (pr PostgresRepo) GetChat(ctx context.Context, chat models.Chat) (models.Chat, models.StatusCode) {
 	row := pr.pool.QueryRowContext(ctx, GetChatInfoQuery, chat.ChatID)
-	err := row.Scan(&chat.ChatID, &chat.Name, &chat.PhotoURL, &chat.CreatedAt)
+	lastMsgID := uuid.NullUUID{}
+	senderID := uuid.NullUUID{}
+	payload := sql.NullString{}
+	createdAt := sql.NullInt64{}
+	err := row.Scan(&chat.ChatID, &chat.Name, &chat.PhotoURL, &chat.CreatedAt, &lastMsgID,
+		&senderID, &payload, &createdAt)
 	if err != nil {
-		log.Println("err here get", err.Error())
 		return models.Chat{}, models.NotFound
+	}
+	if lastMsgID.Valid {
+		chat.LastMessage.MsgID = lastMsgID.UUID
+	}
+	if senderID.Valid {
+		chat.LastMessage.SenderID = senderID.UUID
+	}
+	if payload.Valid {
+		chat.LastMessage.Payload = payload.String
+	}
+	if createdAt.Valid {
+		chat.LastMessage.CreatedAt = createdAt.Int64
 	}
 	rows, err := pr.pool.QueryContext(ctx, GetChatParticipantsQuery, chat.ChatID)
 	if err != nil {
-		log.Println("err here get 2", err.Error())
 		return models.Chat{}, models.InternalError
 	}
 	for rows.Next() {
@@ -80,18 +97,36 @@ func (pr PostgresRepo) GetChatMessages(ctx context.Context, chat models.Chat, op
 }
 
 // FetchChatList
-func (pr PostgresRepo) FetchChatList(ctx context.Context, user models.User) ([]models.ChatItem, models.StatusCode) {
+func (pr PostgresRepo) FetchChatList(ctx context.Context, user models.User) ([]models.Chat, models.StatusCode) {
 	rows, err := pr.pool.QueryContext(ctx, FetchChatListQuery, user.ID)
 	if err != nil {
 		return nil, models.NotFound
 	}
 
-	chatList := make([]models.ChatItem, 0)
+	lastMsgID := uuid.NullUUID{}
+	senderID := uuid.NullUUID{}
+	payload := sql.NullString{}
+	createdAt := sql.NullInt64{}
+
+	chatList := make([]models.Chat, 0)
 	for rows.Next() {
-		chat := models.ChatItem{}
-		err := rows.Scan(&chat.ChatID, &chat.Name, &chat.PhotoURL)
+		chat := models.Chat{}
+		err := rows.Scan(&chat.ChatID, &chat.Name, &chat.PhotoURL, &lastMsgID,
+			&senderID, &payload, &createdAt)
 		if err != nil {
 			return nil, models.InternalError
+		}
+		if lastMsgID.Valid {
+			chat.LastMessage.MsgID = lastMsgID.UUID
+		}
+		if senderID.Valid {
+			chat.LastMessage.SenderID = senderID.UUID
+		}
+		if payload.Valid {
+			chat.LastMessage.Payload = payload.String
+		}
+		if createdAt.Valid {
+			chat.LastMessage.CreatedAt = createdAt.Int64
 		}
 
 		chatList = append(chatList, chat)

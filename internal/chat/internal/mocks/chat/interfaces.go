@@ -102,10 +102,10 @@ func (mr *MockChatRepoMockRecorder) DeleteMessage(ctx, message any) *gomock.Call
 }
 
 // FetchChatList mocks base method.
-func (m *MockChatRepo) FetchChatList(ctx context.Context, user models0.User) ([]models0.ChatItem, models0.StatusCode) {
+func (m *MockChatRepo) FetchChatList(ctx context.Context, user models0.User) ([]models0.Chat, models0.StatusCode) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "FetchChatList", ctx, user)
-	ret0, _ := ret[0].([]models0.ChatItem)
+	ret0, _ := ret[0].([]models0.Chat)
 	ret1, _ := ret[1].(models0.StatusCode)
 	return ret0, ret1
 }
@@ -318,10 +318,10 @@ func (mr *MockChatUseCaseMockRecorder) GetChat(ctx, chat any) *gomock.Call {
 }
 
 // GetChatList mocks base method.
-func (m *MockChatUseCase) GetChatList(ctx context.Context, user models0.User) ([]models0.ChatItem, models0.StatusCode) {
+func (m *MockChatUseCase) GetChatList(ctx context.Context, user models0.User) ([]models0.Chat, models0.StatusCode) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetChatList", ctx, user)
-	ret0, _ := ret[0].([]models0.ChatItem)
+	ret0, _ := ret[0].([]models0.Chat)
 	ret1, _ := ret[1].(models0.StatusCode)
 	return ret0, ret1
 }
