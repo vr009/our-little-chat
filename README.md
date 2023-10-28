@@ -15,5 +15,5 @@
 - Redis
 - [Redis Pub/Sub](https://redis.io/docs/interact/pubsub/)
 <!-- Coverage Comment:Begin -->
-[coverage_badge]: https://img.shields.io/badge/Coverage-29%25-yellow.svg?style=flat
+[coverage_badge]: https://img.shields.io/badge/Coverage-63%25-yellow.svg?style=flat
 <!-- Coverage Comment:End -->
