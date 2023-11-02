@@ -217,6 +217,21 @@ func (mr *MockQueueRepoMockRecorder) GetChatMessages(chat, opts any) *gomock.Cal
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetChatMessages", reflect.TypeOf((*MockQueueRepo)(nil).GetChatMessages), chat, opts)
 }
 
+// GetChatsLastMessages mocks base method.
+func (m *MockQueueRepo) GetChatsLastMessages(chatList []models0.Chat) (models0.Messages, models0.StatusCode) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetChatsLastMessages", chatList)
+	ret0, _ := ret[0].(models0.Messages)
+	ret1, _ := ret[1].(models0.StatusCode)
+	return ret0, ret1
+}
+
+// GetChatsLastMessages indicates an expected call of GetChatsLastMessages.
+func (mr *MockQueueRepoMockRecorder) GetChatsLastMessages(chatList any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetChatsLastMessages", reflect.TypeOf((*MockQueueRepo)(nil).GetChatsLastMessages), chatList)
+}
+
 // MockChatUseCase is a mock of ChatUseCase interface.
 type MockChatUseCase struct {
 	ctrl     *gomock.Controller

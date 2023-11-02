@@ -42,7 +42,21 @@ func (ch *ChatUseCase) GetChatMessages(ctx context.Context, chat models.Chat,
 }
 
 func (ch *ChatUseCase) GetChatList(ctx context.Context, user models.User) ([]models.Chat, models.StatusCode) {
-	return ch.repo.FetchChatList(ctx, user)
+	chatList, statusCode := ch.repo.FetchChatList(ctx, user)
+	if statusCode != models.OK {
+		return nil, statusCode
+	}
+	lastChatsMessages, statusCode := ch.queue.GetChatsLastMessages(chatList)
+	if statusCode == models.OK {
+		for _, chat := range chatList {
+			for _, msg := range lastChatsMessages {
+				if chat.ChatID == msg.ChatID {
+					chat.LastMessage = msg
+				}
+			}
+		}
+	}
+	return chatList, models.OK
 }
 
 const defaultPhotoURL = "default.png"

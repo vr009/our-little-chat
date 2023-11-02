@@ -40,7 +40,7 @@ func TestRedisRepo_GetChatMessages(t *testing.T) {
 	}
 
 	db, mock := redismock.NewClientMock()
-	key := fmt.Sprintf("%s_%s", testChat.ChatID.String(), testMsgID.String())
+	key := fmt.Sprintf("%s:%s", testChat.ChatID.String(), testMsgID.String())
 
 	bData, _ := json.Marshal(testMsg)
 	mock.ExpectKeys(testChat.ChatID.String() + "*").SetVal([]string{key})

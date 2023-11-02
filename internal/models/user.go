@@ -8,14 +8,14 @@ import (
 )
 
 type User struct {
-	ID         uuid.UUID `json:"user_id,omitempty"`
-	Nickname   string    `json:"nickname,omitempty"`
-	Name       string    `json:"name,omitempty"`
-	Surname    string    `json:"surname,omitempty"`
-	Password   Password  `json:"-"`
-	Avatar     string    `json:"avatar,omitempty"`
-	Registered time.Time `json:"registered,omitempty"`
-	Activated  bool      `json:"activated"`
+	ID           uuid.UUID `json:"user_id,omitempty"`
+	Nickname     string    `json:"nickname,omitempty"`
+	Name         string    `json:"name,omitempty"`
+	Surname      string    `json:"surname,omitempty"`
+	Password     Password  `json:"-"`
+	Avatar       string    `json:"avatar,omitempty"`
+	RegisteredAt time.Time `json:"registered_at,omitempty"`
+	Activated    bool      `json:"activated"`
 }
 
 type Password struct {

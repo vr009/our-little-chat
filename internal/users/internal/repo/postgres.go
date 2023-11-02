@@ -9,12 +9,12 @@ import (
 )
 
 const (
-	InsertQuery = "INSERT INTO users(user_id, nickname, user_name, surname, password, avatar) " +
-		"VALUES($1, $2, $3, $4, $5, $6) RETURNING registered;"
+	InsertQuery = "INSERT INTO users(user_id, nickname, user_name, surname, password, avatar, activated) " +
+		"VALUES($1, $2, $3, $4, $5, $6, $7) RETURNING registered_at;"
 	DeleteQuery    = "UPDATE users SET activated=false WHERE user_id=$1;"
 	UpdateQuery    = "UPDATE users SET nickname=$1, user_name=$2, surname=$3, avatar=$4, password=$5 WHERE user_id=$6;"
-	GetQuery       = "SELECT user_id, nickname, user_name, surname, password, registered, avatar  FROM users WHERE user_id=$1;"
-	GetNameQuery   = "SELECT user_id, nickname, user_name, surname, password, registered, avatar  FROM users WHERE nickname=$1;"
+	GetQuery       = "SELECT user_id, nickname, user_name, surname, password, registered_at, avatar, activated  FROM users WHERE user_id=$1;"
+	GetNameQuery   = "SELECT user_id, nickname, user_name, surname, password, registered_at, avatar, activated  FROM users WHERE nickname=$1;"
 	FindUsersQuery = "SELECT user_id, nickname, user_name, surname, avatar FROM users WHERE nickname LIKE LOWER($1 || '%') LIMIT 10"
 )
 
@@ -38,7 +38,8 @@ func (pr *UserRepo) CreateUser(user models2.User) (models2.User, models2.StatusC
 		user.Surname,
 		user.Password.Hash,
 		user.Avatar,
-	).Scan(&user.Registered)
+		user.Activated,
+	).Scan(&user.RegisteredAt)
 	if err != nil {
 		switch {
 		case err.Error() == `pq: duplicate key value violates unique constraint "users_email_key"`:
@@ -72,7 +73,7 @@ func (pr *UserRepo) GetUserForItsID(user models2.User) (models2.User, models2.St
 	rows := pr.pool.QueryRowContext(context.Background(), GetQuery, user.ID)
 	err := rows.Scan(&user.ID, &user.Nickname,
 		&user.Name, &user.Surname, &user.Password.Hash,
-		&user.Registered, &user.Avatar)
+		&user.RegisteredAt, &user.Avatar, &user.Activated)
 	if err != nil {
 		switch {
 		case errors.Is(err, sql.ErrNoRows):
@@ -88,7 +89,7 @@ func (pr *UserRepo) GetUserForItsNickname(user models2.User) (models2.User, mode
 	rows := pr.pool.QueryRowContext(context.Background(), GetNameQuery, user.Nickname)
 	err := rows.Scan(&user.ID, &user.Nickname,
 		&user.Name, &user.Surname, &user.Password.Hash,
-		&user.Registered, &user.Avatar)
+		&user.RegisteredAt, &user.Avatar, &user.Activated)
 	if err != nil {
 		switch {
 		case errors.Is(err, sql.ErrNoRows):

@@ -1,3 +1,3 @@
 package models
 
-const CommonFormat = "%s_%s"
+const CommonFormat = "%s:%s"

@@ -116,7 +116,12 @@ func (r *PeerRepository) SaveMessage(message models.Message) error {
 	if err != nil {
 		return err
 	}
-	key := fmt.Sprintf("%s_%s", message.ChatID.String(), message.MsgID.String())
+	key := fmt.Sprintf("%s:%s", message.ChatID.String(), message.MsgID.String())
+	err = r.cl.Set(key, string(bMsg), 0).Err()
+	if err != nil {
+		return err
+	}
+	key = fmt.Sprintf("%s:last-inserted", message.ChatID.String())
 	err = r.cl.Set(key, string(bMsg), 0).Err()
 	if err != nil {
 		return err

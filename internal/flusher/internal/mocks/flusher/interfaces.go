@@ -38,6 +38,21 @@ func (m *MockQueueRepo) EXPECT() *MockQueueRepoMockRecorder {
 	return m.recorder
 }
 
+// FetchAllLastMessagesOfChats mocks base method.
+func (m *MockQueueRepo) FetchAllLastMessagesOfChats() ([]models.Message, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "FetchAllLastMessagesOfChats")
+	ret0, _ := ret[0].([]models.Message)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// FetchAllLastMessagesOfChats indicates an expected call of FetchAllLastMessagesOfChats.
+func (mr *MockQueueRepoMockRecorder) FetchAllLastMessagesOfChats() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FetchAllLastMessagesOfChats", reflect.TypeOf((*MockQueueRepo)(nil).FetchAllLastMessagesOfChats))
+}
+
 // FetchAllMessages mocks base method.
 func (m *MockQueueRepo) FetchAllMessages() ([]models.Message, error) {
 	m.ctrl.T.Helper()
@@ -74,6 +89,20 @@ func NewMockPersistantRepo(ctrl *gomock.Controller) *MockPersistantRepo {
 // EXPECT returns an object that allows the caller to indicate expected use.
 func (m *MockPersistantRepo) EXPECT() *MockPersistantRepoMockRecorder {
 	return m.recorder
+}
+
+// PersistAllLastChatMessages mocks base method.
+func (m *MockPersistantRepo) PersistAllLastChatMessages(msgs []models.Message) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "PersistAllLastChatMessages", msgs)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// PersistAllLastChatMessages indicates an expected call of PersistAllLastChatMessages.
+func (mr *MockPersistantRepoMockRecorder) PersistAllLastChatMessages(msgs any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PersistAllLastChatMessages", reflect.TypeOf((*MockPersistantRepo)(nil).PersistAllLastChatMessages), msgs)
 }
 
 // PersistAllMessages mocks base method.

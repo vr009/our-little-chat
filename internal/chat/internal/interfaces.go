@@ -23,6 +23,7 @@ type ChatRepo interface {
 
 type QueueRepo interface {
 	GetChatMessages(chat models.Chat, opts models.Opts) (models.Messages, models.StatusCode)
+	GetChatsLastMessages(chatList []models.Chat) (models.Messages, models.StatusCode)
 }
 
 type ChatUseCase interface {

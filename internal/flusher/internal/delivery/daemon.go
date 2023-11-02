@@ -28,7 +28,17 @@ func (d *FlusherD) Work(ctx context.Context, period time.Duration) {
 				continue
 			}
 			err = d.persistantRepo.PersistAllMessages(messages)
-			slog.Info("persisted", messages)
+			slog.Info("persisted messages", messages)
+			if err != nil {
+				log.Println(err)
+			}
+
+			lastMessages, err := d.queueRepo.FetchAllLastMessagesOfChats()
+			if err != nil {
+				log.Println(err)
+				continue
+			}
+			err = d.persistantRepo.PersistAllLastChatMessages(lastMessages)
 			if err != nil {
 				log.Println(err)
 			}

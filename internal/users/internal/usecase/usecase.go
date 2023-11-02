@@ -32,7 +32,7 @@ func (uc *UserUsecase) SignUp(request models2.SignUpPersonRequest) (models.User,
 		return models.User{}, models.InternalError
 	}
 	user.ID = uuid.New()
-	user.Registered = time.Now()
+	user.RegisteredAt = time.Now()
 	return uc.repo.CreateUser(user)
 }
 

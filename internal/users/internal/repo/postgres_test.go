@@ -31,12 +31,12 @@ func TestUserRepo_CreateUser(t *testing.T) {
 	testRegisterTime := time.Now()
 
 	testPerson := models.User{
-		ID:         testUserID,
-		Name:       "test",
-		Nickname:   "test",
-		Surname:    "test",
-		Registered: testRegisterTime,
-		Avatar:     "avatar.png",
+		ID:           testUserID,
+		Name:         "test",
+		Nickname:     "test",
+		Surname:      "test",
+		RegisteredAt: testRegisterTime,
+		Avatar:       "avatar.png",
 	}
 	err = testPerson.Password.Set(testPassword)
 	if err != nil {
@@ -57,8 +57,8 @@ func TestUserRepo_CreateUser(t *testing.T) {
 				mock.ExpectQuery(regexp.QuoteMeta(InsertQuery)).
 					WithArgs(testPerson.ID, testPerson.Nickname, testPerson.Name,
 						testPerson.Surname, testPerson.Password.Hash,
-						testPerson.Avatar).
-					WillReturnRows(sqlmock.NewRows([]string{"registered"}).AddRow(testPerson.Registered))
+						testPerson.Avatar, testPerson.Activated).
+					WillReturnRows(sqlmock.NewRows([]string{"registered_at"}).AddRow(testPerson.RegisteredAt))
 			},
 			fields: fields{
 				pool: db,
@@ -67,13 +67,13 @@ func TestUserRepo_CreateUser(t *testing.T) {
 				person: testPerson,
 			},
 			want: models.User{
-				ID:         testUserID,
-				Name:       "test",
-				Nickname:   "test",
-				Surname:    "test",
-				Password:   testPerson.Password,
-				Registered: testRegisterTime,
-				Avatar:     "avatar.png",
+				ID:           testUserID,
+				Name:         "test",
+				Nickname:     "test",
+				Surname:      "test",
+				Password:     testPerson.Password,
+				RegisteredAt: testRegisterTime,
+				Avatar:       "avatar.png",
 			},
 			want1: models.OK,
 		},
@@ -113,12 +113,12 @@ func TestUserRepo_DeleteUser(t *testing.T) {
 	testTimestamp := time.Now().Unix()
 
 	testPerson := models.User{
-		ID:         testUserID,
-		Name:       "test",
-		Nickname:   "test",
-		Surname:    "test",
-		Registered: time.Unix(testTimestamp, 0),
-		Avatar:     "avatar.png",
+		ID:           testUserID,
+		Name:         "test",
+		Nickname:     "test",
+		Surname:      "test",
+		RegisteredAt: time.Unix(testTimestamp, 0),
+		Avatar:       "avatar.png",
 	}
 
 	tests := []struct {
@@ -245,19 +245,19 @@ func TestUserRepo_GetUser(t *testing.T) {
 	password := "test"
 
 	testPerson := models.User{
-		ID:         testUserID,
-		Name:       "test",
-		Nickname:   "test",
-		Surname:    "test",
-		Registered: time.Unix(testTimestamp, 0),
-		Avatar:     "avatar.png",
+		ID:           testUserID,
+		Name:         "test",
+		Nickname:     "test",
+		Surname:      "test",
+		RegisteredAt: time.Unix(testTimestamp, 0),
+		Avatar:       "avatar.png",
 	}
 
 	testPerson.Password.Set(password)
 
 	columns := []string{
-		"user_id", "nickname", "name", "surname", "password", "registered",
-		"avatar",
+		"user_id", "nickname", "name", "surname", "password", "registered_at",
+		"avatar", "activated",
 	}
 
 	tests := []struct {
@@ -275,7 +275,7 @@ func TestUserRepo_GetUser(t *testing.T) {
 					WithArgs(testPerson.ID).WillReturnRows(sqlmock.NewRows(columns).
 					AddRow(testPerson.ID.String(), testPerson.Nickname, testPerson.Name,
 						testPerson.Surname, testPerson.Password.Hash,
-						testPerson.Registered, testPerson.Avatar))
+						testPerson.RegisteredAt, testPerson.Avatar, testPerson.Activated))
 			},
 			fields: fields{pool: db},
 			args: args{
@@ -321,18 +321,18 @@ func TestUserRepo_GetUserForItsNickname(t *testing.T) {
 	testPassword := "test"
 
 	testPerson := models.User{
-		ID:         testUserID,
-		Name:       "test",
-		Nickname:   "test",
-		Surname:    "test",
-		Registered: time.Unix(testTimestamp, 0),
-		Avatar:     "avatar.png",
+		ID:           testUserID,
+		Name:         "test",
+		Nickname:     "test",
+		Surname:      "test",
+		RegisteredAt: time.Unix(testTimestamp, 0),
+		Avatar:       "avatar.png",
 	}
 	testPerson.Password.Set(testPassword)
 
 	columns := []string{
-		"user_id", "nickname", "name", "surname", "password", "registered",
-		"avatar",
+		"user_id", "nickname", "name", "surname", "password", "registered_at",
+		"avatar", "activated",
 	}
 
 	tests := []struct {
@@ -349,7 +349,8 @@ func TestUserRepo_GetUserForItsNickname(t *testing.T) {
 				mock.ExpectQuery(regexp.QuoteMeta(GetNameQuery)).
 					WithArgs(testPerson.Name).WillReturnRows(sqlmock.NewRows(columns).
 					AddRow(testPerson.ID.String(), testPerson.Nickname, testPerson.Name,
-						testPerson.Surname, testPerson.Password.Hash, testPerson.Registered, testPerson.Avatar))
+						testPerson.Surname, testPerson.Password.Hash, testPerson.RegisteredAt,
+						testPerson.Avatar, testPerson.Activated))
 			},
 			fields: fields{pool: db},
 			args: args{
@@ -395,12 +396,12 @@ func TestUserRepo_UpdateUser(t *testing.T) {
 	testTimestamp := time.Now().Unix()
 
 	testPerson := models.User{
-		ID:         testUserID,
-		Name:       "test",
-		Nickname:   "test",
-		Surname:    "test",
-		Registered: time.Unix(testTimestamp, 0),
-		Avatar:     "avatar.png",
+		ID:           testUserID,
+		Name:         "test",
+		Nickname:     "test",
+		Surname:      "test",
+		RegisteredAt: time.Unix(testTimestamp, 0),
+		Avatar:       "avatar.png",
 	}
 
 	testPerson.Password.Set(testPassword)
