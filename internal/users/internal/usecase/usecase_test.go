@@ -12,7 +12,10 @@ import (
 
 func TestUserUsecase_Login(t *testing.T) {
 	type fields struct {
-		repo *mocks.MockUserRepo
+		repo           *mocks.MockUserRepo
+		sessionRepo    *mocks.MockSessionRepo
+		activationRepo *mocks.MockActivationRepo
+		mailerRepo     *mocks.MockMailerRepo
 	}
 	type args struct {
 		request models2.LoginRequest
@@ -56,13 +59,16 @@ func TestUserUsecase_Login(t *testing.T) {
 		fields  fields
 		args    args
 		prepare func(f *fields)
-		want    models.User
+		want    models.Session
 		want1   models.StatusCode
 	}{
 		{
 			name: "successful login",
 			fields: fields{
-				repo: mocks.NewMockUserRepo(ctrl),
+				repo:           mocks.NewMockUserRepo(ctrl),
+				sessionRepo:    mocks.NewMockSessionRepo(ctrl),
+				activationRepo: mocks.NewMockActivationRepo(ctrl),
+				mailerRepo:     mocks.NewMockMailerRepo(ctrl),
 			},
 			args: args{
 				models2.LoginRequest{
@@ -74,14 +80,19 @@ func TestUserUsecase_Login(t *testing.T) {
 				f.repo.EXPECT().
 					GetUserForItsNickname(models.User{Nickname: testNickname}).
 					Return(testUser, models.OK)
+				f.sessionRepo.EXPECT().CreateSession(testUser, models.PlainSession).
+					Return(models.Session{Type: "test"}, models.OK)
 			},
-			want:  testUser,
+			want:  models.Session{Type: "test"},
 			want1: models.OK,
 		},
 		{
 			name: "user can not be found",
 			fields: fields{
-				repo: mocks.NewMockUserRepo(ctrl),
+				repo:           mocks.NewMockUserRepo(ctrl),
+				sessionRepo:    mocks.NewMockSessionRepo(ctrl),
+				activationRepo: mocks.NewMockActivationRepo(ctrl),
+				mailerRepo:     mocks.NewMockMailerRepo(ctrl),
 			},
 			args: args{
 				models2.LoginRequest{
@@ -94,13 +105,16 @@ func TestUserUsecase_Login(t *testing.T) {
 					GetUserForItsNickname(models.User{Nickname: testNickname}).
 					Return(testEmptyUser, models.NotFound)
 			},
-			want:  testEmptyUser,
+			want:  models.Session{},
 			want1: models.NotFound,
 		},
 		{
 			name: "bad credentials",
 			fields: fields{
-				repo: mocks.NewMockUserRepo(ctrl),
+				repo:           mocks.NewMockUserRepo(ctrl),
+				sessionRepo:    mocks.NewMockSessionRepo(ctrl),
+				activationRepo: mocks.NewMockActivationRepo(ctrl),
+				mailerRepo:     mocks.NewMockMailerRepo(ctrl),
 			},
 			args: args{
 				models2.LoginRequest{
@@ -113,13 +127,16 @@ func TestUserUsecase_Login(t *testing.T) {
 					GetUserForItsNickname(models.User{Nickname: testNickname}).
 					Return(testUser, models.OK)
 			},
-			want:  testEmptyUser,
+			want:  models.Session{},
 			want1: models.Unauthorized,
 		},
 		{
 			name: "bad credentials",
 			fields: fields{
-				repo: mocks.NewMockUserRepo(ctrl),
+				repo:           mocks.NewMockUserRepo(ctrl),
+				sessionRepo:    mocks.NewMockSessionRepo(ctrl),
+				activationRepo: mocks.NewMockActivationRepo(ctrl),
+				mailerRepo:     mocks.NewMockMailerRepo(ctrl),
 			},
 			args: args{
 				models2.LoginRequest{
@@ -132,14 +149,17 @@ func TestUserUsecase_Login(t *testing.T) {
 					GetUserForItsNickname(models.User{Nickname: testNickname}).
 					Return(testInActivatedUser, models.OK)
 			},
-			want:  testEmptyUser,
+			want:  models.Session{},
 			want1: models.InActivated,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			uc := &UserUsecase{
-				userRepo: tt.fields.repo,
+				userRepo:       tt.fields.repo,
+				sessionRepo:    tt.fields.sessionRepo,
+				activationRepo: tt.fields.activationRepo,
+				mailerRepo:     tt.fields.mailerRepo,
 			}
 			tt.prepare(&tt.fields)
 			got, got1 := uc.Login(tt.args.request)
@@ -155,7 +175,10 @@ func TestUserUsecase_Login(t *testing.T) {
 
 func TestUserUsecase_SignUp(t *testing.T) {
 	type fields struct {
-		repo *mocks.MockUserRepo
+		repo           *mocks.MockUserRepo
+		sessionRepo    *mocks.MockSessionRepo
+		activationRepo *mocks.MockActivationRepo
+		mailerRepo     *mocks.MockMailerRepo
 	}
 	type args struct {
 		request models2.SignUpPersonRequest
@@ -173,7 +196,7 @@ func TestUserUsecase_SignUp(t *testing.T) {
 		Nickname:  testNickname,
 		Surname:   "test",
 		Avatar:    "test",
-		Activated: true,
+		Activated: false,
 	}
 
 	testPassword := "testPswd"
@@ -187,13 +210,16 @@ func TestUserUsecase_SignUp(t *testing.T) {
 		fields  fields
 		args    args
 		prepare func(f *fields)
-		want    models.User
+		want    models.Session
 		want1   models.StatusCode
 	}{
 		{
 			name: "successful sign up",
 			fields: fields{
-				repo: mocks.NewMockUserRepo(ctrl),
+				repo:           mocks.NewMockUserRepo(ctrl),
+				sessionRepo:    mocks.NewMockSessionRepo(ctrl),
+				activationRepo: mocks.NewMockActivationRepo(ctrl),
+				mailerRepo:     mocks.NewMockMailerRepo(ctrl),
 			},
 			args: args{
 				models2.SignUpPersonRequest{
@@ -217,14 +243,25 @@ func TestUserUsecase_SignUp(t *testing.T) {
 						usr.Activated == testUser.Activated &&
 						usr.Avatar == testUser.Avatar && ok
 				})).Return(testUser, models.OK)
+				f.sessionRepo.EXPECT().CreateSession(testUser, models.ActivationSession).
+					Return(models.Session{Type: "test"}, models.OK)
+				f.activationRepo.EXPECT().CreateActivationCode(models.Session{Type: "test"}).
+					Return("eee", models.OK)
+				f.mailerRepo.EXPECT().PutActivationTask(models.ActivationTask{
+					ActivationCode: "eee",
+					Receiver:       testUser.Email,
+				}).Return(models.OK)
 			},
-			want:  testUser,
+			want:  models.Session{Type: "test"},
 			want1: models.OK,
 		},
 		{
 			name: "conflict",
 			fields: fields{
-				repo: mocks.NewMockUserRepo(ctrl),
+				repo:           mocks.NewMockUserRepo(ctrl),
+				sessionRepo:    mocks.NewMockSessionRepo(ctrl),
+				activationRepo: mocks.NewMockActivationRepo(ctrl),
+				mailerRepo:     mocks.NewMockMailerRepo(ctrl),
 			},
 			args: args{
 				models2.SignUpPersonRequest{
@@ -249,7 +286,7 @@ func TestUserUsecase_SignUp(t *testing.T) {
 						usr.Avatar == testUser.Avatar && ok
 				})).Return(testEmptyUser, models.Conflict)
 			},
-			want:  testEmptyUser,
+			want:  models.Session{},
 			want1: models.Conflict,
 		},
 	}
@@ -258,7 +295,10 @@ func TestUserUsecase_SignUp(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 			uc := &UserUsecase{
-				userRepo: tt.fields.repo,
+				userRepo:       tt.fields.repo,
+				sessionRepo:    tt.fields.sessionRepo,
+				activationRepo: tt.fields.activationRepo,
+				mailerRepo:     tt.fields.mailerRepo,
 			}
 			tt.prepare(&tt.fields)
 			got, got1 := uc.SignUp(tt.args.request)
@@ -274,7 +314,10 @@ func TestUserUsecase_SignUp(t *testing.T) {
 
 func TestUserUsecase_UpdateUser(t *testing.T) {
 	type fields struct {
-		repo *mocks.MockUserRepo
+		repo           *mocks.MockUserRepo
+		sessionRepo    *mocks.MockSessionRepo
+		activationRepo *mocks.MockActivationRepo
+		mailerRepo     *mocks.MockMailerRepo
 	}
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
@@ -334,7 +377,10 @@ func TestUserUsecase_UpdateUser(t *testing.T) {
 		{
 			name: "successful update",
 			fields: fields{
-				repo: mocks.NewMockUserRepo(ctrl),
+				repo:           mocks.NewMockUserRepo(ctrl),
+				sessionRepo:    mocks.NewMockSessionRepo(ctrl),
+				activationRepo: mocks.NewMockActivationRepo(ctrl),
+				mailerRepo:     mocks.NewMockMailerRepo(ctrl),
 			},
 			args: args{
 				userToUpdate: models.User{ID: testUser.ID},
@@ -354,7 +400,10 @@ func TestUserUsecase_UpdateUser(t *testing.T) {
 		{
 			name: "failure by update inactive user",
 			fields: fields{
-				repo: mocks.NewMockUserRepo(ctrl),
+				repo:           mocks.NewMockUserRepo(ctrl),
+				sessionRepo:    mocks.NewMockSessionRepo(ctrl),
+				activationRepo: mocks.NewMockActivationRepo(ctrl),
+				mailerRepo:     mocks.NewMockMailerRepo(ctrl),
 			},
 			args: args{
 				userToUpdate: models.User{ID: testInActivatedUser.ID},
@@ -375,7 +424,10 @@ func TestUserUsecase_UpdateUser(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 			uc := &UserUsecase{
-				userRepo: tt.fields.repo,
+				userRepo:       tt.fields.repo,
+				sessionRepo:    tt.fields.sessionRepo,
+				activationRepo: tt.fields.activationRepo,
+				mailerRepo:     tt.fields.mailerRepo,
 			}
 			tt.prepare(&tt.fields)
 			got, got1 := uc.UpdateUser(tt.args.userToUpdate, tt.args.request)

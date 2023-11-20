@@ -27,16 +27,16 @@ func TestAuthEchoHandler_Login(t *testing.T) {
 	testOkPswd := "testtesttest"
 	testNickname := "test"
 
-	testEmptyUser := models.User{}
-
-	testUser := models.User{
-		ID:        uuid.New(),
-		Name:      "test",
-		Nickname:  testNickname,
-		Surname:   "test",
-		Avatar:    "test",
-		Activated: true,
-	}
+	//testEmptyUser := models.User{}
+	//
+	//testUser := models.User{
+	//	ID:        uuid.New(),
+	//	Name:      "test",
+	//	Nickname:  testNickname,
+	//	Surname:   "test",
+	//	Avatar:    "test",
+	//	Activated: true,
+	//}
 
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
@@ -74,7 +74,7 @@ func TestAuthEchoHandler_Login(t *testing.T) {
 			},
 			prepare: func(f *fields, input models2.LoginRequest) {
 				t.Setenv("JWT_SIGNED_KEY", "test")
-				f.useCase.EXPECT().Login(input).Return(testUser, models.OK)
+				f.useCase.EXPECT().Login(input).Return(models.Session{}, models.OK)
 			},
 			checkResponse: func(recorder *httptest.ResponseRecorder) error {
 				if recorder.Code != http.StatusSeeOther {
@@ -172,7 +172,7 @@ func TestAuthEchoHandler_Login(t *testing.T) {
 			},
 			prepare: func(f *fields, input models2.LoginRequest) {
 				t.Setenv("JWT_SIGNED_KEY", "test")
-				f.useCase.EXPECT().Login(input).Return(testEmptyUser, models.NotFound)
+				f.useCase.EXPECT().Login(input).Return(models.Session{}, models.NotFound)
 			},
 			checkResponse: func(recorder *httptest.ResponseRecorder) error {
 				if recorder.Code != http.StatusNotFound {
@@ -205,7 +205,7 @@ func TestAuthEchoHandler_Login(t *testing.T) {
 			},
 			prepare: func(f *fields, input models2.LoginRequest) {
 				t.Setenv("JWT_SIGNED_KEY", "test")
-				f.useCase.EXPECT().Login(input).Return(testEmptyUser, models.Conflict)
+				f.useCase.EXPECT().Login(input).Return(models.Session{}, models.Conflict)
 			},
 			checkResponse: func(recorder *httptest.ResponseRecorder) error {
 				if recorder.Code != http.StatusUnauthorized {
@@ -284,12 +284,13 @@ func TestAuthEchoHandler_Logout(t *testing.T) {
 	req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
 	rec := httptest.NewRecorder()
 	testEchoCtx := e.NewContext(req, rec)
-	testEchoCtx.Set("user_id", testID)
+	testEchoCtx.Set("session_id", testID)
 
 	tests := []struct {
 		name    string
 		fields  fields
 		args    args
+		prepare func(f *fields)
 		wantErr bool
 	}{
 		{
@@ -300,6 +301,9 @@ func TestAuthEchoHandler_Logout(t *testing.T) {
 			args: args{
 				c: testEchoCtx,
 			},
+			prepare: func(f *fields) {
+				f.useCase.EXPECT().Logout(models.Session{ID: testID})
+			},
 			wantErr: false,
 		},
 	}
@@ -308,6 +312,7 @@ func TestAuthEchoHandler_Logout(t *testing.T) {
 			h := &AuthEchoHandler{
 				useCase: tt.fields.useCase,
 			}
+			tt.prepare(&tt.fields)
 			if err := h.Logout(tt.args.c); (err != nil) != tt.wantErr {
 				t.Errorf("Logout() error = %v, wantErr %v", err, tt.wantErr)
 			}
@@ -324,14 +329,14 @@ func TestAuthEchoHandler_SignUp(t *testing.T) {
 	testOkPswd := "testtesttest"
 	testNickname := "test"
 
-	testUser := models.User{
-		ID:        uuid.New(),
-		Name:      "test",
-		Nickname:  testNickname,
-		Surname:   "test",
-		Avatar:    "test",
-		Activated: true,
-	}
+	//testUser := models.User{
+	//	ID:        uuid.New(),
+	//	Name:      "test",
+	//	Nickname:  testNickname,
+	//	Surname:   "test",
+	//	Avatar:    "test",
+	//	Activated: true,
+	//}
 
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
@@ -375,7 +380,7 @@ func TestAuthEchoHandler_SignUp(t *testing.T) {
 			},
 			prepare: func(f *fields, input models2.SignUpPersonRequest) {
 				t.Setenv("JWT_SIGNED_KEY", "test")
-				f.useCase.EXPECT().SignUp(input).Return(testUser, models.OK)
+				f.useCase.EXPECT().SignUp(input).Return(models.Session{}, models.OK)
 			},
 			checkResponse: func(recorder *httptest.ResponseRecorder) error {
 				if recorder.Code != http.StatusSeeOther {
@@ -480,7 +485,7 @@ func TestAuthEchoHandler_SignUp(t *testing.T) {
 				return testEchoCtx, rec
 			},
 			prepare: func(f *fields, input models2.SignUpPersonRequest) {
-				f.useCase.EXPECT().SignUp(input).Return(testUser, models.Conflict)
+				f.useCase.EXPECT().SignUp(input).Return(models.Session{}, models.Conflict)
 			},
 			checkResponse: func(recorder *httptest.ResponseRecorder) error {
 				if recorder.Code != http.StatusUnauthorized {
