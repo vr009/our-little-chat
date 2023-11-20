@@ -16,6 +16,12 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Set env.BRANCH
+        run: echo "BRANCH=$(echo $GITHUB_REF | cut -d'/' -f 3)" >> $GITHUB_ENV
+
+      - name: Is main?
+        run: echo ${BRANCH}
+
       - name: Setup Go
         uses: actions/setup-go@v2
         with:
@@ -55,7 +61,6 @@ jobs:
           color: yellow
 
   build_push_to_registry:
-    if: ${{ always() }}
     needs: tests
     name: Build and push Docker image to Docker Hub
     runs-on: ubuntu-latest
@@ -71,6 +76,9 @@ jobs:
     steps:
       - name: Check out the repo
         uses: actions/checkout@v4
+
+      - name: Set env.BRANCH
+        run: echo "BRANCH=$(echo $GITHUB_REF | cut -d'/' -f 3)" >> $GITHUB_ENV
 
       - name: Log in to Docker Hub
         uses: docker/login-action@f4ef78c080cd8ba55a85445d5b36e214a81df20a
@@ -90,4 +98,4 @@ jobs:
           context: .
           file: ./deployments/${{ matrix.service }}.Dockerfile
           push: true
-          tags: vr0009/our-little-chat:${{ matrix.service }}
+          tags: vr0009/our-little-chat:${{ matrix.service }}-env.BRANCH
