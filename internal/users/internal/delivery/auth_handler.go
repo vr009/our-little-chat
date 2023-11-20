@@ -50,7 +50,7 @@ func (h *AuthEchoHandler) SignUp(c echo.Context) error {
 		return pkg.FailedValidationResponse(c, v.Errors)
 	}
 
-	newPerson, errCode := h.useCase.SignUp(input)
+	session, errCode := h.useCase.SignUp(input)
 	if errCode != models.OK {
 		switch errCode {
 		case models.Conflict:
@@ -61,7 +61,7 @@ func (h *AuthEchoHandler) SignUp(c echo.Context) error {
 		}
 	}
 
-	token, err := pkg.GenerateJWTTokenV2(newPerson, false)
+	token, err := pkg.GenerateJWTTokenV2(session, false)
 	if err != nil {
 		slog.Error(err.Error())
 		return pkg.ServerErrorResponse(c, err)
@@ -96,7 +96,7 @@ func (h *AuthEchoHandler) Login(c echo.Context) error {
 		return pkg.FailedValidationResponse(c, v.Errors)
 	}
 
-	foundUser, code := h.useCase.Login(input)
+	session, code := h.useCase.Login(input)
 	if code != models.OK {
 		switch code {
 		case models.NotFound:
@@ -106,7 +106,7 @@ func (h *AuthEchoHandler) Login(c echo.Context) error {
 		}
 	}
 
-	token, err := pkg.GenerateJWTTokenV2(foundUser, false)
+	token, err := pkg.GenerateJWTTokenV2(session, false)
 	if err != nil {
 		slog.Error(err.Error())
 		return pkg.ServerErrorResponse(c, err)
@@ -127,10 +127,11 @@ func (h *AuthEchoHandler) Login(c echo.Context) error {
 // @Failure 500 {object} models.HttpResponse
 // @Router /users/logout [post]
 func (h *AuthEchoHandler) Logout(c echo.Context) error {
-	userID := c.Get("user_id").(uuid.UUID)
-	user := models.User{ID: userID}
+	sessionID := c.Get("session_id").(uuid.UUID)
+	session := models.Session{ID: sessionID}
 
-	token, err := pkg.GenerateJWTTokenV2(user, true)
+	h.useCase.Logout(session)
+	token, err := pkg.GenerateJWTTokenV2(session, true)
 	if err != nil {
 		slog.Error(err.Error())
 		return pkg.ServerErrorResponse(c, err)
@@ -138,4 +139,27 @@ func (h *AuthEchoHandler) Logout(c echo.Context) error {
 
 	c.SetCookie(&http.Cookie{Name: "Token", Value: token, Path: "/"})
 	return c.Redirect(http.StatusSeeOther, "/")
+}
+
+// Activate godoc
+// @Summary Activate a user.
+// @Description activate a user.
+// @Tags auth
+// @Success 200
+// @Failure 401 {object} models.HttpResponse
+// @Failure 422 {object} models.HttpResponse
+// @Failure 500 {object} models.HttpResponse
+// @Router /users/activate [post]
+func (h *AuthEchoHandler) Activate(c echo.Context) error {
+	sessionID := c.Get("session_id").(uuid.UUID)
+	session := models.Session{ID: sessionID}
+	v := validator.New()
+	code := c.QueryParam("activation_code")
+	v.Check(code != "", "activation_code", "must be provided")
+
+	status := h.useCase.ActivateUser(session, code)
+	if status != models.OK {
+		return pkg.ServerErrorResponse(c, fmt.Errorf("failed to activate a user"))
+	}
+	return c.NoContent(http.StatusOK)
 }

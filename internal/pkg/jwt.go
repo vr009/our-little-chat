@@ -13,7 +13,7 @@ import (
 // JwtCustomClaims are custom claims extending default ones.
 // See https://github.com/golang-jwt/jwt for more examples
 type JwtCustomClaims struct {
-	UserID string `json:"user_id"`
+	SessionID string `json:"session_id"`
 	jwt.RegisteredClaims
 }
 
@@ -25,7 +25,7 @@ func GetSignedKey() (string, error) {
 	return key, nil
 }
 
-func GenerateJWTTokenV2(user models.User, expireCookie bool) (string, error) {
+func GenerateJWTTokenV2(session models.Session, expireCookie bool) (string, error) {
 	var m int
 	if expireCookie {
 		m = -1
@@ -34,7 +34,7 @@ func GenerateJWTTokenV2(user models.User, expireCookie bool) (string, error) {
 	}
 	// Set custom claims
 	claims := &JwtCustomClaims{
-		user.ID.String(),
+		session.ID.String(),
 		jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Hour * 72 * time.Duration(m))),
 		},

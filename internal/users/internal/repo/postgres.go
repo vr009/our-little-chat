@@ -9,13 +9,14 @@ import (
 )
 
 const (
-	InsertQuery = "INSERT INTO users(user_id, nickname, user_name, surname, password, avatar, activated) " +
-		"VALUES($1, $2, $3, $4, $5, $6, $7) RETURNING registered_at;"
-	DeleteQuery    = "UPDATE users SET activated=false WHERE user_id=$1;"
-	UpdateQuery    = "UPDATE users SET nickname=$1, user_name=$2, surname=$3, avatar=$4, password=$5 WHERE user_id=$6;"
-	GetQuery       = "SELECT user_id, nickname, user_name, surname, password, registered_at, avatar, activated  FROM users WHERE user_id=$1;"
-	GetNameQuery   = "SELECT user_id, nickname, user_name, surname, password, registered_at, avatar, activated  FROM users WHERE nickname=$1;"
-	FindUsersQuery = "SELECT user_id, nickname, user_name, surname, avatar FROM users WHERE nickname LIKE LOWER($1 || '%') LIMIT 10"
+	InsertQuery = "INSERT INTO users(user_id, email, nickname, user_name, surname, password, avatar, activated) " +
+		"VALUES($1, $2, $3, $4, $5, $6, $7, $8) RETURNING registered_at;"
+	DeleteQuery       = "UPDATE users SET activated=false WHERE user_id=$1;"
+	UpdateQuery       = "UPDATE users SET nickname=$1, user_name=$2, surname=$3, avatar=$4, password=$5 WHERE user_id=$6;"
+	GetQuery          = "SELECT user_id, email, nickname, user_name, surname, password, registered_at, avatar, activated  FROM users WHERE user_id=$1;"
+	GetNameQuery      = "SELECT user_id, email, nickname, user_name, surname, password, registered_at, avatar, activated  FROM users WHERE nickname=$1;"
+	FindUsersQuery    = "SELECT user_id, email, nickname, user_name, surname, avatar FROM users WHERE nickname LIKE LOWER($1 || '%') LIMIT 10"
+	ActivateUserQuery = "UPDATE users SET activated=true WHERE user_id=$1"
 )
 
 type UserRepo struct {
@@ -33,6 +34,7 @@ func (pr *UserRepo) CreateUser(user models2.User) (models2.User, models2.StatusC
 	err := pr.pool.QueryRowContext(context.Background(),
 		InsertQuery,
 		user.ID,
+		user.Email,
 		user.Nickname,
 		user.Name,
 		user.Surname,
@@ -49,6 +51,14 @@ func (pr *UserRepo) CreateUser(user models2.User) (models2.User, models2.StatusC
 		}
 	}
 	return user, models2.OK
+}
+
+func (pr *UserRepo) ActivateUser(user models2.User) models2.StatusCode {
+	_, err := pr.pool.ExecContext(context.Background(), ActivateUserQuery, user.ID)
+	if err != nil {
+		return models2.InternalError
+	}
+	return models2.OK
 }
 
 func (pr *UserRepo) DeactivateUser(user models2.User) models2.StatusCode {
@@ -71,7 +81,7 @@ func (pr *UserRepo) UpdateUser(userNew models2.User) (models2.User, models2.Stat
 
 func (pr *UserRepo) GetUserForItsID(user models2.User) (models2.User, models2.StatusCode) {
 	rows := pr.pool.QueryRowContext(context.Background(), GetQuery, user.ID)
-	err := rows.Scan(&user.ID, &user.Nickname,
+	err := rows.Scan(&user.ID, &user.Email, &user.Nickname,
 		&user.Name, &user.Surname, &user.Password.Hash,
 		&user.RegisteredAt, &user.Avatar, &user.Activated)
 	if err != nil {
@@ -87,7 +97,7 @@ func (pr *UserRepo) GetUserForItsID(user models2.User) (models2.User, models2.St
 
 func (pr *UserRepo) GetUserForItsNickname(user models2.User) (models2.User, models2.StatusCode) {
 	rows := pr.pool.QueryRowContext(context.Background(), GetNameQuery, user.Nickname)
-	err := rows.Scan(&user.ID, &user.Nickname,
+	err := rows.Scan(&user.ID, &user.Email, &user.Nickname,
 		&user.Name, &user.Surname, &user.Password.Hash,
 		&user.RegisteredAt, &user.Avatar, &user.Activated)
 	if err != nil {
@@ -115,7 +125,7 @@ func (pr *UserRepo) FindUsers(name string) ([]models2.User, models2.StatusCode) 
 	list := make([]models2.User, 0)
 	for rows.Next() {
 		user := models2.User{}
-		rows.Scan(&user.ID, &user.Nickname, &user.Name, &user.Surname, &user.Avatar)
+		rows.Scan(&user.ID, &user.Email, &user.Nickname, &user.Name, &user.Surname, &user.Avatar)
 		list = append(list, user)
 	}
 	slog.Info("List:", "users", slog.AnyValue(list))

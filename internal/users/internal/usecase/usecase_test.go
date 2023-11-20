@@ -139,7 +139,7 @@ func TestUserUsecase_Login(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			uc := &UserUsecase{
-				repo: tt.fields.repo,
+				userRepo: tt.fields.repo,
 			}
 			tt.prepare(&tt.fields)
 			got, got1 := uc.Login(tt.args.request)
@@ -258,7 +258,7 @@ func TestUserUsecase_SignUp(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 			uc := &UserUsecase{
-				repo: tt.fields.repo,
+				userRepo: tt.fields.repo,
 			}
 			tt.prepare(&tt.fields)
 			got, got1 := uc.SignUp(tt.args.request)
@@ -375,7 +375,7 @@ func TestUserUsecase_UpdateUser(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 			uc := &UserUsecase{
-				repo: tt.fields.repo,
+				userRepo: tt.fields.repo,
 			}
 			tt.prepare(&tt.fields)
 			got, got1 := uc.UpdateUser(tt.args.userToUpdate, tt.args.request)

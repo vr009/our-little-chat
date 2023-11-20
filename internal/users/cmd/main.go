@@ -1,18 +1,20 @@
 package main
 
 import (
-	"context"
 	"database/sql"
 	"errors"
 	"github.com/golang-jwt/jwt/v5"
 	echojwt "github.com/labstack/echo-jwt/v4"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
+	amqp "github.com/rabbitmq/amqp091-go"
+	"github.com/redis/go-redis/v9"
 	"google.golang.org/grpc"
 	"log"
 	"net"
 	"os"
 	middleware2 "our-little-chatik/internal/middleware"
+	"our-little-chatik/internal/models"
 	"our-little-chatik/internal/pkg"
 	"our-little-chatik/internal/pkg/proto/users"
 	"our-little-chatik/internal/users/internal/delivery"
@@ -21,7 +23,6 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/jackc/pgx/v5/pgxpool"
 	"golang.org/x/exp/slog"
 )
 
@@ -34,6 +35,12 @@ type dbConfig struct {
 	maxOpenConns int
 	maxIdleConns int
 	maxIdleTime  time.Duration
+}
+
+type redisConfig struct {
+	Host     string
+	Port     string
+	Password string
 }
 
 var (
@@ -98,17 +105,45 @@ func run() error {
 	}
 	appConfig.Port = port
 
+	redisHost := os.Getenv("REDIS_HOST")
+	if redisHost == "" {
+		panic("empty redis host")
+	}
+	redisPort := os.Getenv("REDIS_PORT")
+	if redisPort == "" {
+		panic("empty redis port")
+	}
+	redisPassword := os.Getenv("REDIS_PASSWORD")
+	if redisPassword == "" {
+		panic("empty redis password")
+	}
+	redisCfg := redisConfig{
+		Port:     redisPort,
+		Host:     redisHost,
+		Password: redisPassword,
+	}
+
+	redisClient := redis.NewClient(&redis.Options{
+		Addr:     redisCfg.Host + ":" + redisCfg.Port,
+		Password: redisCfg.Password,
+	})
+
 	dbCfg := lookUpDatabaseConfig()
 
 	slog.SetDefault(slog.New(slog.NewTextHandler(os.Stderr, nil)))
 
-	pool, err := pgxpool.New(context.Background(), dbCfg.dsn)
-	if err != nil {
-		log.Fatal("ERROR: : " + err.Error())
-	} else {
-		slog.Info("Connected to postgres: %s", dbCfg.dsn)
+	queueURL := os.Getenv("QUEUE_URL")
+	if queueURL == "" {
+		panic("no QUEUE_URL is passed")
 	}
-	defer pool.Close()
+	conn, err := amqp.Dial(queueURL)
+	if err != nil {
+		panic(err)
+	}
+	ch, err := conn.Channel()
+	if err != nil {
+		panic(err)
+	}
 
 	db, err := sql.Open("pgx", dbCfg.dsn)
 	if err != nil {
@@ -120,7 +155,10 @@ func run() error {
 	db.SetMaxOpenConns(dbCfg.maxOpenConns)
 
 	userRepo := repo.NewUserRepo(db)
-	useCase := usecase.NewUserUsecase(userRepo)
+	sessionRepo := repo.NewSessionRepo(redisClient)
+	activationRepo := repo.NewActivationRepo(redisClient)
+	mailerRepo := repo.NewMailerQueue(ch)
+	useCase := usecase.NewUserUsecase(userRepo, sessionRepo, activationRepo, mailerRepo)
 	userDataHandler := delivery.NewUserEchoHandler(useCase)
 	authHandler := delivery.NewAuthEchoHandler(useCase)
 
@@ -146,9 +184,22 @@ func run() error {
 		TokenLookup: "cookie:Token",
 	}
 
+	// This middleware check the activated user sessions
+	authPlain := middleware2.AuthMiddlewareHandler{
+		SessionGetter:       useCase,
+		RequiredSessionType: models.PlainSession,
+	}
+
+	// This middleware check the non-activated users sessions
+	authActivation := middleware2.AuthMiddlewareHandler{
+		SessionGetter:       useCase,
+		RequiredSessionType: models.ActivationSession,
+	}
+
 	// Restricted group
 	authRouter := e.Group("/api/v1/auth")
-	commonRouter := e.Group("/api/v1/user", echojwt.WithConfig(config), middleware2.Auth)
+	commonRouter := e.Group("/api/v1/user",
+		echojwt.WithConfig(config), authPlain.Auth)
 
 	// Common API
 	// Get info about the user which calls the method.
@@ -169,7 +220,10 @@ func run() error {
 	authRouter.POST("/login", authHandler.Login)
 	// Log out method.
 	authRouter.DELETE("/logout", authHandler.Logout,
-		echojwt.WithConfig(config), middleware2.Auth)
+		echojwt.WithConfig(config), authPlain.Auth)
+	// Activate user after login
+	authRouter.POST("/activation", authHandler.Activate,
+		echojwt.WithConfig(config), authActivation.Auth)
 
 	go func() {
 		//TODO graceful shutdown + intercepting signals

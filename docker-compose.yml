@@ -70,12 +70,43 @@ services:
       DATABASE_MAX_IDLE_CONNS: "10"
       DATABASE_MAX_IDLE_TIME: "10m"
       GRPC_USERS_SERVER_PORT: ":50051"
+      REDIS_PORT: "6379"
+      REDIS_HOST: "db-user-data"
+      REDIS_PASSWORD: "${REDIS_PASSWORD}"
+      QUEUE_URL: "amqp://guest:guest@queue-user-data:5672/"
     command: ./user-data-service
     ports:
       - 8086:8086
       - 50051:50051
     depends_on:
       - db-user-data
+      - redis-user-data
+
+  mailer:
+    image: vr0009/our-little-chat:mailer
+    environment:
+      QUEUE_URL: "amqp://guest:guest@queue-user-data:5672/"
+      SMTP_HOST: ""
+      SMTP_USERNAME: ""
+      SMTP_PASSWORD: ""
+      SMTP_SENDER: ""
+      SMTP_PORT: ""
+
+  redis-user-data:
+    image: redis
+    restart: always
+    ports:
+      - 6378:6378
+    command: redis-server --save 20 1 --loglevel warning --requirepass test
+
+  queue-user-data:
+    image: rabbitmq
+    ports:
+      - 5672:5672
+      - 15672:15672
+#    volumes:
+#      - ~/.docker-conf/rabbitmq/data/:/var/lib/rabbitmq/
+#      - ~/.docker-conf/rabbitmq/log/:/var/log/rabbitmq
 
   db-peer:
     image: redis

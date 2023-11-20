@@ -1,0 +1,19 @@
+syntax = "proto3";
+
+package session;
+
+option go_package = "./session";
+
+service Session {
+  rpc GetSession(GetSessionRequest) returns (SessionResponse) {}
+}
+
+message GetSessionRequest {
+  string SessionID = 1;
+}
+
+message SessionResponse {
+  string SessionID = 1;
+  string UserID = 2;
+  string Type = 3;
+}

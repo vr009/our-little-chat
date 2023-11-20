@@ -13,7 +13,9 @@ import (
 	"log"
 	"os"
 	middleware2 "our-little-chatik/internal/middleware"
+	"our-little-chatik/internal/models"
 	"our-little-chatik/internal/pkg"
+	"our-little-chatik/internal/pkg/proto/session"
 	"our-little-chatik/internal/pkg/proto/users"
 	"strconv"
 	"time"
@@ -187,7 +189,12 @@ func run() error {
 		SigningKey:  []byte(key),
 		TokenLookup: "cookie:Token",
 	}
-	r.Use(echojwt.WithConfig(config), middleware2.Auth)
+
+	auth := middleware2.AuthMiddlewareHandler{
+		SessionGetter:       middleware2.NewDefaultGRPCSessionGetter(session.NewSessionClient(conn)),
+		RequiredSessionType: models.PlainSession,
+	}
+	r.Use(echojwt.WithConfig(config), auth.Auth)
 
 	chatRouter := r.Group("/chat")
 

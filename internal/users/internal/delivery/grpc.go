@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/google/uuid"
 	models2 "our-little-chatik/internal/models"
+	"our-little-chatik/internal/pkg/proto/session"
 	"our-little-chatik/internal/pkg/proto/users"
 	"our-little-chatik/internal/users/internal"
 	"our-little-chatik/internal/users/internal/models"
@@ -13,6 +14,7 @@ import (
 type UserGRPCHandler struct {
 	useCase internal.UserUsecase
 	users.UnimplementedUsersServer
+	session.UnimplementedSessionServer
 }
 
 func NewUserGRPCHandler(useCase internal.UserUsecase) *UserGRPCHandler {
@@ -37,5 +39,22 @@ func (h UserGRPCHandler) GetUser(ctx context.Context, request *users.GetUserRequ
 		Nickname:  user.Nickname,
 		Activated: user.Activated,
 		Avatar:    user.Avatar,
+	}, nil
+}
+
+func (h UserGRPCHandler) GetSession(ctx context.Context,
+	request *session.GetSessionRequest) (*session.SessionResponse, error) {
+	sessionID, err := uuid.Parse(request.SessionID)
+	if err != nil {
+		return nil, err
+	}
+	s, status := h.useCase.GetSession(models2.Session{ID: sessionID})
+	if status != models2.OK {
+		return nil, fmt.Errorf("failed to get user")
+	}
+	return &session.SessionResponse{
+		SessionID: s.ID.String(),
+		UserID:    s.UserID.String(),
+		Type:      s.Type,
 	}, nil
 }

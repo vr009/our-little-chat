@@ -6,7 +6,7 @@
 //	mockgen -source=internal/users/internal/interfaces.go -destination=internal/mocks/users/internal/interfaces.go
 //
 // Package mock_internal is a generated GoMock package.
-package users
+package mock_internal
 
 import (
 	models "our-little-chatik/internal/models"
@@ -37,6 +37,20 @@ func NewMockUserRepo(ctrl *gomock.Controller) *MockUserRepo {
 // EXPECT returns an object that allows the caller to indicate expected use.
 func (m *MockUserRepo) EXPECT() *MockUserRepoMockRecorder {
 	return m.recorder
+}
+
+// ActivateUser mocks base method.
+func (m *MockUserRepo) ActivateUser(user models.User) models.StatusCode {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ActivateUser", user)
+	ret0, _ := ret[0].(models.StatusCode)
+	return ret0
+}
+
+// ActivateUser indicates an expected call of ActivateUser.
+func (mr *MockUserRepoMockRecorder) ActivateUser(user any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ActivateUser", reflect.TypeOf((*MockUserRepo)(nil).ActivateUser), user)
 }
 
 // CreateUser mocks base method.
@@ -151,6 +165,20 @@ func (m *MockUserUsecase) EXPECT() *MockUserUsecaseMockRecorder {
 	return m.recorder
 }
 
+// ActivateUser mocks base method.
+func (m *MockUserUsecase) ActivateUser(session models.Session, code string) models.StatusCode {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ActivateUser", session, code)
+	ret0, _ := ret[0].(models.StatusCode)
+	return ret0
+}
+
+// ActivateUser indicates an expected call of ActivateUser.
+func (mr *MockUserUsecaseMockRecorder) ActivateUser(session, code any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ActivateUser", reflect.TypeOf((*MockUserUsecase)(nil).ActivateUser), session, code)
+}
+
 // DeactivateUser mocks base method.
 func (m *MockUserUsecase) DeactivateUser(user models.User) models.StatusCode {
 	m.ctrl.T.Helper()
@@ -180,6 +208,21 @@ func (mr *MockUserUsecaseMockRecorder) FindUsers(nickname any) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FindUsers", reflect.TypeOf((*MockUserUsecase)(nil).FindUsers), nickname)
 }
 
+// GetSession mocks base method.
+func (m *MockUserUsecase) GetSession(session models.Session) (models.Session, models.StatusCode) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetSession", session)
+	ret0, _ := ret[0].(models.Session)
+	ret1, _ := ret[1].(models.StatusCode)
+	return ret0, ret1
+}
+
+// GetSession indicates an expected call of GetSession.
+func (mr *MockUserUsecaseMockRecorder) GetSession(session any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetSession", reflect.TypeOf((*MockUserUsecase)(nil).GetSession), session)
+}
+
 // GetUser mocks base method.
 func (m *MockUserUsecase) GetUser(request models0.GetUserRequest) (models.User, models.StatusCode) {
 	m.ctrl.T.Helper()
@@ -196,10 +239,10 @@ func (mr *MockUserUsecaseMockRecorder) GetUser(request any) *gomock.Call {
 }
 
 // Login mocks base method.
-func (m *MockUserUsecase) Login(request models0.LoginRequest) (models.User, models.StatusCode) {
+func (m *MockUserUsecase) Login(request models0.LoginRequest) (models.Session, models.StatusCode) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Login", request)
-	ret0, _ := ret[0].(models.User)
+	ret0, _ := ret[0].(models.Session)
 	ret1, _ := ret[1].(models.StatusCode)
 	return ret0, ret1
 }
@@ -210,11 +253,25 @@ func (mr *MockUserUsecaseMockRecorder) Login(request any) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Login", reflect.TypeOf((*MockUserUsecase)(nil).Login), request)
 }
 
+// Logout mocks base method.
+func (m *MockUserUsecase) Logout(session models.Session) models.StatusCode {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Logout", session)
+	ret0, _ := ret[0].(models.StatusCode)
+	return ret0
+}
+
+// Logout indicates an expected call of Logout.
+func (mr *MockUserUsecaseMockRecorder) Logout(session any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Logout", reflect.TypeOf((*MockUserUsecase)(nil).Logout), session)
+}
+
 // SignUp mocks base method.
-func (m *MockUserUsecase) SignUp(request models0.SignUpPersonRequest) (models.User, models.StatusCode) {
+func (m *MockUserUsecase) SignUp(request models0.SignUpPersonRequest) (models.Session, models.StatusCode) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "SignUp", request)
-	ret0, _ := ret[0].(models.User)
+	ret0, _ := ret[0].(models.Session)
 	ret1, _ := ret[1].(models.StatusCode)
 	return ret0, ret1
 }
@@ -238,4 +295,161 @@ func (m *MockUserUsecase) UpdateUser(userToUpdate models.User, request models0.U
 func (mr *MockUserUsecaseMockRecorder) UpdateUser(userToUpdate, request any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateUser", reflect.TypeOf((*MockUserUsecase)(nil).UpdateUser), userToUpdate, request)
+}
+
+// MockSessionRepo is a mock of SessionRepo interface.
+type MockSessionRepo struct {
+	ctrl     *gomock.Controller
+	recorder *MockSessionRepoMockRecorder
+}
+
+// MockSessionRepoMockRecorder is the mock recorder for MockSessionRepo.
+type MockSessionRepoMockRecorder struct {
+	mock *MockSessionRepo
+}
+
+// NewMockSessionRepo creates a new mock instance.
+func NewMockSessionRepo(ctrl *gomock.Controller) *MockSessionRepo {
+	mock := &MockSessionRepo{ctrl: ctrl}
+	mock.recorder = &MockSessionRepoMockRecorder{mock}
+	return mock
+}
+
+// EXPECT returns an object that allows the caller to indicate expected use.
+func (m *MockSessionRepo) EXPECT() *MockSessionRepoMockRecorder {
+	return m.recorder
+}
+
+// CreateSession mocks base method.
+func (m *MockSessionRepo) CreateSession(user models.User, sessionType string) (models.Session, models.StatusCode) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CreateSession", user, sessionType)
+	ret0, _ := ret[0].(models.Session)
+	ret1, _ := ret[1].(models.StatusCode)
+	return ret0, ret1
+}
+
+// CreateSession indicates an expected call of CreateSession.
+func (mr *MockSessionRepoMockRecorder) CreateSession(user, sessionType any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateSession", reflect.TypeOf((*MockSessionRepo)(nil).CreateSession), user, sessionType)
+}
+
+// DeleteSession mocks base method.
+func (m *MockSessionRepo) DeleteSession(session models.Session) models.StatusCode {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DeleteSession", session)
+	ret0, _ := ret[0].(models.StatusCode)
+	return ret0
+}
+
+// DeleteSession indicates an expected call of DeleteSession.
+func (mr *MockSessionRepoMockRecorder) DeleteSession(session any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteSession", reflect.TypeOf((*MockSessionRepo)(nil).DeleteSession), session)
+}
+
+// GetSession mocks base method.
+func (m *MockSessionRepo) GetSession(session models.Session) (models.Session, models.StatusCode) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetSession", session)
+	ret0, _ := ret[0].(models.Session)
+	ret1, _ := ret[1].(models.StatusCode)
+	return ret0, ret1
+}
+
+// GetSession indicates an expected call of GetSession.
+func (mr *MockSessionRepoMockRecorder) GetSession(session any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetSession", reflect.TypeOf((*MockSessionRepo)(nil).GetSession), session)
+}
+
+// MockActivationRepo is a mock of ActivationRepo interface.
+type MockActivationRepo struct {
+	ctrl     *gomock.Controller
+	recorder *MockActivationRepoMockRecorder
+}
+
+// MockActivationRepoMockRecorder is the mock recorder for MockActivationRepo.
+type MockActivationRepoMockRecorder struct {
+	mock *MockActivationRepo
+}
+
+// NewMockActivationRepo creates a new mock instance.
+func NewMockActivationRepo(ctrl *gomock.Controller) *MockActivationRepo {
+	mock := &MockActivationRepo{ctrl: ctrl}
+	mock.recorder = &MockActivationRepoMockRecorder{mock}
+	return mock
+}
+
+// EXPECT returns an object that allows the caller to indicate expected use.
+func (m *MockActivationRepo) EXPECT() *MockActivationRepoMockRecorder {
+	return m.recorder
+}
+
+// CheckActivationCode mocks base method.
+func (m *MockActivationRepo) CheckActivationCode(session models.Session, activationCode string) (bool, models.StatusCode) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CheckActivationCode", session, activationCode)
+	ret0, _ := ret[0].(bool)
+	ret1, _ := ret[1].(models.StatusCode)
+	return ret0, ret1
+}
+
+// CheckActivationCode indicates an expected call of CheckActivationCode.
+func (mr *MockActivationRepoMockRecorder) CheckActivationCode(session, activationCode any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CheckActivationCode", reflect.TypeOf((*MockActivationRepo)(nil).CheckActivationCode), session, activationCode)
+}
+
+// CreateActivationCode mocks base method.
+func (m *MockActivationRepo) CreateActivationCode(session models.Session) (string, models.StatusCode) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CreateActivationCode", session)
+	ret0, _ := ret[0].(string)
+	ret1, _ := ret[1].(models.StatusCode)
+	return ret0, ret1
+}
+
+// CreateActivationCode indicates an expected call of CreateActivationCode.
+func (mr *MockActivationRepoMockRecorder) CreateActivationCode(session any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateActivationCode", reflect.TypeOf((*MockActivationRepo)(nil).CreateActivationCode), session)
+}
+
+// MockMailerRepo is a mock of MailerRepo interface.
+type MockMailerRepo struct {
+	ctrl     *gomock.Controller
+	recorder *MockMailerRepoMockRecorder
+}
+
+// MockMailerRepoMockRecorder is the mock recorder for MockMailerRepo.
+type MockMailerRepoMockRecorder struct {
+	mock *MockMailerRepo
+}
+
+// NewMockMailerRepo creates a new mock instance.
+func NewMockMailerRepo(ctrl *gomock.Controller) *MockMailerRepo {
+	mock := &MockMailerRepo{ctrl: ctrl}
+	mock.recorder = &MockMailerRepoMockRecorder{mock}
+	return mock
+}
+
+// EXPECT returns an object that allows the caller to indicate expected use.
+func (m *MockMailerRepo) EXPECT() *MockMailerRepoMockRecorder {
+	return m.recorder
+}
+
+// PutActivationTask mocks base method.
+func (m *MockMailerRepo) PutActivationTask(request models.ActivationTask) models.StatusCode {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "PutActivationTask", request)
+	ret0, _ := ret[0].(models.StatusCode)
+	return ret0
+}
+
+// PutActivationTask indicates an expected call of PutActivationTask.
+func (mr *MockMailerRepoMockRecorder) PutActivationTask(request any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PutActivationTask", reflect.TypeOf((*MockMailerRepo)(nil).PutActivationTask), request)
 }
